@@ -23,7 +23,7 @@ class GravityModal extends StatelessWidget {
           buttonSize: 60,
           imageUrl: 'https://cdn-icons-png.flaticon.com/512/3012/3012388.png',
         ),
-      GravityModalType.type2 => ModalType2(),
+      GravityModalType.type2 => ModalType2(imageUrl: 'https://cdn-icons-png.flaticon.com/512/3012/3012388.png'),
       GravityModalType.type3 => ModalType3(),
     };
   }

@@ -36,6 +36,7 @@ class MyHomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             _ModalButton(),
+            _ModalButton2(),
             _SnackBarButton(),
           ],
         ),
@@ -60,6 +61,26 @@ class _ModalButton extends StatelessWidget {
         );
       },
       child: Text('Show Modal'),
+    );
+  }
+}
+
+class _ModalButton2 extends StatelessWidget {
+  const _ModalButton2();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (context) {
+            final modal = GravitySDK().getModal(type: GravityModalType.type2);
+            return modal;
+          },
+        );
+      },
+      child: Text('Show Modal 2'),
     );
   }
 }
