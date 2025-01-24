@@ -35,20 +35,46 @@ class MyHomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            FilledButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return GravityModal(type: GravityModalType.type1);
-                  },
-                );
-              },
-              child: Text('Show Modal'),
-            ),
+            _ModalButton(),
+            _SnackBarButton(),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ModalButton extends StatelessWidget {
+  const _ModalButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (context) {
+            final modal = GravitySDK().getModal(type: GravityModalType.type1);
+            return modal;
+          },
+        );
+      },
+      child: Text('Show Modal'),
+    );
+  }
+}
+
+class _SnackBarButton extends StatelessWidget {
+  const _SnackBarButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () {
+        final snackBar = GravitySDK().getSnackBar(type: GravitySnackBarType.type1);
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      },
+      child: Text('Show SnackBar'),
     );
   }
 }
