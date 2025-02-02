@@ -30,6 +30,7 @@ class MyHomePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text('Gravity SDK Example'),
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Column(
@@ -38,6 +39,8 @@ class MyHomePage extends StatelessWidget {
             _ModalButton(),
             _ModalButton2(),
             _SnackBarButton(),
+            _BottomSheetButton(),
+            _FullScreenButton(),
           ],
         ),
       ),
@@ -96,6 +99,47 @@ class _SnackBarButton extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
       },
       child: Text('Show SnackBar'),
+    );
+  }
+}
+
+class _BottomSheetButton extends StatelessWidget {
+  const _BottomSheetButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () {
+        showModalBottomSheet(
+          context: context,
+          builder: (context) {
+            final bottomSheet = GravitySDK().getBottomSheet();
+            return bottomSheet;
+          },
+        );
+      },
+      child: Text('Show Bottom Sheet'),
+    );
+  }
+}
+
+class _FullScreenButton extends StatelessWidget {
+  const _FullScreenButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) {
+              final fullScreen = GravitySDK().getFullScreen();
+              return fullScreen;
+            },
+          ),
+        );
+      },
+      child: Text('Show Full Screen'),
     );
   }
 }
