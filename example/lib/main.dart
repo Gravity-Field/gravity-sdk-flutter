@@ -58,7 +58,7 @@ class _ModalButton extends StatelessWidget {
         showDialog(
           context: context,
           builder: (context) {
-            final modal = GravitySDK().getModal(type: GravityModalType.type1);
+            final modal = GravitySDK.instance.getModal(type: GravityModalType.type1);
             return modal;
           },
         );
@@ -78,7 +78,7 @@ class _ModalButton2 extends StatelessWidget {
         showDialog(
           context: context,
           builder: (context) {
-            final modal = GravitySDK().getModal(type: GravityModalType.type2);
+            final modal = GravitySDK.instance.getModal(type: GravityModalType.type2);
             return modal;
           },
         );
@@ -95,7 +95,7 @@ class _SnackBarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return FilledButton(
       onPressed: () {
-        final snackBar = GravitySDK().getSnackBar(type: GravitySnackBarType.type1);
+        final snackBar = GravitySDK.instance.getSnackBar(type: GravitySnackBarType.type1);
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
       },
       child: Text('Show SnackBar'),
@@ -113,7 +113,7 @@ class _BottomSheetButton extends StatelessWidget {
         showModalBottomSheet(
           context: context,
           builder: (context) {
-            final bottomSheet = GravitySDK().getBottomSheet();
+            final bottomSheet = GravitySDK.instance.getBottomSheet();
             return bottomSheet;
           },
         );
@@ -133,7 +133,7 @@ class _FullScreenButton extends StatelessWidget {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) {
-              final fullScreen = GravitySDK().getFullScreen();
+              final fullScreen = GravitySDK.instance.getFullScreen();
               return fullScreen;
             },
           ),

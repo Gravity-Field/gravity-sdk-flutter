@@ -6,6 +6,11 @@ import 'package:gravity_sdk/src/widgets/snackbar/snackbar.dart';
 import 'widgets/modal/modal.dart';
 
 class GravitySDK {
+
+  GravitySDK._();
+
+  static final GravitySDK instance = GravitySDK._();
+
   GravityModal getModal({required GravityModalType type}) {
     return GravityModal(type: type);
   }
