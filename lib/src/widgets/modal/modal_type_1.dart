@@ -1,115 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:gravity_sdk/src/widgets/modal/modal_data.dart';
 
 class ModalType1 extends StatelessWidget {
-  final double imageSize;
-  final double buttonSize;
-  final String imageUrl;
+  final ModalData data;
 
   const ModalType1({
     super.key,
-    required this.imageSize,
-    required this.buttonSize,
-    required this.imageUrl,
+    required this.data,
   });
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
       child: Stack(
         children: [
-          _Background(
-            imageSize: imageSize,
-            buttonSize: buttonSize,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _Content(data: data),
+              Divider(height: 1, thickness: 1,),
+              _Actions(),
+            ],
           ),
-          _Content(
-            imageSize: imageSize,
-            buttonSize: buttonSize,
-          ),
-          _Button(
-            buttonSize: buttonSize,
-          ),
-          _Image(
-            imageSize: imageSize,
-            imageUrl: imageUrl,
+          Positioned(
+            top: 12,
+            right: 12,
+            child: IconButton(
+              icon: Icon(Icons.close),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Background extends StatelessWidget {
-  final double imageSize;
-  final double buttonSize;
-
-  const _Background({
-    super.key,
-    required this.imageSize,
-    required this.buttonSize,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(height: imageSize / 2),
-        AspectRatio(
-          aspectRatio: 4 / 3,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ),
-        SizedBox(height: buttonSize / 2),
-      ],
     );
   }
 }
 
 class _Content extends StatelessWidget {
-  final double imageSize;
-  final double buttonSize;
+  final ModalData data;
 
-  const _Content({
-    super.key,
-    required this.imageSize,
-    required this.buttonSize,
-  });
+  const _Content({required this.data});
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      top: imageSize.toDouble(),
-      left: 0,
-      right: 0,
-      bottom: buttonSize.toDouble(),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: data.crossAxisAlignment,
         children: [
+          if (data.networkIcon != null)
+            SvgPicture.network(data.networkIcon!)
+          else if (data.assetsIcon != null)
+            SvgPicture.asset(data.assetsIcon!, package: 'gravity_sdk',),
+          SizedBox(height: 12),
           Text(
-            'Скидка 5% ',
-            textAlign: TextAlign.center,
+            data.title,
             style: TextStyle(
-              color: Colors.black,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF181d27),
             ),
           ),
-          SizedBox(
-            height: 8,
-          ),
+          SizedBox(height: 4),
           Text(
-            'Поздравляем! Для вас доступен промокод на первую покупку в Mindbox',
-            textAlign: TextAlign.center,
+            data.description,
             style: TextStyle(
-              color: Colors.grey,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+              color: Color(0xFF535862),
             ),
           ),
         ],
@@ -118,53 +80,28 @@ class _Content extends StatelessWidget {
   }
 }
 
-class _Button extends StatelessWidget {
-  final double buttonSize;
-
-  const _Button({super.key, required this.buttonSize});
+class _Actions extends StatelessWidget {
+  const _Actions();
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return Padding(
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 24, bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           FilledButton(
-            onPressed: () {},
-            style: ButtonStyle(fixedSize: WidgetStatePropertyAll(Size.fromHeight(buttonSize.toDouble()))),
-            child: Text('Получить промокод'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Скопировать'),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Image extends StatelessWidget {
-  final double imageSize;
-  final String imageUrl;
-
-  const _Image({
-    super.key,
-    required this.imageSize,
-    required this.imageUrl,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            height: imageSize.toDouble(),
-            child: Image.network(imageUrl),
+          SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Cancel'),
           ),
         ],
       ),
