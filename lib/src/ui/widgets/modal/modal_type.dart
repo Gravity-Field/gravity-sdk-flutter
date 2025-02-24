@@ -1,0 +1,3 @@
+enum ModalType {
+  type1,
+}

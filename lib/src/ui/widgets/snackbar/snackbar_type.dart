@@ -1,0 +1,3 @@
+enum SnackBarType {
+  type1,
+}

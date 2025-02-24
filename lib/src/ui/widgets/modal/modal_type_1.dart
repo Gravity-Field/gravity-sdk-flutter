@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:gravity_sdk/src/widgets/modal/modal_data.dart';
+
+import 'modal_data.dart';
 
 class ModalType1 extends StatelessWidget {
   final ModalData data;
