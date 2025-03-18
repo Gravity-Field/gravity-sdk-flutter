@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/src/models/delivery_type.dart';
 import 'package:gravity_sdk/src/repos/gravity_repo.dart';
-import 'package:gravity_sdk/src/ui/widgets/bottom_sheet/bottom_sheet.dart';
-import 'package:gravity_sdk/src/ui/widgets/bottom_sheet/bottom_sheet_data.dart';
-import 'package:gravity_sdk/src/ui/widgets/bottom_sheet/bottom_sheet_type.dart';
-import 'package:gravity_sdk/src/ui/widgets/snackbar/snackbar.dart';
-import 'package:gravity_sdk/src/ui/widgets/snackbar/snackbar_data.dart';
+import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet.dart';
+import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_data.dart';
+import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_type.dart';
+import 'package:gravity_sdk/src/ui/delivery_methods/snackbar/snackbar.dart';
+import 'package:gravity_sdk/src/ui/delivery_methods/snackbar/snackbar_data.dart';
 
-import 'ui/widgets/modal/modal.dart';
-import 'ui/widgets/modal/modal_data.dart';
-import 'ui/widgets/modal/modal_type.dart';
-import 'ui/widgets/snackbar/snackbar_type.dart';
+import 'models/content.dart';
+import 'ui/delivery_methods/modal/modal.dart';
+import 'ui/delivery_methods/modal/modal_data.dart';
+import 'ui/delivery_methods/modal/modal_from_content.dart';
+import 'ui/delivery_methods/modal/modal_type.dart';
+import 'ui/delivery_methods/snackbar/snackbar_type.dart';
 
 class GravitySDK {
   GlobalKey<NavigatorState>? navigatorKey;
@@ -26,26 +28,40 @@ class GravitySDK {
 
   Future<void> onAddToCartEvent(BuildContext context) async {
     await _repo.sendEvent();
-    final deliveryType = await _repo.getContent();
 
-    print('Delivery type = $deliveryType');
+    final response = await _repo.getContent('modal-template-1-elements');
 
-    switch (deliveryType) {
-      case DeliveryType.snackBar:
+    final content = response.data.first.payload.first.contents.first;
+
+    switch (content.deliveryMethod) {
+      case DeliveryMethod.modal:
         if (context.mounted) {
-          _showSnackBar(context);
+          _showModalContent(context, content);
         }
-      case DeliveryType.modal:
-        if (context.mounted) {
-          _showModal(context);
-        }
-      case DeliveryType.bottomSheet:
-        if (context.mounted) {
-          _showBottomSheet(context);
-        }
-      case DeliveryType.fullScreen:
-      case DeliveryType.inline:
+        break;
+      default:
     }
+
+    // final deliveryType = await _repo.getContent();
+    //
+    // print('Delivery type = $deliveryType');
+    //
+    // switch (deliveryType) {
+    //   case DeliveryType.snackBar:
+    //     if (context.mounted) {
+    //       _showSnackBar(context);
+    //     }
+    //   case DeliveryType.modal:
+    //     if (context.mounted) {
+    //       _showModal(context);
+    //     }
+    //   case DeliveryType.bottomSheet:
+    //     if (context.mounted) {
+    //       _showBottomSheet(context);
+    //     }
+    //   case DeliveryType.fullScreen:
+    //   case DeliveryType.inline:
+    // }
   }
 
   void _showSnackBar(BuildContext context) {
@@ -63,7 +79,7 @@ class GravitySDK {
     }
   }
 
-  void _showModal(BuildContext context) {
+  void _showModalDefault(BuildContext context) {
     final modalType = ModalType.type1;
     final modalData = ModalData(
       assetsIcon: 'assets/icons/circle_check.svg',
@@ -77,6 +93,19 @@ class GravitySDK {
         type: modalType,
         data: modalData,
       );
+
+      showDialog(
+        context: context,
+        builder: (context) {
+          return modal;
+        },
+      );
+    }
+  }
+
+  void _showModalContent(BuildContext context, Content content) {
+    if (context.mounted) {
+      final modal = ModalFromContent(content: content);
 
       showDialog(
         context: context,
