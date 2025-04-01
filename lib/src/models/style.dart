@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../utils/parse_utils.dart';
 
 class Style {
-  final Color? color;
+  final Color? backgroundColor;
   final Color? pressColor;
   final Color? outlineColor;
   final double? cornerRadius;
@@ -14,13 +14,16 @@ class Style {
   final GravityPadding? padding;
   final double? fontSize;
   final FontWeight? fontWeight;
+  final Color? textColor;
   final GravityTextStyle? textStyle;
   final BoxFit? fit;
   final GravityContentAlignment? contentAlignment;
   final GravityLayoutWidth? layoutWidth;
+  final GravityPositioned? positioned;
+
 
   Style({
-    this.color,
+    this.backgroundColor,
     this.pressColor,
     this.outlineColor,
     this.cornerRadius,
@@ -29,15 +32,17 @@ class Style {
     this.padding,
     this.fontSize,
     this.fontWeight,
+    this.textColor,
     this.textStyle,
     this.fit,
     this.contentAlignment,
     this.layoutWidth,
+    this.positioned,
   });
 
   factory Style.fromJson(Map<String, dynamic> json) {
     return Style(
-      color: ParseUtils.parseColor(json['color']),
+      backgroundColor: ParseUtils.parseColor(json['backgroundColor']),
       pressColor: ParseUtils.parseColor(json['pressColor']),
       outlineColor: ParseUtils.parseColor(json['outlineColor']),
       cornerRadius: ParseUtils.parseDimension(json['cornerRadius']),
@@ -46,10 +51,12 @@ class Style {
       padding: json['padding'] != null ? GravityPadding.fromJson(json['padding']) : null,
       fontSize: ParseUtils.parseFontSize(json['fontSize']),
       fontWeight: ParseUtils.parseFontWeight(json['fontWeight']),
-      textStyle: json['textStyle'] != null ? GravityTextStyle.fromJson(json['textStyle']) : null,
+      textColor: ParseUtils.parseColor(json['textColor']),
       fit: ParseUtils.parseBoxFit(json['fit']),
-      contentAlignment: json['contentAlignment'] != null ? GravityContentAlignment.fromString(json['contentAlignment']) : null,
+      contentAlignment:
+          json['contentAlignment'] != null ? GravityContentAlignment.fromString(json['contentAlignment']) : null,
       layoutWidth: json['layoutWidth'] != null ? GravityLayoutWidth.fromString(json['layoutWidth']) : null,
+      positioned: json['positioned'] != null ? GravityPositioned.fromJson(json['positioned']) : null,
     );
   }
 }
@@ -104,6 +111,24 @@ class GravityPadding {
   }
 }
 
+class GravityPositioned {
+  final double? left;
+  final double? right;
+  final double? top;
+  final double? bottom;
+
+  GravityPositioned({required this.left, required this.right, required this.top, required this.bottom});
+
+  factory GravityPositioned.fromJson(Map<String, dynamic> json) {
+    return GravityPositioned(
+      left: ParseUtils.parseDimension(json['left']),
+      right: ParseUtils.parseDimension(json['right']),
+      top: ParseUtils.parseDimension(json['top']),
+      bottom: ParseUtils.parseDimension(json['bottom']),
+    );
+  }
+}
+
 class GravityTextStyle {
   final double fontSize;
   final FontWeight fontWeight;
@@ -135,6 +160,17 @@ enum GravityContentAlignment {
         return GravityContentAlignment.end;
       default:
         return GravityContentAlignment.start;
+    }
+  }
+
+  CrossAxisAlignment toCrossAxisAlignment() {
+    switch (this) {
+      case GravityContentAlignment.start:
+        return CrossAxisAlignment.start;
+      case GravityContentAlignment.center:
+        return CrossAxisAlignment.center;
+      case GravityContentAlignment.end:
+        return CrossAxisAlignment.end;
     }
   }
 }

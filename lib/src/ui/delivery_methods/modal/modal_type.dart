@@ -1,3 +1,0 @@
-enum ModalType {
-  type1,
-}

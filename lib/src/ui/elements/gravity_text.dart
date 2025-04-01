@@ -23,7 +23,7 @@ class GravityText extends StatelessWidget {
       element.text ?? '',
       textAlign: textAlign,
       style: TextStyle(
-        color: style.color,
+        color: style.textColor,
         fontSize: style.fontSize,
         fontWeight: style.fontWeight,
       ),

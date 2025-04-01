@@ -1,3 +1,0 @@
-enum BottomSheetType {
-  type1,
-}

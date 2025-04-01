@@ -1,3 +1,5 @@
+import 'close.dart';
+import 'frame_ui.dart';
 import 'style.dart';
 import 'element.dart';
 
@@ -14,28 +16,3 @@ class Variables {
     );
   }
 }
-
-class FrameUI {
-  final Container container;
-
-  const FrameUI({
-    required this.container,
-  });
-
-  factory FrameUI.fromJson(Map<String, dynamic> json) {
-    return FrameUI(container: Container.fromJson(json['container']));
-  }
-}
-
-class Container {
-  final Style style;
-
-  Container({required this.style});
-
-  factory Container.fromJson(Map<String, dynamic> json) {
-    return Container(
-      style: Style.fromJson(json['style']),
-    );
-  }
-}
-

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 
 void main() {
-
   runApp(MyApp());
 }
 
@@ -13,7 +12,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     GravitySDK.instance.initialize(navigatorKey: navigatorKey);
 
     return MaterialApp(
@@ -43,12 +41,13 @@ class MyHomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            // _ModalButton(),
-            // _ModalButton2(),
+            _ModalButton1(),
+            _ModalButton2(),
+            _BottomSheetButton1(),
+
             // _SnackBarButton(),
-            // _BottomSheetButton(),
             // _FullScreenButton(),
-            _AddToCartEvent(),
+            // _AddToCartEvent(),
           ],
         ),
       ),
@@ -56,26 +55,57 @@ class MyHomePage extends StatelessWidget {
   }
 }
 
-// class _ModalButton extends StatelessWidget {
-//   const _ModalButton();
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return FilledButton(
-//       onPressed: () {
-//         showDialog(
-//           context: context,
-//           builder: (context) {
-//             final modal = GravitySDK.instance.getModal(type: GravityModalType.type1);
-//             return modal;
-//           },
-//         );
-//       },
-//       child: Text('Show Modal'),
-//     );
-//   }
-// }
-//
+class _ModalButton1 extends StatelessWidget {
+  const _ModalButton1();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () async {
+        final response = await GravitySDK.instance.getContent('modal-template-1');
+        if (context.mounted) {
+          GravitySDK.instance.showModalContent(context, response);
+        }
+      },
+      child: Text('Modal 1'),
+    );
+  }
+}
+
+class _ModalButton2 extends StatelessWidget {
+  const _ModalButton2();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () async {
+        final response = await GravitySDK.instance.getContent('modal-template-2');
+        if (context.mounted) {
+          GravitySDK.instance.showModalContent(context, response);
+        }
+      },
+      child: Text('Modal 2'),
+    );
+  }
+}
+
+class _BottomSheetButton1 extends StatelessWidget {
+  const _BottomSheetButton1();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () async {
+        final response = await GravitySDK.instance.getContent('bottom-sheet-template-1');
+        if (context.mounted) {
+          GravitySDK.instance.showBottomSheetContent(context, response);
+        }
+      },
+      child: Text('BottomSheet 1'),
+    );
+  }
+}
+
 // class _ModalButton2 extends StatelessWidget {
 //   const _ModalButton2();
 //
@@ -111,25 +141,7 @@ class MyHomePage extends StatelessWidget {
 //   }
 // }
 //
-// class _BottomSheetButton extends StatelessWidget {
-//   const _BottomSheetButton();
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return FilledButton(
-//       onPressed: () {
-//         showModalBottomSheet(
-//           context: context,
-//           builder: (context) {
-//             final bottomSheet = GravitySDK.instance.getBottomSheet();
-//             return bottomSheet;
-//           },
-//         );
-//       },
-//       child: Text('Show Bottom Sheet'),
-//     );
-//   }
-// }
+
 //
 // class _FullScreenButton extends StatelessWidget {
 //   const _FullScreenButton();
@@ -152,16 +164,16 @@ class MyHomePage extends StatelessWidget {
 //   }
 // }
 
-class _AddToCartEvent extends StatelessWidget {
-  const _AddToCartEvent();
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      onPressed: () {
-        GravitySDK.instance.onAddToCartEvent(context);
-      },
-      child: Text('Add to cart'),
-    );
-  }
-}
+// class _AddToCartEvent extends StatelessWidget {
+//   const _AddToCartEvent();
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return FilledButton(
+//       onPressed: () {
+//         GravitySDK.instance.onAddToCartEvent(context);
+//       },
+//       child: Text('Add to cart'),
+//     );
+//   }
+// }

@@ -16,7 +16,7 @@ class GravityButton extends StatelessWidget {
 
     final buttonWidget = FilledButton(
       style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.all(style.color),
+        backgroundColor: WidgetStateProperty.all(style.backgroundColor),
         overlayColor: WidgetStateProperty.all(style.pressColor),
         fixedSize: WidgetStateProperty.all(Size.fromHeight(style.size?.height ?? 48)),
       ),
