@@ -44,6 +44,7 @@ class MyHomePage extends StatelessWidget {
             _ModalButton1(),
             _ModalButton2(),
             _BottomSheetButton1(),
+            _BottomSheetBanner(),
 
             // _SnackBarButton(),
             // _FullScreenButton(),
@@ -102,6 +103,23 @@ class _BottomSheetButton1 extends StatelessWidget {
         }
       },
       child: Text('BottomSheet 1'),
+    );
+  }
+}
+
+class _BottomSheetBanner extends StatelessWidget {
+  const _BottomSheetBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () async {
+        final response = await GravitySDK.instance.getContent('bottom-sheet-banner');
+        if (context.mounted) {
+          GravitySDK.instance.showBottomSheetContent(context, response);
+        }
+      },
+      child: Text('BottomSheetBanner'),
     );
   }
 }

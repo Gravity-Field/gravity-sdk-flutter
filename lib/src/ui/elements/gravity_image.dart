@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gravity_sdk/src/models/style.dart';
 
 import '../../models/element.dart';
 
@@ -10,16 +11,21 @@ class GravityImageWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = element.style;
+    final layoutWidth = style.layoutWidth;
+
 
     final imageWidget = Image.network(
       element.src ?? '',
       fit: style.fit,
     );
+
+
+
     Widget outputWidget = imageWidget;
 
     if (style.size != null) {
       outputWidget = SizedBox(
-        width: style.size!.width,
+        width: layoutWidth == GravityLayoutWidth.matchParent ? double.infinity : style.size!.width,
         height: style.size!.height,
         child: imageWidget,
       );

@@ -62,15 +62,15 @@ class Style {
 }
 
 class GravitySize {
-  final double width;
-  final double height;
+  final double? width;
+  final double? height;
 
   GravitySize({required this.width, required this.height});
 
   factory GravitySize.fromJson(Map<String, dynamic> json) {
     return GravitySize(
-      width: ParseUtils.parseDimension(json['width']) ?? 0,
-      height: ParseUtils.parseDimension(json['height']) ?? 0,
+      width: ParseUtils.parseDimension(json['width']),
+      height: ParseUtils.parseDimension(json['height']),
     );
   }
 }
