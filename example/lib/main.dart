@@ -45,10 +45,8 @@ class MyHomePage extends StatelessWidget {
             _ModalButton2(),
             _BottomSheetButton1(),
             _BottomSheetBanner(),
-
-            // _SnackBarButton(),
-            // _FullScreenButton(),
-            // _AddToCartEvent(),
+            _FullScreenButton(),
+            _BottomSheetProducts(),
           ],
         ),
       ),
@@ -119,79 +117,42 @@ class _BottomSheetBanner extends StatelessWidget {
           GravitySDK.instance.showBottomSheetContent(context, response);
         }
       },
-      child: Text('BottomSheetBanner'),
+      child: Text('Bottom Sheet Banner'),
     );
   }
 }
 
-// class _ModalButton2 extends StatelessWidget {
-//   const _ModalButton2();
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return FilledButton(
-//       onPressed: () {
-//         showDialog(
-//           context: context,
-//           builder: (context) {
-//             final modal = GravitySDK.instance.getModal(type: GravityModalType.type2);
-//             return modal;
-//           },
-//         );
-//       },
-//       child: Text('Show Modal 2'),
-//     );
-//   }
-// }
-//
-// class _SnackBarButton extends StatelessWidget {
-//   const _SnackBarButton();
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return FilledButton(
-//       onPressed: () {
-//         final snackBar = GravitySDK.instance.getSnackBar(type: GravitySnackBarType.type1);
-//         ScaffoldMessenger.of(context).showSnackBar(snackBar);
-//       },
-//       child: Text('Show SnackBar'),
-//     );
-//   }
-// }
-//
+class _FullScreenButton extends StatelessWidget {
+  const _FullScreenButton();
 
-//
-// class _FullScreenButton extends StatelessWidget {
-//   const _FullScreenButton();
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return FilledButton(
-//       onPressed: () {
-//         Navigator.of(context).push(
-//           MaterialPageRoute(
-//             builder: (context) {
-//               final fullScreen = GravitySDK.instance.getFullScreen();
-//               return fullScreen;
-//             },
-//           ),
-//         );
-//       },
-//       child: Text('Show Full Screen'),
-//     );
-//   }
-// }
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () async {
+        final response = await GravitySDK.instance.getContent('fullscreen-banner');
+        if (context.mounted) {
+          GravitySDK.instance.showFullScreenContent(context, response);
+        }
+      },
+      child: Text('Show Full Screen'),
+    );
+  }
+}
 
-// class _AddToCartEvent extends StatelessWidget {
-//   const _AddToCartEvent();
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return FilledButton(
-//       onPressed: () {
-//         GravitySDK.instance.onAddToCartEvent(context);
-//       },
-//       child: Text('Add to cart'),
-//     );
-//   }
-// }
+class _BottomSheetProducts extends StatelessWidget {
+  const _BottomSheetProducts();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () async {
+        final response = await GravitySDK.instance.getContent('bottom-sheet-products-row');
+        if (context.mounted) {
+          // GravitySDK.instance.showBottomSheetContent(context, response);
+        }
+      },
+      child: Text('Bottom Sheet Products Row'),
+    );
+  }
+}
+

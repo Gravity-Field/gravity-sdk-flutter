@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:gravity_sdk/src/ui/elements/gravity_button.dart';
-import 'package:gravity_sdk/src/ui/elements/gravity_text.dart';
 
-import '../../models/element.dart';
-import 'gravity_image.dart';
+import '../models/element.dart';
+import '../ui/elements/gravity_button.dart';
+import '../ui/elements/gravity_image.dart';
+import '../ui/elements/gravity_text.dart';
 
-class GravityElementWidget extends StatelessWidget {
-  final GravityElement element;
-  const GravityElementWidget({super.key, required this.element});
-
-  @override
-  Widget build(BuildContext context) {
+class ElementUtils {
+  static Widget getWidget(GravityElement element) {
     switch (element.type) {
       case GravityElementType.image:
         return GravityImageWidget(element: element);
@@ -25,5 +21,3 @@ class GravityElementWidget extends StatelessWidget {
     }
   }
 }
-
-

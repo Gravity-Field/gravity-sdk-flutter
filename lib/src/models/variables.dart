@@ -4,14 +4,14 @@ import 'style.dart';
 import 'element.dart';
 
 class Variables {
-  final FrameUI frameUI;
+  final FrameUI? frameUI;
   final List<GravityElement> elements;
 
   Variables({required this.frameUI, required this.elements});
 
   factory Variables.fromJson(Map<String, dynamic> json) {
     return Variables(
-      frameUI: FrameUI.fromJson(json['frameUI']),
+      frameUI: json['margin'] != null ? FrameUI.fromJson(json['frameUI']) : null,
       elements: (json['elements'] as List).map((e) => GravityElement.fromJson(e)).toList(),
     );
   }

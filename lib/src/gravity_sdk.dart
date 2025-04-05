@@ -4,6 +4,7 @@ import 'data/content_response.dart';
 import 'models/delivery_type.dart';
 import 'repos/gravity_repo.dart';
 import 'ui/delivery_methods/bottom_sheet/bottom_sheet_from_content.dart';
+import 'ui/delivery_methods/full_screen/full_screen_from_content.dart';
 import 'ui/delivery_methods/modal/modal_from_content.dart';
 
 class GravitySDK {
@@ -60,7 +61,7 @@ class GravitySDK {
     if (context.mounted) {
       final bottomSheet = BottomSheetFromContent(content: content);
 
-      final frameUi = content.variables.frameUI;
+      final frameUi = content.variables.frameUI!;
       final container = frameUi.container;
 
       showModalBottomSheet(
@@ -79,28 +80,20 @@ class GravitySDK {
     }
   }
 
-// final deliveryType = await _repo.getContent();
-//
-// print('Delivery type = $deliveryType');
-//
-// switch (deliveryType) {
-//   case DeliveryType.snackBar:
-//     if (context.mounted) {
-//       _showSnackBar(context);
-//     }
-//   case DeliveryType.modal:
-//     if (context.mounted) {
-//       _showModal(context);
-//     }
-//   case DeliveryType.bottomSheet:
-//     if (context.mounted) {
-//       _showBottomSheet(context);
-//     }
-//   case DeliveryType.fullScreen:
-//   case DeliveryType.inline:
-// }
-//}
+  void showFullScreenContent(BuildContext context, ContentResponse contentResponse) {
+    final content = contentResponse.data.first.payload.first.contents.first;
 
+    if (context.mounted) {
+      final fullScreen = FullScreenFromContent(content: content);
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) {
+            return fullScreen;
+          },
+        ),
+      );
+    }
+  }
 // void _showSnackBar(BuildContext context) {
 //   final snackBarType = SnackBarType.type1;
 //   final snackBarData = SnackBarData(
@@ -115,56 +108,6 @@ class GravitySDK {
 //     ScaffoldMessenger.of(context).showSnackBar(snackBar.toMaterialSnackBar());
 //   }
 // }
-//
-// void _showModalDefault(BuildContext context) {
-//   final modalType = ModalType.type1;
-//   final modalData = ModalData(
-//     assetsIcon: 'assets/icons/circle_check.svg',
-//     title: 'Скидка 5% 🔥',
-//     description: 'Поздравляем! Для вас доступен промокод на первую покупку в Gravity Ads',
-//     crossAxisAlignment: CrossAxisAlignment.start,
-//   );
-//
-//   if (context.mounted) {
-//     final modal = GravityModal(
-//       type: modalType,
-//       data: modalData,
-//     );
-//
-//     showDialog(
-//       context: context,
-//       builder: (context) {
-//         return modal;
-//       },
-//     );
-//   }
-// }
-//
-//
-// void _showBottomSheet(BuildContext context) {
-//   final bottomSheetType = BottomSheetType.type1;
-//   final bottomSheetData = BottomSheetData(
-//     title: 'Осталось 3 дня!',
-//     text: 'Ваш промокод вот-вот сгорит — воспользуетесь?',
-//     circleIconBackground: Color(0xFFF0F0F0),
-//     circeIconAssetImage: 'assets/images/heart.png',
-//     buttonText: 'За покупками!',
-//     backgroundColor: Colors.white,
-//   );
-//
-//   if (context.mounted) {
-//     final bottomSheet = GravityBottomSheet(
-//       type: bottomSheetType,
-//       data: bottomSheetData,
-//     );
-//
-//     showModalBottomSheet(
-//       context: context,
-//       backgroundColor: bottomSheetData.backgroundColor,
-//       builder: (context) {
-//         return bottomSheet;
-//       },
-//     );
-//   }
-// }
+
+
 }

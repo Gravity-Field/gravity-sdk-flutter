@@ -10,7 +10,7 @@ class GravityButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = element.style;
+    final style = element.style!;
     final textStyle = style.textStyle;
     final layoutWidth = style.layoutWidth;
 

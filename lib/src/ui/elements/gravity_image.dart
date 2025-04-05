@@ -10,7 +10,7 @@ class GravityImageWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = element.style;
+    final style = element.style!;
     final layoutWidth = style.layoutWidth;
 
 

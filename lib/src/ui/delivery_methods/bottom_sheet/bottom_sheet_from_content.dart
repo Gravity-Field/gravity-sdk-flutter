@@ -11,7 +11,7 @@ class BottomSheetFromContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final frameUi = content.variables.frameUI;
+    final frameUi = content.variables.frameUI!;
     final container = frameUi.container;
     final close = frameUi.close;
     final elements = content.variables.elements;

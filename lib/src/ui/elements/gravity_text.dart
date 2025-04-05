@@ -10,7 +10,7 @@ class GravityText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = element.style;
+    final style = element.style!;
 
     final textAlign = switch (style.contentAlignment) {
       null => null,
