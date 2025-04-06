@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_grid.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
 
 import 'data/content_response.dart';
@@ -101,6 +102,33 @@ class GravitySDK {
 
     if (context.mounted) {
       final bottomSheet = BottomSheetProductsRow(content: content);
+
+      final frameUi = content.variables.frameUI;
+      final container = frameUi?.container;
+
+      showModalBottomSheet(
+        backgroundColor: container?.style.backgroundColor,
+        shape: container != null
+            ? RoundedRectangleBorder(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(container.style.cornerRadius ?? 0),
+                  topRight: Radius.circular(container.style.cornerRadius ?? 0),
+                ),
+              )
+            : null,
+        context: context,
+        builder: (context) {
+          return bottomSheet;
+        },
+      );
+    }
+  }
+
+  void showBottomSheetProductsGrid(BuildContext context, ContentResponse contentResponse) {
+    final content = contentResponse.data.first.payload.first.contents.first;
+
+    if (context.mounted) {
+      final bottomSheet = BottomSheetProductsGrid(content: content);
 
       final frameUi = content.variables.frameUI;
       final container = frameUi?.container;

@@ -45,8 +45,10 @@ class MyHomePage extends StatelessWidget {
             _ModalButton2(),
             _BottomSheetButton1(),
             _BottomSheetBanner(),
+            _BottomSheetProductsRow(),
+            _BottomSheetProductsGrid(),
             _FullScreenButton(),
-            _BottomSheetProducts(),
+
           ],
         ),
       ),
@@ -139,8 +141,8 @@ class _FullScreenButton extends StatelessWidget {
   }
 }
 
-class _BottomSheetProducts extends StatelessWidget {
-  const _BottomSheetProducts();
+class _BottomSheetProductsRow extends StatelessWidget {
+  const _BottomSheetProductsRow();
 
   @override
   Widget build(BuildContext context) {
@@ -152,6 +154,23 @@ class _BottomSheetProducts extends StatelessWidget {
         }
       },
       child: Text('Bottom Sheet Products Row'),
+    );
+  }
+}
+
+class _BottomSheetProductsGrid extends StatelessWidget {
+  const _BottomSheetProductsGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: () async {
+        final response = await GravitySDK.instance.getContent('bottom-sheet-products-grid-2');
+        if (context.mounted) {
+          GravitySDK.instance.showBottomSheetProductsGrid(context, response);
+        }
+      },
+      child: Text('Bottom Sheet Products Grid'),
     );
   }
 }
