@@ -18,6 +18,8 @@ class ElementUtils {
         return Spacer();
       case GravityElementType.unknown:
         return SizedBox.shrink();
+      case GravityElementType.productsContainer:
+        throw Exception('ProductContainer should be handled in the delivery method widget');
     }
   }
 }

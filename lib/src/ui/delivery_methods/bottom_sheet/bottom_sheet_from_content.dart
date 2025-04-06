@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gravity_sdk/src/models/style.dart';
 
 import '../../../models/content.dart';
-import '../../elements/gravity_element.dart';
+import '../../../utils/element_utils.dart';
 
 class BottomSheetFromContent extends StatelessWidget {
   final Content content;
@@ -38,7 +37,7 @@ class BottomSheetFromContent extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: elements
                     .map(
-                      (e) => GravityElementWidget(element: e),
+                      (e) => ElementUtils.getWidget(e),
                     )
                     .toList(),
               ),

@@ -148,7 +148,7 @@ class _BottomSheetProducts extends StatelessWidget {
       onPressed: () async {
         final response = await GravitySDK.instance.getContent('bottom-sheet-products-row');
         if (context.mounted) {
-          // GravitySDK.instance.showBottomSheetContent(context, response);
+          GravitySDK.instance.showBottomSheetProductsRow(context, response);
         }
       },
       child: Text('Bottom Sheet Products Row'),

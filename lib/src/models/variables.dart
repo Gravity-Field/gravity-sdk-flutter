@@ -11,7 +11,7 @@ class Variables {
 
   factory Variables.fromJson(Map<String, dynamic> json) {
     return Variables(
-      frameUI: json['margin'] != null ? FrameUI.fromJson(json['frameUI']) : null,
+      frameUI: json['frameUI'] != null ? FrameUI.fromJson(json['frameUI']) : null,
       elements: (json['elements'] as List).map((e) => GravityElement.fromJson(e)).toList(),
     );
   }

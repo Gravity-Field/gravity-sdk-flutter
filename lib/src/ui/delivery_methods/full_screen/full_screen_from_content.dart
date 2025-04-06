@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../models/content.dart';
 import '../../../utils/element_utils.dart';
-import '../../elements/gravity_element.dart';
 
 class FullScreenFromContent extends StatelessWidget {
   final Content content;
@@ -34,9 +33,7 @@ class FullScreenFromContent extends StatelessWidget {
                   mainAxisSize: MainAxisSize.max,
                   children: elements
                       .map(
-                        (e) => ElementUtils.getWidget(
-                          e,
-                        ),
+                        (e) => ElementUtils.getWidget(e),
                       )
                       .toList(),
                 ),

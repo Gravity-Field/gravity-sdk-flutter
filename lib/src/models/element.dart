@@ -5,6 +5,7 @@ enum GravityElementType {
   text,
   button,
   spacer,
+  productsContainer,
   unknown;
 
   static GravityElementType fromString(String type) {
@@ -17,6 +18,8 @@ enum GravityElementType {
         return GravityElementType.button;
       case 'spacer':
         return GravityElementType.spacer;
+      case 'products-container':
+        return GravityElementType.productsContainer;
       default:
         return GravityElementType.unknown;
     }

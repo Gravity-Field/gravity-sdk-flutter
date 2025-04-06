@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gravity_sdk/src/ui/elements/gravity_element.dart';
 
 import '../../../models/content.dart';
+import '../../../utils/element_utils.dart';
 
 class ModalFromContent extends StatelessWidget {
   final Content content;
@@ -33,7 +33,7 @@ class ModalFromContent extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: elements
                   .map(
-                    (e) => GravityElementWidget(element: e),
+                    (e) => ElementUtils.getWidget(e)
                   )
                   .toList(),
             ),
