@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
+import 'package:gravity_sdk/src/models/slot.dart';
 
 void main() {
   runApp(MyApp());
+}
+
+class CustomProductWidgetBuilder extends ProductWidgetBuilder {
+  @override
+  Widget build(Slot product, BuildContext context) {
+    return Container(
+      width: 20,
+      color: Colors.amber,
+      height: 20,
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -12,7 +24,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    GravitySDK.instance.initialize(navigatorKey: navigatorKey);
+    GravitySDK.instance.initialize(
+      navigatorKey: navigatorKey,
+      // productWidgetBuilder: CustomProductWidgetBuilder(),
+    );
 
     return MaterialApp(
       navigatorKey: navigatorKey,
@@ -48,7 +63,6 @@ class MyHomePage extends StatelessWidget {
             _BottomSheetProductsRow(),
             _BottomSheetProductsGrid(),
             _FullScreenButton(),
-
           ],
         ),
       ),
@@ -174,4 +188,3 @@ class _BottomSheetProductsGrid extends StatelessWidget {
     );
   }
 }
-

@@ -1,18 +1,13 @@
 class Event {
-  final String type;
+  final String name;
   final List<String> urls;
 
-  Event({required this.type, required this.urls});
+  Event({required this.name, required this.urls});
 
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
-      type: json['type'],
+      name: json['name'],
       urls: List<String>.from(json['urls']),
     );
   }
-
-  Map<String, dynamic> toJson() => {
-        'type': type,
-        'urls': urls,
-      };
 }

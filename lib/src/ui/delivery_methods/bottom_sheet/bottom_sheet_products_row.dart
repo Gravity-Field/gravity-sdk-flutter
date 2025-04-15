@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gravity_sdk/src/models/products.dart';
-import 'package:gravity_sdk/src/ui/widgets/product.dart';
+import 'package:gravity_sdk/src/settings/product_widget_builder.dart';
 
 import '../../../models/content.dart';
 import '../../../models/element.dart';
@@ -9,10 +8,12 @@ import '../../widgets/close_button.dart';
 
 class BottomSheetProductsRow extends StatelessWidget {
   final Content content;
+  final ProductWidgetBuilder productWidgetBuilder;
 
   const BottomSheetProductsRow({
     super.key,
     required this.content,
+    required this.productWidgetBuilder,
   });
 
   @override
@@ -45,9 +46,22 @@ class BottomSheetProductsRow extends StatelessWidget {
                     if (products == null) {
                       return const SizedBox.shrink();
                     }
-                    return _ProductsRow(
-                      element: e,
-                      products: products,
+                    return SizedBox(
+                      height: e.style?.size?.height,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        scrollDirection: Axis.horizontal,
+                        itemCount: products.slots.length,
+                        itemBuilder: (context, index) {
+                          final slot = products.slots[index];
+                          return productWidgetBuilder.build(slot, context);
+                        },
+                        separatorBuilder: (context, index) {
+                          return const SizedBox(
+                            width: 8,
+                          );
+                        },
+                      ),
                     );
                   } else {
                     return ElementUtils.getWidget(e);
@@ -58,40 +72,6 @@ class BottomSheetProductsRow extends StatelessWidget {
           ),
           if (close != null) GravityCloseButtonWidget(close: close)
         ],
-      ),
-    );
-  }
-}
-
-class _ProductsRow extends StatelessWidget {
-  final GravityElement element;
-  final Products products;
-
-  const _ProductsRow({
-    super.key,
-    required this.element,
-    required this.products,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 210,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: products.slots.length,
-        itemBuilder: (context, index) {
-          final slot = products.slots[index];
-          return GravityProductWidget(
-            slot: slot,
-          );
-        },
-        separatorBuilder: (context, index) {
-          return const SizedBox(
-            width: 8,
-          );
-        },
       ),
     );
   }

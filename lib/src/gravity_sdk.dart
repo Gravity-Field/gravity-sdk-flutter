@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gravity_sdk/src/settings/product_widget_builder.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_grid.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
 
@@ -10,15 +11,21 @@ import 'ui/delivery_methods/full_screen/full_screen_from_content.dart';
 import 'ui/delivery_methods/modal/modal_from_content.dart';
 
 class GravitySDK {
-  GlobalKey<NavigatorState>? navigatorKey;
   final _repo = GravityRepo();
+
+  GlobalKey<NavigatorState>? navigatorKey;
+  ProductWidgetBuilder? productWidgetBuilder;
 
   GravitySDK._();
 
   static final GravitySDK instance = GravitySDK._();
 
-  void initialize({GlobalKey<NavigatorState>? navigatorKey}) {
+  void initialize({
+    GlobalKey<NavigatorState>? navigatorKey,
+    ProductWidgetBuilder? productWidgetBuilder,
+  }) {
     this.navigatorKey = navigatorKey;
+    this.productWidgetBuilder = productWidgetBuilder;
   }
 
   Future<void> onAddToCartEvent(BuildContext context) async {
@@ -101,7 +108,11 @@ class GravitySDK {
     final content = contentResponse.data.first.payload.first.contents.first;
 
     if (context.mounted) {
-      final bottomSheet = BottomSheetProductsRow(content: content);
+
+      final bottomSheet = BottomSheetProductsRow(
+        content: content,
+        productWidgetBuilder: productWidgetBuilder ?? DefaultProductWidgetBuilder(),
+      );
 
       final frameUi = content.variables.frameUI;
       final container = frameUi?.container;
