@@ -14,7 +14,7 @@ class GravitySDK {
   final _repo = GravityRepo();
 
   GlobalKey<NavigatorState>? navigatorKey;
-  ProductWidgetBuilder? productWidgetBuilder;
+  ProductWidgetBuilder productWidgetBuilder = DefaultProductWidgetBuilder();
 
   GravitySDK._();
 
@@ -25,7 +25,7 @@ class GravitySDK {
     ProductWidgetBuilder? productWidgetBuilder,
   }) {
     this.navigatorKey = navigatorKey;
-    this.productWidgetBuilder = productWidgetBuilder;
+    this.productWidgetBuilder = productWidgetBuilder ?? DefaultProductWidgetBuilder();
   }
 
   Future<void> onAddToCartEvent(BuildContext context) async {
@@ -108,11 +108,7 @@ class GravitySDK {
     final content = contentResponse.data.first.payload.first.contents.first;
 
     if (context.mounted) {
-
-      final bottomSheet = BottomSheetProductsRow(
-        content: content,
-        productWidgetBuilder: productWidgetBuilder ?? DefaultProductWidgetBuilder(),
-      );
+      final bottomSheet = BottomSheetProductsRow(content: content);
 
       final frameUi = content.variables.frameUI;
       final container = frameUi?.container;

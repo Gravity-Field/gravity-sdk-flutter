@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/models/slot.dart';
 
+import 'inline_screen.dart';
+
 void main() {
   runApp(MyApp());
 }
@@ -56,16 +58,39 @@ class MyHomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            _InlineButton(),
+            SizedBox(height: 32),
             _ModalButton1(),
             _ModalButton2(),
             _BottomSheetButton1(),
             _BottomSheetBanner(),
             _BottomSheetProductsRow(),
-            _BottomSheetProductsGrid(),
+            // _BottomSheetProductsGrid(),
             _FullScreenButton(),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _InlineButton extends StatelessWidget {
+  const _InlineButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(Colors.green),
+      ),
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const InlineScreen(),
+          ),
+        );
+      },
+      child: Text('Go To Inline'),
     );
   }
 }

@@ -8,12 +8,10 @@ import '../../widgets/close_button.dart';
 
 class BottomSheetProductsRow extends StatelessWidget {
   final Content content;
-  final ProductWidgetBuilder productWidgetBuilder;
 
   const BottomSheetProductsRow({
     super.key,
     required this.content,
-    required this.productWidgetBuilder,
   });
 
   @override
@@ -42,30 +40,7 @@ class BottomSheetProductsRow extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: elements.map(
                 (e) {
-                  if (e.type == GravityElementType.productsContainer) {
-                    if (products == null) {
-                      return const SizedBox.shrink();
-                    }
-                    return SizedBox(
-                      height: e.style?.size?.height,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        scrollDirection: Axis.horizontal,
-                        itemCount: products.slots.length,
-                        itemBuilder: (context, index) {
-                          final slot = products.slots[index];
-                          return productWidgetBuilder.build(slot, context);
-                        },
-                        separatorBuilder: (context, index) {
-                          return const SizedBox(
-                            width: 8,
-                          );
-                        },
-                      ),
-                    );
-                  } else {
-                    return ElementUtils.getWidget(e);
-                  }
+                  return ElementUtils.getWidget(e, products: products);
                 },
               ).toList(),
             ),
