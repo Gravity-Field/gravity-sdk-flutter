@@ -23,4 +23,8 @@ class Api {
     final response = await _dio.post('/choose', queryParameters: {'templateId': templateId});
     return ContentResponse.fromJson(response.data);
   }
+
+  Future<void> triggerEventUrl(String url) async {
+    await _dio.get(url);
+  }
 }

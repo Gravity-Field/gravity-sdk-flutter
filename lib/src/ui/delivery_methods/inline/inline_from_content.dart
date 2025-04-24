@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/content.dart';
-import '../../../utils/element_utils.dart';
+import '../../elements/gravity_element.dart';
 
 class InlineFromContent extends StatelessWidget {
   final Content content;
@@ -14,6 +14,7 @@ class InlineFromContent extends StatelessWidget {
     final container = frameUi?.container;
     final elements = content.variables.elements;
     final products = content.products;
+    final events = content.events;
 
     return Container(
       decoration: BoxDecoration(
@@ -31,7 +32,7 @@ class InlineFromContent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: elements
               .map(
-                (e) => ElementUtils.getWidget(e, products: products),
+                (e) => GravityElement(element: e, events: events, products: products).getWidget(),
               )
               .toList(),
         ),

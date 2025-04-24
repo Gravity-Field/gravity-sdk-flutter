@@ -3,7 +3,6 @@ import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_from_content.dart';
 
 import '../../models/content.dart';
-import '../../utils/element_utils.dart';
 
 class GravityInlineWidget extends StatefulWidget {
   final String templateId;

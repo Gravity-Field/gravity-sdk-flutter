@@ -1,6 +1,7 @@
 import 'style.dart';
+import 'action.dart';
 
-enum GravityElementType {
+enum ElementType {
   image,
   text,
   button,
@@ -8,39 +9,46 @@ enum GravityElementType {
   productsContainer,
   unknown;
 
-  static GravityElementType fromString(String type) {
+  static ElementType fromString(String type) {
     switch (type) {
       case 'image':
-        return GravityElementType.image;
+        return ElementType.image;
       case 'text':
-        return GravityElementType.text;
+        return ElementType.text;
       case 'button':
-        return GravityElementType.button;
+        return ElementType.button;
       case 'spacer':
-        return GravityElementType.spacer;
+        return ElementType.spacer;
       case 'products-container':
-        return GravityElementType.productsContainer;
+        return ElementType.productsContainer;
       default:
-        return GravityElementType.unknown;
+        return ElementType.unknown;
     }
   }
 }
 
-class GravityElement {
-  final GravityElementType type;
+class Element {
+  final ElementType type;
   final String? text;
   final String? src;
   final Style? style;
+  final Action? onClick;
 
-  GravityElement({required this.type, this.text, this.src, required this.style});
+  Element({
+    required this.type,
+    this.text,
+    this.src,
+    required this.style,
+    this.onClick,
+  });
 
-  factory GravityElement.fromJson(Map<String, dynamic> json) {
-    return GravityElement(
-      type: GravityElementType.fromString(json['type']),
+  factory Element.fromJson(Map<String, dynamic> json) {
+    return Element(
+      type: ElementType.fromString(json['type']),
       text: json['text'],
       src: json['src'],
       style: json['style'] != null ? Style.fromJson(json['style']) : null,
-      // style: Style.fromJson(json['style']),
+      onClick: json['onClick'] != null ? Action.fromJson(json['onClick']) : null,
     );
   }
 }

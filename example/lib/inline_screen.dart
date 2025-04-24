@@ -13,6 +13,8 @@ class InlineScreen extends StatelessWidget {
       body: Column(
         children: [
           GravityInlineWidget(
+            width: 200,
+            height: 200,
             templateId: 'bottom-sheet-banner',
           ),
           SizedBox(height: 36,),

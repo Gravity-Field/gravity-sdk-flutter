@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'package:gravity_sdk/src/ui/elements/gravity_element.dart';
 import '../../../models/content.dart';
-import '../../../utils/element_utils.dart';
 
 class ModalFromContent extends StatelessWidget {
   final Content content;
@@ -14,6 +13,7 @@ class ModalFromContent extends StatelessWidget {
     final container = frameUi.container;
     final close = frameUi.close;
     final elements = content.variables.elements;
+    final events = content.events;
 
     return Dialog(
       backgroundColor: container.style.backgroundColor ?? Colors.white,
@@ -33,7 +33,7 @@ class ModalFromContent extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: elements
                   .map(
-                    (e) => ElementUtils.getWidget(e)
+                    (e) => GravityElement(element: e, events: events).getWidget(),
                   )
                   .toList(),
             ),

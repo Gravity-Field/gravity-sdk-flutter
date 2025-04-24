@@ -197,19 +197,4 @@ class _BottomSheetProductsRow extends StatelessWidget {
   }
 }
 
-class _BottomSheetProductsGrid extends StatelessWidget {
-  const _BottomSheetProductsGrid();
 
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      onPressed: () async {
-        final response = await GravitySDK.instance.getContent('bottom-sheet-products-grid-2');
-        if (context.mounted) {
-          GravitySDK.instance.showBottomSheetProductsGrid(context, response);
-        }
-      },
-      child: Text('Bottom Sheet Products Grid'),
-    );
-  }
-}

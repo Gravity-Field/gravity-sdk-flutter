@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gravity_sdk/src/settings/product_widget_builder.dart';
 
 import '../../../models/content.dart';
-import '../../../models/element.dart';
-import '../../../utils/element_utils.dart';
+import '../../elements/gravity_element.dart';
 import '../../widgets/close_button.dart';
 
 class BottomSheetProductsRow extends StatelessWidget {
@@ -21,6 +19,7 @@ class BottomSheetProductsRow extends StatelessWidget {
     final close = frameUi?.close;
     final elements = content.variables.elements;
     final products = content.products;
+    final events = content.events;
 
     return SafeArea(
       child: Stack(
@@ -38,11 +37,11 @@ class BottomSheetProductsRow extends StatelessWidget {
               crossAxisAlignment:
                   container?.style.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
-              children: elements.map(
-                (e) {
-                  return ElementUtils.getWidget(e, products: products);
-                },
-              ).toList(),
+              children: elements
+                  .map(
+                    (e) => GravityElement(element: e, events: events, products: products).getWidget(),
+                  )
+                  .toList(),
             ),
           ),
           if (close != null) GravityCloseButtonWidget(close: close)

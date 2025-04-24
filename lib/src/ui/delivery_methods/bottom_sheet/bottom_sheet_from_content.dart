@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/content.dart';
-import '../../../utils/element_utils.dart';
+import '../../elements/gravity_element.dart';
 
 class BottomSheetFromContent extends StatelessWidget {
   final Content content;
@@ -15,13 +15,17 @@ class BottomSheetFromContent extends StatelessWidget {
     final close = frameUi.close;
     final elements = content.variables.elements;
     final isBanner = content.contentType == 'banner';
+    final products = content.products;
+    final events = content.events;
 
     return SafeArea(
       child: ClipRRect(
-        borderRadius: isBanner ? BorderRadius.only(
-          topLeft: Radius.circular(container.style.cornerRadius ?? 0),
-          topRight: Radius.circular(container.style.cornerRadius ?? 0),
-        ) : BorderRadius.zero,
+        borderRadius: isBanner
+            ? BorderRadius.only(
+                topLeft: Radius.circular(container.style.cornerRadius ?? 0),
+                topRight: Radius.circular(container.style.cornerRadius ?? 0),
+              )
+            : BorderRadius.zero,
         child: Stack(
           children: [
             Padding(
@@ -37,7 +41,7 @@ class BottomSheetFromContent extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: elements
                     .map(
-                      (e) => ElementUtils.getWidget(e),
+                      (e) => GravityElement(element: e, events: events).getWidget(),
                     )
                     .toList(),
               ),
