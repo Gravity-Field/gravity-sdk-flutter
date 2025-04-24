@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:gravity_sdk/src/ui/elements/gravity_element.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../../../models/content.dart';
-import '../../../utils/events_service.dart';
+import '../../../utils/content_events_service.dart';
+import '../../../utils/element_events_handler.dart';
+import '../../widgets/close_button.dart';
 
 class ModalFromContent extends StatefulWidget {
   final Content content;
@@ -14,9 +16,13 @@ class ModalFromContent extends StatefulWidget {
 }
 
 class _ModalFromContentState extends State<ModalFromContent> {
+  late final ElementEventsHandler eventsHandler;
+
   @override
   void initState() {
     super.initState();
+
+    eventsHandler = ElementEventsHandler(widget.content.events);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ContentEventsService.instance.sendContentImpression(widget.content);
@@ -58,27 +64,22 @@ class _ModalFromContentState extends State<ModalFromContent> {
                 mainAxisSize: MainAxisSize.min,
                 children: elements
                     .map(
-                      (e) => GravityElement(element: e, events: events).getWidget(),
+                      (e) => GravityElement(
+                        element: e,
+                        onAction: (action) => eventsHandler.handleAction(action),
+                      ).getWidget(),
                     )
                     .toList(),
               ),
             ),
             if (close != null)
-              Positioned(
-                left: close.style.positioned?.left,
-                top: close.style.positioned?.top,
-                right: close.style.positioned?.right,
-                bottom: close.style.positioned?.bottom,
-                child: IconButton(
-                  icon: close.image != null
-                      ? Image.network(close.image!, width: close.style.size?.width, height: close.style.size?.height)
-                      : Icon(Icons.close),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    ContentEventsService.instance.sendContentClosed(widget.content);
-                  },
-                ),
-              ),
+              GravityCloseButtonWidget(
+                close: close,
+                onAction: (action) => eventsHandler.handleAction(action),
+                // onClosePressed: () {
+                //   ContentEventsService.instance.sendContentClosed(widget.content);
+                // },
+              )
           ],
         ),
       ),

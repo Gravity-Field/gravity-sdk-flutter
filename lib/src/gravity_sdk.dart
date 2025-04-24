@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/src/settings/product_widget_builder.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
-import 'package:gravity_sdk/src/utils/events_service.dart';
+import 'package:gravity_sdk/src/utils/content_events_service.dart';
 
 import 'data/content_response.dart';
 import 'repos/gravity_repo.dart';

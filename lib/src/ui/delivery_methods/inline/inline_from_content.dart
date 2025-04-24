@@ -1,20 +1,40 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/content.dart';
+import '../../../utils/content_events_service.dart';
+import '../../../utils/element_events_handler.dart';
 import '../../elements/gravity_element.dart';
 
-class InlineFromContent extends StatelessWidget {
+class InlineFromContent extends StatefulWidget {
   final Content content;
 
   const InlineFromContent({super.key, required this.content});
 
   @override
+  State<InlineFromContent> createState() => _InlineFromContentState();
+}
+
+class _InlineFromContentState extends State<InlineFromContent> {
+  late final ElementEventsHandler eventsHandler;
+
+  @override
+  void initState() {
+    super.initState();
+
+    eventsHandler = ElementEventsHandler(widget.content.events);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ContentEventsService.instance.sendContentImpression(widget.content);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final frameUi = content.variables.frameUI;
+    final frameUi = widget.content.variables.frameUI;
     final container = frameUi?.container;
-    final elements = content.variables.elements;
-    final products = content.products;
-    final events = content.events;
+    final elements = widget.content.variables.elements;
+    final products = widget.content.products;
+    final events = widget.content.events;
 
     return Container(
       decoration: BoxDecoration(
@@ -32,7 +52,11 @@ class InlineFromContent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: elements
               .map(
-                (e) => GravityElement(element: e, events: events, products: products).getWidget(),
+                (e) => GravityElement(
+                  element: e,
+                  products: products,
+                  onAction: (action) => eventsHandler.handleAction(action),
+                ).getWidget(),
               )
               .toList(),
         ),
