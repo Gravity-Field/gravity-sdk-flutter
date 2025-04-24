@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/src/settings/product_widget_builder.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
+import 'package:gravity_sdk/src/utils/events_service.dart';
 
 import 'data/content_response.dart';
 import 'repos/gravity_repo.dart';
@@ -24,8 +25,18 @@ class GravitySDK {
     this.productWidgetBuilder = productWidgetBuilder ?? DefaultProductWidgetBuilder();
   }
 
-  Future<ContentResponse> getContent(String template) {
-    return GravityRepo.instance.getContent(template);
+  Future<ContentResponse> getContent(String template) async {
+    final content = await GravityRepo.instance.getContent(template);
+
+    for (final data in content.data) {
+      for (final payload in data.payload) {
+        for (final content in payload.contents) {
+          EventsService.sendContentLoaded(content);
+        }
+      }
+    }
+
+    return content;
   }
 
   void showModalContent(BuildContext context, ContentResponse contentResponse) {
