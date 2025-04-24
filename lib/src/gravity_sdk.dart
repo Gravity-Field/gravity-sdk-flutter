@@ -31,7 +31,7 @@ class GravitySDK {
     for (final data in content.data) {
       for (final payload in data.payload) {
         for (final content in payload.contents) {
-          EventsService.sendContentLoaded(content);
+          ContentEventsService.instance.sendContentLoaded(content);
         }
       }
     }

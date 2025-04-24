@@ -19,7 +19,7 @@ class GravityRepo {
   Future<void> triggerEventUrls(List<String> urls) async {
     for (final url in urls) {
       try {
-        await _api.triggerEventUrl(url);
+        _api.triggerEventUrl(url);
       } catch (e) {
         print(e);
       }
