@@ -1,3 +1,4 @@
+import 'package:example/visit_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 
@@ -60,6 +61,7 @@ class MyHomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             _InlineButton(),
+            _VisitButton(),
             SizedBox(height: 32),
             _ModalButton1(),
             _ModalButton2(),
@@ -92,6 +94,27 @@ class _InlineButton extends StatelessWidget {
         );
       },
       child: Text('Go To Inline'),
+    );
+  }
+}
+
+class _VisitButton extends StatelessWidget {
+  const _VisitButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(Colors.green),
+      ),
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const VisitScreen(),
+          ),
+        );
+      },
+      child: Text('Go To Visit'),
     );
   }
 }

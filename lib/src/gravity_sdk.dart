@@ -41,7 +41,7 @@ class GravitySDK {
     );
   }
 
-  Future<void> visit(PageContext context) async {
+  Future<void> visit({required PageContext context}) async {
     await GravityRepo.instance.visit(user, context);
   }
 

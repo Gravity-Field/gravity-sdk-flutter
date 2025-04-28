@@ -17,7 +17,10 @@ class Api {
       ..sendTimeout = const Duration(seconds: 30);
 
     if (kDebugMode) {
-      _dio.interceptors.add(PrettyDioLogger());
+      _dio.interceptors.add(PrettyDioLogger(
+        requestBody: true,
+        requestHeader: true,
+      ));
     }
   }
 

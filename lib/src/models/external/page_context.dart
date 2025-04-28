@@ -1,3 +1,8 @@
+import 'package:json_annotation/json_annotation.dart';
+
+part 'page_context.g.dart';
+
+@JsonEnum()
 enum ContextType {
   homepage,
   product,
@@ -7,12 +12,11 @@ enum ContextType {
   other;
 }
 
+@JsonSerializable(createToJson: true)
 class PageContext {
   final ContextType type;
 
   PageContext(this.type);
 
-  Map<String, dynamic> toJson() => {
-        'type': type.toString(),
-      };
+  Map<String, dynamic> toJson() => _$PageContextToJson(this);
 }
