@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' hide Element;
-import 'package:gravity_sdk/src/models/style.dart';
 
-import '../../models/element.dart';
+import '../../models/internal/element.dart';
+import '../../models/internal/style.dart';
 
 class GravityImageWidget extends StatelessWidget {
   final Element element;

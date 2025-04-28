@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart' hide Action, Element;
 
-import '../../models/element.dart';
-import '../../models/style.dart';
-import '../../models/action.dart';
+import '../../models/internal/element.dart';
+import '../../models/internal/style.dart';
+import '../../models/internal/action.dart';
 
 class GravityButton extends StatelessWidget {
   final Element element;

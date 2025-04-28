@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../../../models/content.dart';
+import '../../../models/internal/content.dart';
 import '../../../utils/content_events_service.dart';
 import '../../../utils/element_events_handler.dart';
 import '../../elements/gravity_element.dart';

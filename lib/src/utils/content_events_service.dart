@@ -1,10 +1,9 @@
+import 'package:collection/collection.dart';
 import 'package:gravity_sdk/src/repos/gravity_repo.dart';
 
-import '../models/content.dart';
-import '../models/action.dart';
-import 'package:collection/collection.dart';
-
-import '../models/event.dart';
+import '../models/internal/content.dart';
+import '../models/internal/action.dart';
+import '../models/internal/event.dart';
 
 class ContentEventsService {
   ContentEventsService._();

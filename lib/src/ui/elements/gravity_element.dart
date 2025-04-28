@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart' hide Element, Action;
 import 'package:collection/collection.dart';
 
-import '../../models/element.dart';
-import '../../models/products.dart';
-import '../../models/action.dart';
+import '../../models/internal/element.dart';
+import '../../models/internal/products.dart';
+import '../../models/internal/action.dart';
 import 'gravity_button.dart';
 import 'gravity_image.dart';
 import 'gravity_products_container.dart';

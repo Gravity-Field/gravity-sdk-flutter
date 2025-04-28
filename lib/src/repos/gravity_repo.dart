@@ -1,5 +1,8 @@
+import 'package:gravity_sdk/src/models/external/page_context.dart';
+
 import '../data/api/api.dart';
 import '../data/content_response.dart';
+import '../models/external/user.dart';
 
 class GravityRepo {
   GravityRepo._();
@@ -8,8 +11,12 @@ class GravityRepo {
 
   final _api = Api();
 
-  Future<void> sendEvent() {
-    return Future.delayed(const Duration(seconds: 0));
+  Future<void> event(String event, User? user, PageContext pageContext) async {
+    return _api.event(user, pageContext);
+  }
+
+  Future<void> visit(User? user, PageContext pageContext) async {
+    return _api.visit(user, pageContext);
   }
 
   Future<ContentResponse> getContent(String templateId) async {

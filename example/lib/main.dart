@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
-import 'package:gravity_sdk/src/models/slot.dart';
 
 import 'inline_screen.dart';
 
@@ -27,6 +26,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     GravitySDK.instance.initialize(
+      apiKey: 'api-key',
+      section: 'section',
       navigatorKey: navigatorKey,
       // productWidgetBuilder: CustomProductWidgetBuilder(),
     );
@@ -196,5 +197,3 @@ class _BottomSheetProductsRow extends StatelessWidget {
     );
   }
 }
-
-

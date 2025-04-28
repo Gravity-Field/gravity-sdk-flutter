@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/slot.dart';
+import '../models/internal/slot.dart';
 import '../ui/widgets/product.dart';
 
 abstract class ProductWidgetBuilder {

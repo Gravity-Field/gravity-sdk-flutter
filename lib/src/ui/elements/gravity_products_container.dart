@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart' hide Element;
 import 'package:gravity_sdk/gravity_sdk.dart';
 
-import '../../models/element.dart';
-import '../../models/products.dart';
+import '../../models/internal/element.dart';
+import '../../models/internal/products.dart';
 
 class GravityProductsContainer extends StatelessWidget {
   final Element element;

@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gravity_sdk/src/models/external/page_context.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
+import '../../models/external/user.dart';
 import '../content_response.dart';
 
 class Api {
@@ -22,6 +24,24 @@ class Api {
   Future<ContentResponse> choose(String templateId) async {
     final response = await _dio.post('/choose', queryParameters: {'templateId': templateId});
     return ContentResponse.fromJson(response.data);
+  }
+
+  Future<void> visit(User? user, PageContext context) async {
+    final data = {
+      'user': user?.toJson(),
+      'context': context.toJson(),
+    };
+
+    final response = await _dio.post('/visit', data: data);
+  }
+
+  Future<void> event(User? user, PageContext context) async {
+    final data = {
+      'user': user?.toJson(),
+      'context': context.toJson(),
+    };
+
+    final response = await _dio.post('/event', data: data);
   }
 
   Future<void> triggerEventUrl(String url) async {

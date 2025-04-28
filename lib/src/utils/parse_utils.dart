@@ -3,6 +3,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class ParseUtils {
+
+  static Color parseNonNullableColorBlack(Object? color) {
+    return parseColor(color) ?? Colors.black;
+  }
+
   static Color? parseColor(Object? color) {
     if (color == null) {
       return null;
@@ -14,6 +19,10 @@ class ParseUtils {
     }
 
     return null;
+  }
+
+  static double parseNonNullableDimension(Object? dimension) {
+    return parseDimension(dimension) ?? 0.0;
   }
 
   static double? parseDimension(Object? dimension) {
@@ -38,6 +47,10 @@ class ParseUtils {
     return null;
   }
 
+  static double parseNonNullableFontSize(Object? fontSize) {
+    return parseFontSize(fontSize) ?? 0.0;
+  }
+
   static double? parseFontSize(Object? fontSize) {
     if (fontSize == null) {
       return null;
@@ -52,6 +65,10 @@ class ParseUtils {
     }
 
     return null;
+  }
+
+  static FontWeight parseNonNullableFontWeight(Object? fontWeight) {
+    return parseFontWeight(fontWeight) ?? FontWeight.normal;
   }
 
   static FontWeight? parseFontWeight(Object? fontWeight) {

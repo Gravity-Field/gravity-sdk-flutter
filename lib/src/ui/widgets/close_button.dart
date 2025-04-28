@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' hide Element, Action;
 
-import '../../models/close.dart';
-import '../../models/action.dart';
+import '../../models/internal/close.dart';
+import '../../models/internal/action.dart';
 
 class GravityCloseButtonWidget extends StatelessWidget {
   final Close close;

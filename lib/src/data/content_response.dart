@@ -1,6 +1,5 @@
-import '../models/content.dart';
-import '../models/payload.dart';
-import '../models/user.dart';
+import '../models/external/user.dart';
+import '../models/internal/payload.dart';
 
 class ContentResponse {
   final User user;

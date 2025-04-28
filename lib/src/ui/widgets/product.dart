@@ -1,6 +1,6 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:gravity_sdk/src/models/slot.dart';
+
+import '../../models/internal/slot.dart';
 
 class GravityProductWidget extends StatelessWidget {
   final Slot slot;
@@ -22,7 +22,7 @@ class GravityProductWidget extends StatelessWidget {
         children: [
           SizedBox(
             height: 112,
-            child: Image.network(item.imageUrl, fit: BoxFit.cover),
+            child: Image.network(item.imageUrl ?? '', fit: BoxFit.cover),
           ),
           SizedBox(
             height: 6,
@@ -48,9 +48,9 @@ class GravityProductWidget extends StatelessWidget {
               children: [
                 Column(
                   children: [
-                    if (item.oldPrice.isNotEmpty)
+                    if (item.oldPrice != null && item.oldPrice!.isNotEmpty)
                       Text(
-                        item.oldPrice,
+                        item.oldPrice!,
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w400,

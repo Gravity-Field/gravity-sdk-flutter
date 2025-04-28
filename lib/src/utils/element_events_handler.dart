@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart' hide Action;
 import 'package:collection/collection.dart';
 
-import '../models/event.dart';
-import '../models/action.dart';
+import '../models/internal/event.dart';
+import '../models/internal/action.dart';
 import '../repos/gravity_repo.dart';
 
 class ElementEventsHandler {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_from_content.dart';
 
-import '../../models/content.dart';
+import '../../models/internal/content.dart';
 
 class GravityInlineWidget extends StatefulWidget {
   final String templateId;

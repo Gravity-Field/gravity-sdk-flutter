@@ -4,25 +4,49 @@ import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_pr
 import 'package:gravity_sdk/src/utils/content_events_service.dart';
 
 import 'data/content_response.dart';
+import 'models/external/page_context.dart';
+import 'models/external/user.dart';
 import 'repos/gravity_repo.dart';
 import 'ui/delivery_methods/bottom_sheet/bottom_sheet_from_content.dart';
 import 'ui/delivery_methods/full_screen/full_screen_from_content.dart';
 import 'ui/delivery_methods/modal/modal_from_content.dart';
 
 class GravitySDK {
+  String apiKey = '';
+  String section = '';
   GlobalKey<NavigatorState>? navigatorKey;
   ProductWidgetBuilder productWidgetBuilder = DefaultProductWidgetBuilder();
+  User? user;
 
   GravitySDK._();
 
   static final GravitySDK instance = GravitySDK._();
 
   void initialize({
+    required String apiKey,
+    required String section,
     GlobalKey<NavigatorState>? navigatorKey,
     ProductWidgetBuilder? productWidgetBuilder,
   }) {
+    this.apiKey = apiKey;
+    this.section = section;
     this.navigatorKey = navigatorKey;
     this.productWidgetBuilder = productWidgetBuilder ?? DefaultProductWidgetBuilder();
+  }
+
+  void setUser(String userId, String sessionId) {
+    user = User(
+      custom: userId,
+      ses: sessionId,
+    );
+  }
+
+  Future<void> visit(PageContext context) async {
+    await GravityRepo.instance.visit(user, context);
+  }
+
+  Future<void> event(String event, PageContext context) async {
+    await GravityRepo.instance.event(event, user, context);
   }
 
   Future<ContentResponse> getContent(String template) async {
