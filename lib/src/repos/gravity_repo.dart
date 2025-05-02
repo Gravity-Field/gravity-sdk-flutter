@@ -1,7 +1,8 @@
 import 'package:gravity_sdk/src/models/external/page_context.dart';
 
 import '../data/api/api.dart';
-import '../data/content_response.dart';
+import '../data/api/content_response.dart';
+import '../data/prefs/prefs.dart';
 import '../models/external/user.dart';
 
 class GravityRepo {
@@ -10,13 +11,21 @@ class GravityRepo {
   static final GravityRepo instance = GravityRepo._();
 
   final _api = Api();
+  final _prefs = Prefs();
 
-  Future<void> event(String event, User? user, PageContext pageContext) async {
-    return _api.event(user, pageContext);
+  String? userIdCache;
+  String? sessionIdCache;
+
+  Future<void> event(String event, User? customUser, PageContext pageContext) async {
+    final finalUser = await _determineUser(customUser);
+    final response = await _api.event(finalUser, pageContext);
+    await _saveUserIfNeeded(customUser, response.user);
   }
 
-  Future<void> visit(User? user, PageContext pageContext) async {
-    return _api.visit(user, pageContext);
+  Future<void> visit(User? customUser, PageContext pageContext) async {
+    final finalUser = await _determineUser(customUser);
+    final response = await _api.visit(finalUser, pageContext);
+    await _saveUserIfNeeded(customUser, response.user);
   }
 
   Future<ContentResponse> getContent(String templateId) async {
@@ -30,6 +39,29 @@ class GravityRepo {
       } catch (e) {
         print(e);
       }
+    }
+  }
+
+  Future<User?> _determineUser(User? customUser) async {
+    if (customUser != null) {
+      return customUser;
+    } else if (userIdCache != null && sessionIdCache != null) {
+      return User(uid: userIdCache, ses: sessionIdCache);
+    } else {
+      final userIdFromPrefs = await _prefs.getUserId();
+      return User(uid: userIdFromPrefs, ses: null);
+    }
+  }
+
+  Future<void> _saveUserIfNeeded(User? customUser, User? contentResponseUser) async {
+    if (customUser != null) {
+      return;
+    }
+
+    if (contentResponseUser != null) {
+      await _prefs.setUserId(contentResponseUser.uid!);
+      userIdCache = contentResponseUser.uid;
+      sessionIdCache = contentResponseUser.ses;
     }
   }
 }

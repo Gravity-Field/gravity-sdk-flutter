@@ -1,21 +1,27 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Action;
 import 'package:gravity_sdk/src/settings/product_widget_builder.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
 import 'package:gravity_sdk/src/utils/content_events_service.dart';
 
-import 'data/content_response.dart';
+import 'data/api/content_response.dart';
 import 'models/external/page_context.dart';
 import 'models/external/user.dart';
+import 'models/internal/action.dart';
 import 'repos/gravity_repo.dart';
 import 'ui/delivery_methods/bottom_sheet/bottom_sheet_from_content.dart';
 import 'ui/delivery_methods/full_screen/full_screen_from_content.dart';
 import 'ui/delivery_methods/modal/modal_from_content.dart';
 
+typedef ActionsCallback = void Function(Action action);
+
 class GravitySDK {
+  //init fields
   String apiKey = '';
   String section = '';
-  GlobalKey<NavigatorState>? navigatorKey;
   ProductWidgetBuilder productWidgetBuilder = DefaultProductWidgetBuilder();
+  void Function()? actionsCallback;
+
+  //other fields
   User? user;
 
   GravitySDK._();
@@ -25,13 +31,13 @@ class GravitySDK {
   void initialize({
     required String apiKey,
     required String section,
-    GlobalKey<NavigatorState>? navigatorKey,
     ProductWidgetBuilder? productWidgetBuilder,
+    ActionsCallback? actionsCallback,
   }) {
     this.apiKey = apiKey;
     this.section = section;
-    this.navigatorKey = navigatorKey;
     this.productWidgetBuilder = productWidgetBuilder ?? DefaultProductWidgetBuilder();
+    this.actionsCallback;
   }
 
   void setUser(String userId, String sessionId) {

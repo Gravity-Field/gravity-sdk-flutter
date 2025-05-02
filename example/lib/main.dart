@@ -22,19 +22,16 @@ class CustomProductWidgetBuilder extends ProductWidgetBuilder {
 class MyApp extends StatelessWidget {
   MyApp({super.key});
 
-  final navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
     GravitySDK.instance.initialize(
       apiKey: 'api-key',
       section: 'section',
-      navigatorKey: navigatorKey,
       // productWidgetBuilder: CustomProductWidgetBuilder(),
     );
 
     return MaterialApp(
-      navigatorKey: navigatorKey,
       title: 'Flutter Demo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),

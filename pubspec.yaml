@@ -14,6 +14,7 @@ dependencies:
   flutter_svg: ^2.0.17
   json_annotation: ^4.9.0
   pretty_dio_logger: ^1.4.0
+  shared_preferences: ^2.5.3
   visibility_detector: ^0.4.0+2
 
 

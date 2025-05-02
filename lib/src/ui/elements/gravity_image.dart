@@ -13,13 +13,10 @@ class GravityImageWidget extends StatelessWidget {
     final style = element.style!;
     final layoutWidth = style.layoutWidth;
 
-
     final imageWidget = Image.network(
       element.src ?? '',
       fit: style.fit,
     );
-
-
 
     Widget outputWidget = imageWidget;
 
