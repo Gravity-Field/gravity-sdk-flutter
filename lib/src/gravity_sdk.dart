@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart' hide Action;
+import 'package:gravity_sdk/src/models/external/content_settings.dart';
 import 'package:gravity_sdk/src/settings/product_widget_builder.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
 import 'package:gravity_sdk/src/utils/content_events_service.dart';
 
 import 'data/api/content_response.dart';
+import 'models/external/options.dart';
 import 'models/external/page_context.dart';
 import 'models/external/user.dart';
 import 'models/internal/action.dart';
@@ -23,6 +25,8 @@ class GravitySDK {
 
   //other fields
   User? user;
+  ContentSettings contentSettings = ContentSettings();
+  Options options = Options();
 
   GravitySDK._();
 
@@ -40,6 +44,15 @@ class GravitySDK {
     this.actionsCallback;
   }
 
+  void setOptions({Options? options, ContentSettings? contentSettings}) {
+    if (options != null) {
+      this.options = options;
+    }
+    if (contentSettings != null) {
+      this.contentSettings = contentSettings;
+    }
+  }
+
   void setUser(String userId, String sessionId) {
     user = User(
       custom: userId,
@@ -47,12 +60,12 @@ class GravitySDK {
     );
   }
 
-  Future<void> visit({required PageContext context}) async {
-    await GravityRepo.instance.visit(user, context);
+  Future<void> trackView({required PageContext pageContext}) async {
+    await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
   }
 
-  Future<void> event(String event, PageContext context) async {
-    await GravityRepo.instance.event(event, user, context);
+  Future<void> triggerEvent({required String event, required PageContext pageContext}) async {
+    await GravityRepo.instance.event(event: event, customUser: user, pageContext: pageContext, options: options);
   }
 
   Future<ContentResponse> getContent(String template) async {

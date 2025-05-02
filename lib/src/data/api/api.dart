@@ -1,9 +1,10 @@
-import 'package:dio/dio.dart';
+import 'package:dio/dio.dart' hide Options;
 import 'package:flutter/foundation.dart';
 import 'package:gravity_sdk/src/models/external/page_context.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import '../../models/external/user.dart';
+import '../../models/external/options.dart';
 import 'content_response.dart';
 
 class Api {
@@ -29,20 +30,23 @@ class Api {
     return ContentResponse.fromJson(response.data);
   }
 
-  Future<ContentResponse> visit(User? user, PageContext context) async {
+  Future<ContentResponse> visit(User? user, PageContext context, Options options) async {
     final data = {
+      'type': 'screenview',
       'user': user?.toJson(),
-      'context': context.toJson(),
+      'ctx': context.toJson(),
+      'options': options.toJson(),
     };
 
     final response = await _dio.post('/visit', data: data);
     return ContentResponse.fromJson(response.data);
   }
 
-  Future<ContentResponse> event(User? user, PageContext context) async {
+  Future<ContentResponse> event(User? user, PageContext context, Options options) async {
     final data = {
       'user': user?.toJson(),
       'context': context.toJson(),
+      'options': options.toJson(),
     };
 
     final response = await _dio.post('/event', data: data);

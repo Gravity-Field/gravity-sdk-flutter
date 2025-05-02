@@ -4,6 +4,7 @@ import '../data/api/api.dart';
 import '../data/api/content_response.dart';
 import '../data/prefs/prefs.dart';
 import '../models/external/user.dart';
+import '../models/external/options.dart';
 
 class GravityRepo {
   GravityRepo._();
@@ -16,15 +17,24 @@ class GravityRepo {
   String? userIdCache;
   String? sessionIdCache;
 
-  Future<void> event(String event, User? customUser, PageContext pageContext) async {
+  Future<void> event({
+    required String event,
+    User? customUser,
+    required PageContext pageContext,
+    required Options options,
+  }) async {
     final finalUser = await _determineUser(customUser);
-    final response = await _api.event(finalUser, pageContext);
+    final response = await _api.event(finalUser, pageContext, options);
     await _saveUserIfNeeded(customUser, response.user);
   }
 
-  Future<void> visit(User? customUser, PageContext pageContext) async {
+  Future<void> visit({
+    User? customUser,
+    required PageContext pageContext,
+    required Options options,
+  }) async {
     final finalUser = await _determineUser(customUser);
-    final response = await _api.visit(finalUser, pageContext);
+    final response = await _api.visit(finalUser, pageContext, options);
     await _saveUserIfNeeded(customUser, response.user);
   }
 
