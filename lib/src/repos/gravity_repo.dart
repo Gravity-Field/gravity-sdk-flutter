@@ -5,6 +5,7 @@ import '../data/api/content_response.dart';
 import '../data/prefs/prefs.dart';
 import '../models/external/user.dart';
 import '../models/external/options.dart';
+import '../models/external/content_settings.dart';
 
 class GravityRepo {
   GravityRepo._();
@@ -38,8 +39,23 @@ class GravityRepo {
     await _saveUserIfNeeded(customUser, response.user);
   }
 
-  Future<ContentResponse> getContent(String templateId) async {
-    return _api.choose(templateId);
+  Future<ContentResponse> getContent({
+    String? templateId,
+    User? customUser,
+    PageContext? pageContext,
+    required Options options,
+    required ContentSettings contentSetting,
+  }) async {
+    final finalUser = await _determineUser(customUser);
+    final response = await _api.choose(
+      templateId: templateId,
+      user: finalUser,
+      context: pageContext,
+      options: options,
+      contentSettings: contentSetting,
+    );
+    await _saveUserIfNeeded(customUser, response.user);
+    return response;
   }
 
   Future<void> triggerEventUrls(List<String> urls) async {

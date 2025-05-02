@@ -5,6 +5,7 @@ import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import '../../models/external/user.dart';
 import '../../models/external/options.dart';
+import '../../models/external/content_settings.dart';
 import 'content_response.dart';
 
 class Api {
@@ -25,7 +26,20 @@ class Api {
     }
   }
 
-  Future<ContentResponse> choose(String templateId) async {
+  Future<ContentResponse> choose({
+    User? user,
+    String? templateId,
+    PageContext? context,
+    required Options options,
+    required ContentSettings contentSettings,
+  }) async {
+    final data = {
+      'user': user?.toJson(),
+      'ctx': context?.toJson(),
+      'options': options.toJson(),
+      'contentSettings': contentSettings.toJson(),
+    };
+
     final response = await _dio.post('/choose', queryParameters: {'templateId': templateId});
     return ContentResponse.fromJson(response.data);
   }

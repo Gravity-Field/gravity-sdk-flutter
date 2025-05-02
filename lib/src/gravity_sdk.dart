@@ -32,6 +32,8 @@ class GravitySDK {
 
   static final GravitySDK instance = GravitySDK._();
 
+  final _gravityRepo = GravityRepo.instance;
+
   void initialize({
     required String apiKey,
     required String section,
@@ -61,15 +63,16 @@ class GravitySDK {
   }
 
   Future<void> trackView({required PageContext pageContext}) async {
-    await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
+    await _gravityRepo.visit(customUser: user, pageContext: pageContext, options: options);
   }
 
   Future<void> triggerEvent({required String event, required PageContext pageContext}) async {
-    await GravityRepo.instance.event(event: event, customUser: user, pageContext: pageContext, options: options);
+    await _gravityRepo.event(event: event, customUser: user, pageContext: pageContext, options: options);
   }
 
   Future<ContentResponse> getContent(String template) async {
-    final content = await GravityRepo.instance.getContent(template);
+    final content =
+        await _gravityRepo.getContent(templateId: template, options: options, contentSetting: contentSettings);
 
     for (final data in content.data) {
       for (final payload in data.payload) {
