@@ -1,5 +1,9 @@
+import 'package:json_annotation/json_annotation.dart';
 import 'content.dart';
 
+part 'payload.g.dart';
+
+@JsonSerializable()
 class Payload {
   final String campaignId;
   final String experienceId;
@@ -15,13 +19,5 @@ class Payload {
     required this.contents,
   });
 
-  factory Payload.fromJson(Map<String, dynamic> json) {
-    return Payload(
-      campaignId: json['campaignId'],
-      experienceId: json['experienceId'],
-      variationId: json['variationId'],
-      decisionId: json['decisionId'],
-      contents: (json['contents'] as List).map((e) => Content.fromJson(e)).toList(),
-    );
-  }
+  factory Payload.fromJson(Map<String, dynamic> json) => _$PayloadFromJson(json);
 }

@@ -1,5 +1,10 @@
+import 'package:json_annotation/json_annotation.dart';
+
 import 'slot.dart';
 
+part 'products.g.dart';
+
+@JsonSerializable()
 class Products {
   final String strategyId;
   final String name;
@@ -17,15 +22,5 @@ class Products {
     required this.slots,
   });
 
-  factory Products.fromJson(Map<String, dynamic> json) {
-    return Products(
-      strategyId: json['strategyId'],
-      name: json['name'],
-      pageNumber: json['pageNumber'],
-      countPages: json['countPages'],
-      fallback: json['fallback'],
-      slots: (json['slots'] as List).map((e) => Slot.fromJson(e)).toList(),
-    );
-  }
-
+  factory Products.fromJson(Map<String, dynamic> json) => _$ProductsFromJson(json);
 }

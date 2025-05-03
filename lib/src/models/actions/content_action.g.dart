@@ -8,21 +8,20 @@ part of 'content_action.dart';
 
 ContentAction _$ContentActionFromJson(Map<String, dynamic> json) =>
     ContentAction(
-      action: $enumDecode(_$ActionTypeEnumMap, json['action']),
+      action: $enumDecode(_$ActionEnumMap, json['action']),
     );
 
-const _$ActionTypeEnumMap = {
-  ActionType.load: 'load',
-  ActionType.impression: 'impression',
-  ActionType.visibleImpression: 'visible_impression',
-  ActionType.close: 'close',
-  ActionType.copy: 'copy',
-  ActionType.cancel: 'cancel',
-  ActionType.followUrl: 'follow_url',
-  ActionType.followDeeplink: 'follow_deeplink',
-  ActionType.requestPush: 'request_push',
-  ActionType.requestTracking: 'request_tracking',
-  ActionType.pimp: 'PIMP',
-  ActionType.pclick: 'PCLICK',
-  ActionType.unknown: 'unknown',
+const _$ActionEnumMap = {
+  Action.load: 'load',
+  Action.impression: 'impression',
+  Action.visibleImpression: 'visible_impression',
+  Action.close: 'close',
+  Action.copy: 'copy',
+  Action.cancel: 'cancel',
+  Action.followUrl: 'follow_url',
+  Action.follow: 'follow',
+  Action.followDeeplink: 'follow_deeplink',
+  Action.requestPush: 'request_push',
+  Action.requestTracking: 'request_tracking',
+  Action.unknown: 'unknown',
 };

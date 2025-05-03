@@ -1,7 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
 @JsonEnum()
-enum ActionType {
+enum Action {
   @JsonValue('load')
   load,
   @JsonValue('impression')
@@ -16,16 +16,14 @@ enum ActionType {
   cancel,
   @JsonValue('follow_url')
   followUrl,
+  @JsonValue('follow')
+  follow,
   @JsonValue('follow_deeplink')
   followDeeplink,
   @JsonValue('request_push')
   requestPush,
   @JsonValue('request_tracking')
   requestTracking,
-  @JsonValue('PIMP')
-  pimp,
-  @JsonValue('PCLICK')
-  pclick,
   @JsonValue('unknown')
   unknown;
 }

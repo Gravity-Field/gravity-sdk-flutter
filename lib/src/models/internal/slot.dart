@@ -1,12 +1,16 @@
-import '../actions/event.dart';
+import 'package:gravity_sdk/src/models/actions/product_event.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'item.dart';
 
+part 'slot.g.dart';
+
+@JsonSerializable()
 class Slot {
   final Item item;
   final bool fallback;
   final int strId;
   final String slotId;
-  final List<Event> events;
+  final List<ProductEvent> events;
 
   Slot({
     required this.item,
@@ -16,14 +20,6 @@ class Slot {
     required this.events,
   });
 
-  factory Slot.fromJson(Map<String, dynamic> json) {
-    return Slot(
-      item: Item.fromJson(json['item']),
-      fallback: json['fallback'],
-      strId: json['strId'],
-      slotId: json['slotId'],
-      events: (json['events'] as List).map((e) => Event.fromJson(e)).toList(),
-    );
-  }
+  factory Slot.fromJson(Map<String, dynamic> json) => _$SlotFromJson(json);
 }
 

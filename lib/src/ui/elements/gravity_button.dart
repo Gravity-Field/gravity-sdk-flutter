@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart' hide Action, Element;
-import 'package:gravity_sdk/src/models/actions/action_type.dart';
 import 'package:gravity_sdk/src/models/actions/on_click.dart';
 
 import '../../models/internal/element.dart';

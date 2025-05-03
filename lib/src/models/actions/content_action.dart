@@ -1,12 +1,12 @@
 import 'package:json_annotation/json_annotation.dart';
 
-import 'action_type.dart';
+import 'action.dart';
 
 part 'content_action.g.dart';
 
 @JsonSerializable()
 class ContentAction {
-  final ActionType action;
+  final Action action;
 
   const ContentAction({
     required this.action,

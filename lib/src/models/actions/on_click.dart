@@ -1,12 +1,12 @@
 import 'package:json_annotation/json_annotation.dart';
 
-import 'action_type.dart';
+import 'action.dart';
 
 part 'on_click.g.dart';
 
 @JsonSerializable()
 class OnClick {
-  final ActionType action;
+  final Action action;
   final String? copyData;
   final int? step;
   final String? url;
@@ -22,6 +22,3 @@ class OnClick {
 
   factory OnClick.fromJson(Map<String, dynamic> json) => _$OnClickFromJson(json);
 }
-
-
-
