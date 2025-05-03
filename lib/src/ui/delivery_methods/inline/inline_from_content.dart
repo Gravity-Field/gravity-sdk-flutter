@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 
 import '../../../models/internal/content.dart';
 import '../../../utils/content_events_service.dart';
-import '../../../utils/element_events_handler.dart';
 import '../../elements/gravity_element.dart';
 
 class InlineFromContent extends StatefulWidget {
@@ -15,13 +15,13 @@ class InlineFromContent extends StatefulWidget {
 }
 
 class _InlineFromContentState extends State<InlineFromContent> {
-  late final ElementEventsHandler eventsHandler;
+  late final OnClickHandler eventsHandler;
 
   @override
   void initState() {
     super.initState();
 
-    eventsHandler = ElementEventsHandler(widget.content.events);
+    eventsHandler = OnClickHandler(widget.content.events);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ContentEventsService.instance.sendContentImpression(widget.content);
@@ -55,7 +55,7 @@ class _InlineFromContentState extends State<InlineFromContent> {
                 (e) => GravityElement(
                   element: e,
                   products: products,
-                  onAction: (action) => eventsHandler.handleAction(action),
+                  onClickCallback: (action) => eventsHandler.handeOnClick(action),
                 ).getWidget(),
               )
               .toList(),

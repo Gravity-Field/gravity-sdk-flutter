@@ -15,15 +15,16 @@ Variables _$VariablesFromJson(Map<String, dynamic> json) => Variables(
           .toList(),
       onLoad: json['onLoad'] == null
           ? null
-          : Action.fromJson(json['onLoad'] as Map<String, dynamic>),
+          : ContentAction.fromJson(json['onLoad'] as Map<String, dynamic>),
       onImpression: json['onImpression'] == null
           ? null
-          : Action.fromJson(json['onImpression'] as Map<String, dynamic>),
+          : ContentAction.fromJson(
+              json['onImpression'] as Map<String, dynamic>),
       onVisibleImpression: json['onVisibleImpression'] == null
           ? null
-          : Action.fromJson(
+          : ContentAction.fromJson(
               json['onVisibleImpression'] as Map<String, dynamic>),
       onClose: json['onClose'] == null
           ? null
-          : Action.fromJson(json['onClose'] as Map<String, dynamic>),
+          : ContentAction.fromJson(json['onClose'] as Map<String, dynamic>),
     );

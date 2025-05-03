@@ -1,6 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 
-import 'close.dart';
+import '../actions/close.dart';
 import 'container.dart';
 
 part 'frame_ui.g.dart';

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../models/internal/content.dart';
 import '../../../utils/content_events_service.dart';
-import '../../../utils/element_events_handler.dart';
 import '../../elements/gravity_element.dart';
 import '../../widgets/close_button.dart';
 
@@ -17,13 +17,13 @@ class FullScreenFromContent extends StatefulWidget {
 }
 
 class _FullScreenFromContentState extends State<FullScreenFromContent> {
-  late final ElementEventsHandler eventsHandler;
+  late final OnClickHandler onClickHandler;
 
   @override
   void initState() {
     super.initState();
 
-    eventsHandler = ElementEventsHandler(widget.content.events);
+    onClickHandler = OnClickHandler(widget.content.events);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ContentEventsService.instance.sendContentImpression(widget.content);
@@ -68,7 +68,7 @@ class _FullScreenFromContentState extends State<FullScreenFromContent> {
                         .map(
                           (e) => GravityElement(
                             element: e,
-                            onAction: (action) => eventsHandler.handleAction(action),
+                            onClickCallback: (action) => onClickHandler.handeOnClick(action),
                           ).getWidget(),
                         )
                         .toList(),
@@ -77,7 +77,7 @@ class _FullScreenFromContentState extends State<FullScreenFromContent> {
                 if (close != null)
                   GravityCloseButtonWidget(
                     close: close,
-                    onAction: (action) => eventsHandler.handleAction(action),
+                    onClickCallback: (action) => onClickHandler.handeOnClick(action),
                     // onClosePressed: () {
                     //   ContentEventsService.instance.sendContentClosed(widget.content);
                     // },

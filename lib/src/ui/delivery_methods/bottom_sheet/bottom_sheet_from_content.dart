@@ -3,7 +3,7 @@ import 'package:gravity_sdk/src/utils/content_events_service.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../models/internal/content.dart';
-import '../../../utils/element_events_handler.dart';
+import '../../../utils/on_click_handler.dart';
 import '../../elements/gravity_element.dart';
 import '../../widgets/close_button.dart';
 
@@ -17,13 +17,13 @@ class BottomSheetFromContent extends StatefulWidget {
 }
 
 class _BottomSheetFromContentState extends State<BottomSheetFromContent> {
-  late final ElementEventsHandler eventsHandler;
+  late final OnClickHandler onClickHandler;
 
   @override
   void initState() {
     super.initState();
 
-    eventsHandler = ElementEventsHandler(widget.content.events);
+    onClickHandler = OnClickHandler(widget.content.events);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ContentEventsService.instance.sendContentImpression(widget.content);
@@ -74,8 +74,8 @@ class _BottomSheetFromContentState extends State<BottomSheetFromContent> {
                       .map(
                         (e) => GravityElement(
                           element: e,
-                          onAction: (action) {
-                            eventsHandler.handleAction(action);
+                          onClickCallback: (action) {
+                            onClickHandler.handeOnClick(action);
                           },
                         ).getWidget(),
                       )
@@ -85,8 +85,8 @@ class _BottomSheetFromContentState extends State<BottomSheetFromContent> {
               if (close != null)
                 GravityCloseButtonWidget(
                   close: close,
-                  onAction: (action) {
-                    eventsHandler.handleAction(action);
+                  onClickCallback: (action) {
+                    onClickHandler.handeOnClick(action);
                   },
                   // onClosePressed: () {
                   //   ContentEventsService.instance.sendContentClosed(widget.content);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Action;
+import 'package:gravity_sdk/src/models/actions/on_click.dart';
 import 'package:gravity_sdk/src/models/external/content_settings.dart';
 import 'package:gravity_sdk/src/settings/product_widget_builder.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
@@ -8,20 +9,17 @@ import 'data/api/content_response.dart';
 import 'models/external/options.dart';
 import 'models/external/page_context.dart';
 import 'models/external/user.dart';
-import 'models/internal/action.dart';
 import 'repos/gravity_repo.dart';
 import 'ui/delivery_methods/bottom_sheet/bottom_sheet_from_content.dart';
 import 'ui/delivery_methods/full_screen/full_screen_from_content.dart';
 import 'ui/delivery_methods/modal/modal_from_content.dart';
-
-typedef ActionsCallback = void Function(Action action);
 
 class GravitySDK {
   //init fields
   String apiKey = '';
   String section = '';
   ProductWidgetBuilder productWidgetBuilder = DefaultProductWidgetBuilder();
-  void Function()? actionsCallback;
+  void Function(OnClick onClick)? globalOnClickCallback;
 
   //other fields
   User? user;
@@ -38,12 +36,12 @@ class GravitySDK {
     required String apiKey,
     required String section,
     ProductWidgetBuilder? productWidgetBuilder,
-    ActionsCallback? actionsCallback,
+    void Function(OnClick onClick)? globalOnClickCallback,
   }) {
     this.apiKey = apiKey;
     this.section = section;
     this.productWidgetBuilder = productWidgetBuilder ?? DefaultProductWidgetBuilder();
-    this.actionsCallback;
+    this.globalOnClickCallback = globalOnClickCallback;
   }
 
   void setOptions({Options? options, ContentSettings? contentSettings}) {

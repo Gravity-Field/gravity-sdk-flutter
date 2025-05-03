@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart' hide Action, Element;
+import 'package:gravity_sdk/src/models/actions/action_type.dart';
+import 'package:gravity_sdk/src/models/actions/on_click.dart';
 
 import '../../models/internal/element.dart';
 import '../../models/internal/style.dart';
-import '../../models/internal/action.dart';
 
 class GravityButton extends StatelessWidget {
   final Element element;
-  final Function(Action action) onAction;
+  final Function(OnClick onClick) onClickCallback;
 
   const GravityButton({
     super.key,
     required this.element,
-    required this.onAction,
+    required this.onClickCallback,
   });
 
   @override
@@ -29,7 +30,7 @@ class GravityButton extends StatelessWidget {
       ),
       onPressed: onClick != null
           ? () {
-              onAction(onClick);
+              onClickCallback(onClick);
             }
           : null,
       child: Text(

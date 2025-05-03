@@ -15,7 +15,7 @@ Element _$ElementFromJson(Map<String, dynamic> json) => Element(
           : Style.fromJson(json['style'] as Map<String, dynamic>),
       onClick: json['onClick'] == null
           ? null
-          : Action.fromJson(json['onClick'] as Map<String, dynamic>),
+          : OnClick.fromJson(json['onClick'] as Map<String, dynamic>),
     );
 
 const _$ElementTypeEnumMap = {

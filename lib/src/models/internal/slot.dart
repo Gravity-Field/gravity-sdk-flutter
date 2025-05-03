@@ -1,4 +1,4 @@
-import 'event.dart';
+import '../actions/event.dart';
 import 'item.dart';
 
 class Slot {

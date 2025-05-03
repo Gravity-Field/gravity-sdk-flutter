@@ -33,9 +33,9 @@ class _VisitButton extends StatelessWidget {
         backgroundColor: WidgetStateProperty.all(Colors.green),
       ),
       onPressed: () {
-       GravitySDK.instance.visit(context: PageContext(
-         ContextType.cart
-       ));
+        GravitySDK.instance.trackView(
+          pageContext: PageContext(ContextType.cart),
+        );
       },
       child: Text('Go To Visit'),
     );

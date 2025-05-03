@@ -29,6 +29,9 @@ class MyApp extends StatelessWidget {
       apiKey: 'api-key',
       section: 'section',
       // productWidgetBuilder: CustomProductWidgetBuilder(),
+      globalOnClickCallback: (onClick) {
+        print('globalOnClickCallback: ${onClick.action}');
+      },
     );
 
     return MaterialApp(

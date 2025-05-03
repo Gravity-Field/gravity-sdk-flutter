@@ -1,7 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
 import 'delivery_type.dart';
-import 'event.dart';
+import '../actions/event.dart';
 import 'products.dart';
 import 'variables.dart';
 

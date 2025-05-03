@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart' hide Element, Action;
+import 'package:gravity_sdk/src/models/actions/on_click.dart';
 
-import '../../models/internal/close.dart';
-import '../../models/internal/action.dart';
+import '../../models/actions/close.dart';
+
+
 
 class GravityCloseButtonWidget extends StatelessWidget {
   final Close close;
-  final Function(Action) onAction;
+  final Function(OnClick) onClickCallback;
   // final Function() onClosePressed;
 
   const GravityCloseButtonWidget({
     super.key,
     required this.close,
-    required this.onAction,
+    required this.onClickCallback,
     // required this.onClosePressed,
   });
 
@@ -28,7 +30,7 @@ class GravityCloseButtonWidget extends StatelessWidget {
             : Icon(Icons.close),
         onPressed: () {
           if (close.onClick != null) {
-            onAction(close.onClick!);
+            onClickCallback(close.onClick!);
           }
           // onClosePressed();
           Navigator.of(context).pop();

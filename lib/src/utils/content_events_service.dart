@@ -1,9 +1,9 @@
 import 'package:collection/collection.dart';
 import 'package:gravity_sdk/src/repos/gravity_repo.dart';
 
+import '../models/actions/content_action.dart';
 import '../models/internal/content.dart';
-import '../models/internal/action.dart';
-import '../models/internal/event.dart';
+import '../models/actions/event.dart';
 
 class ContentEventsService {
   ContentEventsService._();
@@ -38,7 +38,7 @@ class ContentEventsService {
     _handleAction(onClose, events);
   }
 
-  void _handleAction(Action? action, List<Event> events) {
+  void _handleAction(ContentAction? action, List<Event> events) {
     if (action == null) return;
 
     final event = events.firstWhereOrNull((event) => event.name == action.action);

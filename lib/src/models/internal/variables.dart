@@ -1,8 +1,8 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import '../actions/content_action.dart';
 import 'frame_ui.dart';
 import 'element.dart';
-import 'action.dart';
 
 part 'variables.g.dart';
 
@@ -10,10 +10,10 @@ part 'variables.g.dart';
 class Variables {
   final FrameUI? frameUI;
   final List<Element> elements;
-  final Action? onLoad;
-  final Action? onImpression;
-  final Action? onVisibleImpression;
-  final Action? onClose;
+  final ContentAction? onLoad;
+  final ContentAction? onImpression;
+  final ContentAction? onVisibleImpression;
+  final ContentAction? onClose;
 
   Variables({
     required this.frameUI,

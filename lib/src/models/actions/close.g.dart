@@ -10,6 +10,6 @@ Close _$CloseFromJson(Map<String, dynamic> json) => Close(
       image: json['image'] as String?,
       onClick: json['onClick'] == null
           ? null
-          : Action.fromJson(json['onClick'] as Map<String, dynamic>),
+          : OnClick.fromJson(json['onClick'] as Map<String, dynamic>),
       style: Style.fromJson(json['style'] as Map<String, dynamic>),
     );

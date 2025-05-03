@@ -1,7 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import '../actions/on_click.dart';
 import 'style.dart';
-import 'action.dart';
 
 part 'element.g.dart';
 
@@ -26,7 +26,7 @@ class Element {
   final String? text;
   final String? src;
   final Style? style;
-  final Action? onClick;
+  final OnClick? onClick;
 
   Element({
     required this.type,
