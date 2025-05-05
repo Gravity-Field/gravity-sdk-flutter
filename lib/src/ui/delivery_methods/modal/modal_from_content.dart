@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:gravity_sdk/src/ui/elements/gravity_element.dart';
 import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import '../../../models/internal/content.dart';
+import '../../../models/internal/campaign_content.dart';
 import '../../../utils/content_events_service.dart';
 import '../../widgets/close_button.dart';
 
 class ModalFromContent extends StatefulWidget {
-  final Content content;
+  final CampaignContent content;
 
   const ModalFromContent({super.key, required this.content});
 

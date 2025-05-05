@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../../../models/internal/content.dart';
+import '../../../models/internal/campaign_content.dart';
 import '../../../utils/content_events_service.dart';
 import '../../../utils/on_click_handler.dart';
 import '../../elements/gravity_element.dart';
 import '../../widgets/close_button.dart';
 
 class BottomSheetProductsRow extends StatefulWidget {
-  final Content content;
+  final CampaignContent content;
 
   const BottomSheetProductsRow({
     super.key,

@@ -1,12 +1,13 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'content.dart';
+part of 'campaign_content.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-Content _$ContentFromJson(Map<String, dynamic> json) => Content(
+CampaignContent _$CampaignContentFromJson(Map<String, dynamic> json) =>
+    CampaignContent(
       contentId: json['contentId'] as String,
       templateId: json['templateId'] as String,
       deliveryMethod:

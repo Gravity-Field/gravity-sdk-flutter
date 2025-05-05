@@ -2,7 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:gravity_sdk/src/repos/gravity_repo.dart';
 
 import '../models/actions/content_action.dart';
-import '../models/internal/content.dart';
+import '../models/internal/campaign_content.dart';
 import '../models/actions/event.dart';
 
 class ContentEventsService {
@@ -10,28 +10,28 @@ class ContentEventsService {
 
   static final ContentEventsService instance = ContentEventsService._();
 
-  sendContentLoaded(Content content) {
+  sendContentLoaded(CampaignContent content) {
     print('sendContentLoaded');
     final onLoad = content.variables.onLoad;
     final events = content.events;
     _handleAction(onLoad, events);
   }
 
-  sendContentImpression(Content content) {
+  sendContentImpression(CampaignContent content) {
     print('sendContentImpression');
     final onImpression = content.variables.onImpression;
     final events = content.events;
     _handleAction(onImpression, events);
   }
 
-  sendContentVisibleImpression(Content content) {
+  sendContentVisibleImpression(CampaignContent content) {
     print('sendContentVisibleImpression');
     final onVisibleImpression = content.variables.onVisibleImpression;
     final events = content.events;
     _handleAction(onVisibleImpression, events);
   }
 
-  sendContentClosed(Content content) {
+  sendContentClosed(CampaignContent content) {
     print('sendContentClosed');
     final onClose = content.variables.onClose;
     final events = content.events;

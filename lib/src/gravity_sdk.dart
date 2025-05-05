@@ -4,11 +4,13 @@ import 'package:gravity_sdk/src/models/external/content_settings.dart';
 import 'package:gravity_sdk/src/settings/product_widget_builder.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
 import 'package:gravity_sdk/src/utils/content_events_service.dart';
+import 'package:gravity_sdk/src/utils/device_utils.dart';
 
 import 'data/api/content_response.dart';
 import 'models/external/options.dart';
 import 'models/external/page_context.dart';
 import 'models/external/user.dart';
+import 'models/internal/device.dart';
 import 'repos/gravity_repo.dart';
 import 'ui/delivery_methods/bottom_sheet/bottom_sheet_from_content.dart';
 import 'ui/delivery_methods/full_screen/full_screen_from_content.dart';
@@ -23,6 +25,7 @@ class GravitySDK {
 
   //other fields
   User? user;
+  late Device device;
   ContentSettings contentSettings = ContentSettings();
   Options options = Options();
 
@@ -32,16 +35,25 @@ class GravitySDK {
 
   final _gravityRepo = GravityRepo.instance;
 
-  void initialize({
+  Future<void> initialize({
     required String apiKey,
     required String section,
     ProductWidgetBuilder? productWidgetBuilder,
     void Function(OnClick onClick)? globalOnClickCallback,
-  }) {
+    bool useAdvertisingId = false,
+  }) async {
     this.apiKey = apiKey;
     this.section = section;
     this.productWidgetBuilder = productWidgetBuilder ?? DefaultProductWidgetBuilder();
     this.globalOnClickCallback = globalOnClickCallback;
+
+    final userAgent = await DeviceUtils.getUserAgent();
+    final deviceIdentifier = await DeviceUtils.getDeviceId(useAdvertisingId);
+
+    device = Device(
+      userAgent: userAgent,
+      id: deviceIdentifier,
+    );
   }
 
   void setOptions({Options? options, ContentSettings? contentSettings}) {
@@ -61,14 +73,18 @@ class GravitySDK {
   }
 
   Future<void> trackView({required PageContext pageContext}) async {
+    _checkIsInitialized();
     await _gravityRepo.visit(customUser: user, pageContext: pageContext, options: options);
   }
 
   Future<void> triggerEvent({required String event, required PageContext pageContext}) async {
+    _checkIsInitialized();
     await _gravityRepo.event(event: event, customUser: user, pageContext: pageContext, options: options);
   }
 
   Future<ContentResponse> getContent(String template) async {
+    _checkIsInitialized();
+
     final content =
         await _gravityRepo.getContent(templateId: template, options: options, contentSetting: contentSettings);
 
@@ -162,6 +178,12 @@ class GravitySDK {
           return bottomSheet;
         },
       );
+    }
+  }
+
+  void _checkIsInitialized() {
+    if (apiKey.isEmpty || section.isEmpty) {
+      throw Exception('GravitySDK is not initialized. Call initialize() first.');
     }
   }
 

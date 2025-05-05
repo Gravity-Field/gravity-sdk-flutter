@@ -5,10 +5,10 @@ import '../actions/event.dart';
 import 'products.dart';
 import 'variables.dart';
 
-part 'content.g.dart';
+part 'campaign_content.g.dart';
 
 @JsonSerializable()
-class Content {
+class CampaignContent {
   final String contentId;
   final String templateId;
   final DeliveryMethod deliveryMethod;
@@ -17,7 +17,7 @@ class Content {
   final Products? products;
   final List<Event> events;
 
-  Content({
+  CampaignContent({
     required this.contentId,
     required this.templateId,
     required this.deliveryMethod,
@@ -27,5 +27,5 @@ class Content {
     required this.events,
   });
 
-  factory Content.fromJson(Map<String, dynamic> json) => _$ContentFromJson(json);
+  factory CampaignContent.fromJson(Map<String, dynamic> json) => _$CampaignContentFromJson(json);
 }

@@ -6,7 +6,23 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'inline_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await GravitySDK.instance.initialize(
+    apiKey: 'api-key',
+    section: 'section',
+    useAdvertisingId: true,
+    // productWidgetBuilder: CustomProductWidgetBuilder(),
+    globalOnClickCallback: (onClick) {
+      if (onClick.action == Action.followUrl) {
+        final url = onClick.url;
+        if (url != null) {
+          launchUrl(Uri.parse(url), mode: LaunchMode.inAppWebView);
+        }
+      }
+    },
+  );
   runApp(MyApp());
 }
 
@@ -27,19 +43,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    GravitySDK.instance.initialize(
-      apiKey: 'api-key',
-      section: 'section',
-      // productWidgetBuilder: CustomProductWidgetBuilder(),
-      globalOnClickCallback: (onClick) {
-        if (onClick.action == Action.followUrl) {
-          final url = onClick.url;
-          if (url != null) {
-            launchUrl(Uri.parse(url), mode: LaunchMode.inAppWebView);
-          }
-        }
-      },
-    );
 
     return MaterialApp(
       title: 'Flutter Demo',
@@ -86,7 +89,7 @@ class MyHomePage extends StatelessWidget {
 }
 
 class _InlineButton extends StatelessWidget {
-  const _InlineButton({super.key});
+  const _InlineButton();
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +110,7 @@ class _InlineButton extends StatelessWidget {
 }
 
 class _Demo extends StatelessWidget {
-  const _Demo({super.key});
+  const _Demo();
 
   @override
   Widget build(BuildContext context) {

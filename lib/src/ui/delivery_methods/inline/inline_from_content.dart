@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 
-import '../../../models/internal/content.dart';
+import '../../../models/internal/campaign_content.dart';
 import '../../../utils/content_events_service.dart';
 import '../../elements/gravity_element.dart';
 
 class InlineFromContent extends StatefulWidget {
-  final Content content;
+  final CampaignContent content;
 
   const InlineFromContent({super.key, required this.content});
 

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_from_content.dart';
 
-import '../../models/internal/content.dart';
+import '../../models/internal/campaign_content.dart';
+
 
 class GravityInlineWidget extends StatefulWidget {
   final String templateId;
@@ -22,7 +23,7 @@ class GravityInlineWidget extends StatefulWidget {
 
 class _GravityInlineWidgetState extends State<GravityInlineWidget> {
   bool isLoading = true;
-  Content? content;
+  CampaignContent? content;
 
   @override
   void initState() {

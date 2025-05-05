@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:gravity_sdk/src/models/internal/campaign_content.dart';
 import 'package:gravity_sdk/src/utils/content_events_service.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../../../models/internal/content.dart';
 import '../../../utils/on_click_handler.dart';
 import '../../elements/gravity_element.dart';
 import '../../widgets/close_button.dart';
 
 class BottomSheetFromContent extends StatefulWidget {
-  final Content content;
+  final CampaignContent content;
 
   const BottomSheetFromContent({super.key, required this.content});
 
