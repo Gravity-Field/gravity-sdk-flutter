@@ -1,6 +1,8 @@
 import 'package:example/visit_screen.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Action;
 import 'package:gravity_sdk/gravity_sdk.dart';
+import 'package:gravity_sdk/src/models/actions/action.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'inline_screen.dart';
 
@@ -30,7 +32,12 @@ class MyApp extends StatelessWidget {
       section: 'section',
       // productWidgetBuilder: CustomProductWidgetBuilder(),
       globalOnClickCallback: (onClick) {
-        print('globalOnClickCallback: ${onClick.action}');
+        if (onClick.action == Action.followUrl) {
+          final url = onClick.url;
+          if (url != null) {
+            launchUrl(Uri.parse(url), mode: LaunchMode.inAppWebView);
+          }
+        }
       },
     );
 
@@ -62,6 +69,7 @@ class MyHomePage extends StatelessWidget {
           children: <Widget>[
             _InlineButton(),
             _VisitButton(),
+            _Demo(),
             SizedBox(height: 32),
             _ModalButton1(),
             _ModalButton2(),
@@ -94,6 +102,26 @@ class _InlineButton extends StatelessWidget {
         );
       },
       child: Text('Go To Inline'),
+    );
+  }
+}
+
+class _Demo extends StatelessWidget {
+  const _Demo({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(Colors.green),
+      ),
+      onPressed: () async {
+        final response = await GravitySDK.instance.getContent('bottom-sheet-banner');
+        if (context.mounted) {
+          GravitySDK.instance.showBottomSheetContent(context, response);
+        }
+      },
+      child: Text('Demo'),
     );
   }
 }
