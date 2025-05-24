@@ -58,12 +58,12 @@ class DeviceUtils {
 
     TrackingStatus status = await AppTrackingTransparency.trackingAuthorizationStatus;
 
-    if (status == TrackingStatus.notDetermined) {
-      print('Request tracking authorization');
-      status = await AppTrackingTransparency.requestTrackingAuthorization();
-    }
-
-    print('Tracking status is $status');
+    // if (status == TrackingStatus.notDetermined) {
+    //   print('Request tracking authorization');
+    //   status = await AppTrackingTransparency.requestTrackingAuthorization();
+    // }
+    //
+    // print('Tracking status is $status');
 
     if (status == TrackingStatus.authorized) {
       String? advertisingId = await AppTrackingTransparency.getAdvertisingIdentifier();

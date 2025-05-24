@@ -1,17 +1,17 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'campaign_content.dart';
 
-part 'campaign.g.dart';
+part 'campaign_variation.g.dart';
 
 @JsonSerializable()
-class Campaign {
+class CampaignVariation {
   final String campaignId;
   final String experienceId;
   final String variationId;
   final String decisionId;
   final List<CampaignContent> contents;
 
-  Campaign({
+  CampaignVariation({
     required this.campaignId,
     required this.experienceId,
     required this.variationId,
@@ -19,5 +19,5 @@ class Campaign {
     required this.contents,
   });
 
-  factory Campaign.fromJson(Map<String, dynamic> json) => _$CampaignFromJson(json);
+  factory CampaignVariation.fromJson(Map<String, dynamic> json) => _$CampaignVariationFromJson(json);
 }

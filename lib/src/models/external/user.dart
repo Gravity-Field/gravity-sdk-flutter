@@ -7,7 +7,7 @@ class User {
   final String? uid;
   final String? custom;
   final String? ses;
-  final Map<String, dynamic>? attributes;
+  final Map<String, String>? attributes;
 
   const User({
     this.uid,

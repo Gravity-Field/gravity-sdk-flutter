@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../../../models/external/campaign.dart';
 import '../../../models/internal/campaign_content.dart';
 import '../../../utils/content_events_service.dart';
 import '../../../utils/on_click_handler.dart';
@@ -9,10 +10,12 @@ import '../../widgets/close_button.dart';
 
 class BottomSheetProductsRow extends StatefulWidget {
   final CampaignContent content;
+  final Campaign campaign;
 
   const BottomSheetProductsRow({
     super.key,
     required this.content,
+    required this.campaign,
   });
 
   @override
@@ -42,7 +45,6 @@ class _BottomSheetProductsRowState extends State<BottomSheetProductsRow> {
     final products = widget.content.products;
     final events = widget.content.events;
     final templateId = widget.content.templateId;
-
 
     return VisibilityDetector(
       key: ValueKey(templateId),
@@ -74,6 +76,8 @@ class _BottomSheetProductsRowState extends State<BottomSheetProductsRow> {
                         element: e,
                         onClickCallback: (action) => onClickHandler.handeOnClick(action),
                         products: products,
+                        campaign: widget.campaign,
+                        content: widget.content,
                       ).getWidget(),
                     )
                     .toList(),

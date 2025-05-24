@@ -16,8 +16,6 @@ enum Action {
   cancel,
   @JsonValue('follow_url')
   followUrl,
-  @JsonValue('follow')
-  follow,
   @JsonValue('follow_deeplink')
   followDeeplink,
   @JsonValue('request_push')

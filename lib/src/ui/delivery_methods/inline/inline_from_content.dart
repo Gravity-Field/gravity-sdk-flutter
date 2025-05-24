@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 
+import '../../../models/external/campaign.dart';
 import '../../../models/internal/campaign_content.dart';
 import '../../../utils/content_events_service.dart';
 import '../../elements/gravity_element.dart';
 
 class InlineFromContent extends StatefulWidget {
   final CampaignContent content;
+  final Campaign campaign;
 
-  const InlineFromContent({super.key, required this.content});
+  const InlineFromContent({super.key, required this.content, required this.campaign});
 
   @override
   State<InlineFromContent> createState() => _InlineFromContentState();
@@ -56,6 +58,8 @@ class _InlineFromContentState extends State<InlineFromContent> {
                   element: e,
                   products: products,
                   onClickCallback: (action) => eventsHandler.handeOnClick(action),
+                  campaign: widget.campaign,
+                  content: widget.content,
                 ).getWidget(),
               )
               .toList(),

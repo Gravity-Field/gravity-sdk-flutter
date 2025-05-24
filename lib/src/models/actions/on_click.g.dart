@@ -22,7 +22,6 @@ const _$ActionEnumMap = {
   Action.copy: 'copy',
   Action.cancel: 'cancel',
   Action.followUrl: 'follow_url',
-  Action.follow: 'follow',
   Action.followDeeplink: 'follow_deeplink',
   Action.requestPush: 'request_push',
   Action.requestTracking: 'request_tracking',

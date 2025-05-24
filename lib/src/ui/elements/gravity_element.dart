@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart' hide Element, Action;
 import 'package:gravity_sdk/src/models/actions/on_click.dart';
+import 'package:gravity_sdk/src/models/internal/campaign_content.dart';
 
+import '../../models/external/campaign.dart';
 import '../../models/internal/element.dart';
 import '../../models/internal/products.dart';
 import 'gravity_button.dart';
@@ -9,11 +11,15 @@ import 'gravity_products_container.dart';
 import 'gravity_text.dart';
 
 class GravityElement {
+  final CampaignContent content;
+  final Campaign campaign;
   final Element element;
   final Function(OnClick) onClickCallback;
   final Products? products;
 
   GravityElement({
+    required this.content,
+    required this.campaign,
     required this.element,
     required this.onClickCallback,
     this.products,

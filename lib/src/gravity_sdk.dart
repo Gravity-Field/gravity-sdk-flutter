@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart' hide Action;
+import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/models/actions/on_click.dart';
-import 'package:gravity_sdk/src/models/external/content_settings.dart';
-import 'package:gravity_sdk/src/settings/product_widget_builder.dart';
+import 'package:gravity_sdk/src/models/actions/product_action.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
 import 'package:gravity_sdk/src/utils/content_events_service.dart';
 import 'package:gravity_sdk/src/utils/device_utils.dart';
 
 import 'data/api/content_response.dart';
-import 'models/external/options.dart';
-import 'models/external/page_context.dart';
 import 'models/external/user.dart';
 import 'models/internal/device.dart';
 import 'repos/gravity_repo.dart';
@@ -82,6 +80,8 @@ class GravitySDK {
     await _gravityRepo.event(event: event, customUser: user, pageContext: pageContext, options: options);
   }
 
+  void sendEngagement(ProductAction action, Slot slot) {}
+
   Future<ContentResponse> getContent(String template) async {
     _checkIsInitialized();
 
@@ -100,10 +100,11 @@ class GravitySDK {
   }
 
   void showModalContent(BuildContext context, ContentResponse contentResponse) {
-    final content = contentResponse.data.first.payload.first.contents.first;
+    final campaign = contentResponse.data.first;
+    final content = campaign.payload.first.contents.first;
 
     if (context.mounted) {
-      final modal = ModalFromContent(content: content);
+      final modal = ModalFromContent(content: content, campaign: campaign);
 
       showDialog(
         context: context,
@@ -115,10 +116,11 @@ class GravitySDK {
   }
 
   void showBottomSheetContent(BuildContext context, ContentResponse contentResponse) {
-    final content = contentResponse.data.first.payload.first.contents.first;
+    final campaign = contentResponse.data.first;
+    final content = campaign.payload.first.contents.first;
 
     if (context.mounted) {
-      final bottomSheet = BottomSheetFromContent(content: content);
+      final bottomSheet = BottomSheetFromContent(content: content, campaign: campaign);
 
       final frameUi = content.variables.frameUI!;
       final container = frameUi.container;
@@ -140,10 +142,11 @@ class GravitySDK {
   }
 
   void showFullScreenContent(BuildContext context, ContentResponse contentResponse) {
-    final content = contentResponse.data.first.payload.first.contents.first;
+    final campaign = contentResponse.data.first;
+    final content = campaign.payload.first.contents.first;
 
     if (context.mounted) {
-      final fullScreen = FullScreenFromContent(content: content);
+      final fullScreen = FullScreenFromContent(content: content, campaign: campaign);
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) {
@@ -155,10 +158,11 @@ class GravitySDK {
   }
 
   void showBottomSheetProductsRow(BuildContext context, ContentResponse contentResponse) {
-    final content = contentResponse.data.first.payload.first.contents.first;
+    final campaign = contentResponse.data.first;
+    final content = campaign.payload.first.contents.first;
 
     if (context.mounted) {
-      final bottomSheet = BottomSheetProductsRow(content: content);
+      final bottomSheet = BottomSheetProductsRow(content: content, campaign: campaign);
 
       final frameUi = content.variables.frameUI;
       final container = frameUi?.container;

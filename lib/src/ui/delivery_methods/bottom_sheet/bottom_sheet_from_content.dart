@@ -3,14 +3,16 @@ import 'package:gravity_sdk/src/models/internal/campaign_content.dart';
 import 'package:gravity_sdk/src/utils/content_events_service.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../../../models/external/campaign.dart';
 import '../../../utils/on_click_handler.dart';
 import '../../elements/gravity_element.dart';
 import '../../widgets/close_button.dart';
 
 class BottomSheetFromContent extends StatefulWidget {
   final CampaignContent content;
+  final Campaign campaign;
 
-  const BottomSheetFromContent({super.key, required this.content});
+  const BottomSheetFromContent({super.key, required this.content, required this.campaign});
 
   @override
   State<BottomSheetFromContent> createState() => _BottomSheetFromContentState();
@@ -74,6 +76,8 @@ class _BottomSheetFromContentState extends State<BottomSheetFromContent> {
                       .map(
                         (e) => GravityElement(
                           element: e,
+                          content: widget.content,
+                          campaign: widget.campaign,
                           onClickCallback: (action) {
                             onClickHandler.handeOnClick(action);
                           },

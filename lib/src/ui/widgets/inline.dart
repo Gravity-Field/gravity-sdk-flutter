@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
+import 'package:gravity_sdk/src/models/external/campaign.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_from_content.dart';
 
 import '../../models/internal/campaign_content.dart';
-
 
 class GravityInlineWidget extends StatefulWidget {
   final String templateId;
@@ -24,6 +24,7 @@ class GravityInlineWidget extends StatefulWidget {
 class _GravityInlineWidgetState extends State<GravityInlineWidget> {
   bool isLoading = true;
   CampaignContent? content;
+  Campaign? campaign;
 
   @override
   void initState() {
@@ -33,9 +34,11 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
 
   void _loadContent() async {
     final response = await GravitySDK.instance.getContent(widget.templateId);
-    final content = response.data.first.payload.first.contents.first;
+    final campaign = response.data.first;
+    final content = campaign.payload.first.contents.first;
     setState(() {
       this.content = content;
+      this.campaign = campaign;
       isLoading = false;
     });
   }
@@ -47,9 +50,10 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
       height: widget.height,
       child: Builder(
         builder: (context) {
-          if (content != null) {
+          if (content != null && campaign != null) {
             return InlineFromContent(
               content: content!,
+              campaign: campaign!,
             );
           }
 

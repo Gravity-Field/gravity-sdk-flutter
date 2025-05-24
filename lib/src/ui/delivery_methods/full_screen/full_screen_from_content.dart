@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../../../models/external/campaign.dart';
 import '../../../models/internal/campaign_content.dart';
 import '../../../utils/content_events_service.dart';
 import '../../elements/gravity_element.dart';
@@ -9,8 +10,10 @@ import '../../widgets/close_button.dart';
 
 class FullScreenFromContent extends StatefulWidget {
   final CampaignContent content;
+  final Campaign campaign;
 
-  const FullScreenFromContent({super.key, required this.content});
+
+  const FullScreenFromContent({super.key, required this.content, required this.campaign});
 
   @override
   State<FullScreenFromContent> createState() => _FullScreenFromContentState();
@@ -69,6 +72,8 @@ class _FullScreenFromContentState extends State<FullScreenFromContent> {
                           (e) => GravityElement(
                             element: e,
                             onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                            campaign: widget.campaign,
+                            content: widget.content,
                           ).getWidget(),
                         )
                         .toList(),

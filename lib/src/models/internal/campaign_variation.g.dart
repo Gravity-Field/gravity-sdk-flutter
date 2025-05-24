@@ -1,12 +1,13 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'campaign.dart';
+part of 'campaign_variation.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-Campaign _$CampaignFromJson(Map<String, dynamic> json) => Campaign(
+CampaignVariation _$CampaignVariationFromJson(Map<String, dynamic> json) =>
+    CampaignVariation(
       campaignId: json['campaignId'] as String,
       experienceId: json['experienceId'] as String,
       variationId: json['variationId'] as String,
