@@ -1,11 +1,12 @@
 import 'package:gravity_sdk/src/models/external/page_context.dart';
+import 'package:gravity_sdk/src/models/external/trigger_event.dart';
 
 import '../data/api/api.dart';
 import '../data/api/content_response.dart';
 import '../data/prefs/prefs.dart';
-import '../models/external/user.dart';
-import '../models/external/options.dart';
 import '../models/external/content_settings.dart';
+import '../models/external/options.dart';
+import '../models/external/user.dart';
 
 class GravityRepo {
   GravityRepo._();
@@ -19,13 +20,13 @@ class GravityRepo {
   String? sessionIdCache;
 
   Future<void> event({
-    required String event,
+    required List<TriggerEvent> events,
     User? customUser,
     required PageContext pageContext,
     required Options options,
   }) async {
     final finalUser = await _determineUser(customUser);
-    final response = await _api.event(finalUser, pageContext, options);
+    final response = await _api.event(events, finalUser, pageContext, options);
     await _saveUserIfNeeded(customUser, response.user);
   }
 

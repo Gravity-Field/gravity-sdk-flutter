@@ -76,9 +76,9 @@ class GravitySDK {
     await _gravityRepo.visit(customUser: user, pageContext: pageContext, options: options);
   }
 
-  Future<void> triggerEvent({required String event, required PageContext pageContext}) async {
+  Future<void> triggerEvent({required List<TriggerEvent> events, required PageContext pageContext}) async {
     _checkIsInitialized();
-    await _gravityRepo.event(event: event, customUser: user, pageContext: pageContext, options: options);
+    await _gravityRepo.event(events: events, customUser: user, pageContext: pageContext, options: options);
   }
 
   void sendEngagement(ProductAction action, Slot slot) {}

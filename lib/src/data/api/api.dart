@@ -2,7 +2,7 @@ import 'package:dio/dio.dart' hide Options;
 import 'package:flutter/foundation.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/api/gravity_interceptor.dart';
-import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:talker_dio_logger/talker_dio_logger.dart';
 
 import '../../models/external/user.dart';
 import 'content_response.dart';
@@ -20,10 +20,15 @@ class Api {
     _dio.interceptors.add(GravityInterceptor());
 
     if (kDebugMode) {
-      _dio.interceptors.add(PrettyDioLogger(
-        requestBody: true,
-        requestHeader: true,
-      ));
+      _dio.interceptors.add(
+        TalkerDioLogger(
+          settings: const TalkerDioLoggerSettings(
+            printRequestHeaders: true,
+            printResponseHeaders: true,
+            printResponseMessage: true,
+          ),
+        ),
+      );
     }
   }
 
@@ -61,10 +66,15 @@ class Api {
     return ContentResponse.fromJson(response.data);
   }
 
-  Future<ContentResponse> event(User? user, PageContext context, Options options) async {
+  Future<ContentResponse> event(List<TriggerEvent> events, User? user, PageContext context, Options options) async {
     final data = {
       'sec': GravitySDK.instance.section,
       'device': GravitySDK.instance.device.toJson(),
+      'events': events
+          .map(
+            (e) => e.toJson(),
+          )
+          .toList(),
       'user': user?.toJson(),
       'context': context.toJson(),
       'options': options.toJson(),

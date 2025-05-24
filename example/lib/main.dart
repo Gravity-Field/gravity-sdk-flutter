@@ -13,7 +13,7 @@ void main() async {
     useAdvertisingId: true,
     // productWidgetBuilder: CustomProductWidgetBuilder(),
     gravityEventCallback: (TrackingEvent event) {
-
+      print('Gravity event callback $event');
     },
   );
   runApp(MyApp());
@@ -64,6 +64,7 @@ class MyHomePage extends StatelessWidget {
             _InlineButton(),
             _VisitButton(),
             _Demo(),
+            _SendAddToCartEvent(),
             SizedBox(height: 32),
             _ModalButton1(),
             _ModalButton2(),
@@ -116,6 +117,31 @@ class _Demo extends StatelessWidget {
         }
       },
       child: Text('Demo'),
+    );
+  }
+}
+
+class _SendAddToCartEvent extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(Colors.green),
+      ),
+      onPressed: () async {
+        final events = [
+          AddToCartEvent(
+            value: 118.26,
+            currency: 'RUB',
+            productId: 'item-34454',
+            quantity: 2,
+            cart: [],
+          ),
+          CustomEvent(type: 'new_type', name: 'New name'),
+        ];
+        GravitySDK.instance.triggerEvent(events: events, pageContext: PageContext(ContextType.cart));
+      },
+      child: Text('Send Add To Cart Event'),
     );
   }
 }
