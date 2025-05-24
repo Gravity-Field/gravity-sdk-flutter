@@ -63,7 +63,7 @@ class GravityRepo {
     for (final url in urls) {
       try {
         _api.triggerEventUrl(url);
-      } catch (e, s) {
+      } catch (e) {
         //TODO: add logger
       }
     }

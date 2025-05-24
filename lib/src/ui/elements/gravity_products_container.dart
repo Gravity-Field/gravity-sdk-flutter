@@ -48,7 +48,6 @@ class GravityProductsContainer extends StatelessWidget {
             },
             child: productWidget,
           );
-          return productWidget;
         },
         separatorBuilder: (context, index) {
           return const SizedBox(

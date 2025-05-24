@@ -40,8 +40,6 @@ class _FullScreenFromContentState extends State<FullScreenFromContent> {
     final container = frameUi.container;
     final close = frameUi.close;
     final elements = widget.content.variables.elements;
-    final products = widget.content.products;
-    final events = widget.content.events;
     final templateId = widget.content.templateId;
 
     return VisibilityDetector(

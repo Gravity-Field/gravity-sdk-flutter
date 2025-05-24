@@ -13,7 +13,6 @@ void main() async {
     useAdvertisingId: true,
     // productWidgetBuilder: CustomProductWidgetBuilder(),
     gravityEventCallback: (TrackingEvent event) {
-      print('Gravity event callback $event');
     },
   );
 
@@ -32,7 +31,7 @@ class CustomProductWidgetBuilder extends ProductWidgetBuilder {
 }
 
 class MyApp extends StatelessWidget {
-  MyApp({super.key});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +147,7 @@ class _SendAddToCartEvent extends StatelessWidget {
 }
 
 class _VisitButton extends StatelessWidget {
-  const _VisitButton({super.key});
+  const _VisitButton();
 
   @override
   Widget build(BuildContext context) {

@@ -39,8 +39,6 @@ class _BottomSheetFromContentState extends State<BottomSheetFromContent> {
     final close = frameUi.close;
     final elements = widget.content.variables.elements;
     final isBanner = widget.content.contentType == 'banner';
-    final products = widget.content.products;
-    final events = widget.content.events;
     final templateId = widget.content.templateId;
 
     return VisibilityDetector(

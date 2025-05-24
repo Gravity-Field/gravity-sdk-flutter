@@ -6,10 +6,6 @@ part of 'page_context.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-PageContext _$PageContextFromJson(Map<String, dynamic> json) => PageContext(
-      $enumDecode(_$ContextTypeEnumMap, json['type']),
-    );
-
 Map<String, dynamic> _$PageContextToJson(PageContext instance) =>
     <String, dynamic>{
       'type': _$ContextTypeEnumMap[instance.type]!,

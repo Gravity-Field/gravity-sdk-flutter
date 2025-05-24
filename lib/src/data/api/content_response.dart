@@ -2,7 +2,6 @@ import 'package:json_annotation/json_annotation.dart';
 
 import '../../models/external/campaign.dart';
 import '../../models/external/user.dart';
-import '../../models/internal/campaign_variation.dart';
 
 part 'content_response.g.dart';
 

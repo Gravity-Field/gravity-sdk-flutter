@@ -24,7 +24,7 @@ class VisitScreen extends StatelessWidget {
 }
 
 class _VisitButton extends StatelessWidget {
-  const _VisitButton({super.key});
+  const _VisitButton();
 
   @override
   Widget build(BuildContext context) {

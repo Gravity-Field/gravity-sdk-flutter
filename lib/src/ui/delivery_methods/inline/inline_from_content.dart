@@ -37,7 +37,6 @@ class _InlineFromContentState extends State<InlineFromContent> {
     final container = frameUi?.container;
     final elements = widget.content.variables.elements;
     final products = widget.content.products;
-    final events = widget.content.events;
 
     return Container(
       decoration: BoxDecoration(

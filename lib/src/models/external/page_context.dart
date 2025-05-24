@@ -12,7 +12,7 @@ enum ContextType {
   other;
 }
 
-@JsonSerializable(createToJson: true)
+@JsonSerializable(createToJson: true, createFactory: false)
 class PageContext {
   final ContextType type;
 

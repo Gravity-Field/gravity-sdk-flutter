@@ -38,7 +38,6 @@ class _ModalFromContentState extends State<ModalFromContent> {
     final container = frameUi.container;
     final close = frameUi.close;
     final elements = widget.content.variables.elements;
-    final events = widget.content.events;
     final templateId = widget.content.templateId;
 
     return VisibilityDetector(
