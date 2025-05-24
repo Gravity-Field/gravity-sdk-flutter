@@ -1,8 +1,9 @@
 export 'src/gravity_sdk.dart';
+export 'src/models/actions/action.dart';
+export 'src/models/external/content_settings.dart';
+export 'src/models/external/options.dart';
+export 'src/models/external/page_context.dart';
+export 'src/models/external/tracking_event.dart';
+export 'src/models/internal/slot.dart';
 export 'src/settings/product_widget_builder.dart';
 export 'src/ui/widgets/inline.dart';
-export 'src/models/internal/slot.dart';
-export 'src/models/external/page_context.dart';
-export 'src/models/external/options.dart';
-export 'src/models/external/content_settings.dart';
-export 'src/models/actions/action.dart';

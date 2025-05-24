@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart' hide Action;
 import 'package:gravity_sdk/gravity_sdk.dart';
-import 'package:gravity_sdk/src/models/actions/on_click.dart';
 import 'package:gravity_sdk/src/models/actions/product_action.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
 import 'package:gravity_sdk/src/utils/content_events_service.dart';
@@ -14,12 +13,14 @@ import 'ui/delivery_methods/bottom_sheet/bottom_sheet_from_content.dart';
 import 'ui/delivery_methods/full_screen/full_screen_from_content.dart';
 import 'ui/delivery_methods/modal/modal_from_content.dart';
 
+typedef GravityEventCallback = void Function(TrackingEvent event);
+
 class GravitySDK {
   //init fields
   String apiKey = '';
   String section = '';
   ProductWidgetBuilder productWidgetBuilder = DefaultProductWidgetBuilder();
-  void Function(OnClick onClick)? globalOnClickCallback;
+  GravityEventCallback? gravityEventCallback;
 
   //other fields
   User? user;
@@ -37,13 +38,13 @@ class GravitySDK {
     required String apiKey,
     required String section,
     ProductWidgetBuilder? productWidgetBuilder,
-    void Function(OnClick onClick)? globalOnClickCallback,
+    GravityEventCallback? gravityEventCallback,
     bool useAdvertisingId = false,
   }) async {
     this.apiKey = apiKey;
     this.section = section;
     this.productWidgetBuilder = productWidgetBuilder ?? DefaultProductWidgetBuilder();
-    this.globalOnClickCallback = globalOnClickCallback;
+    this.gravityEventCallback = gravityEventCallback;
 
     final userAgent = await DeviceUtils.getUserAgent();
     final deviceIdentifier = await DeviceUtils.getDeviceId(useAdvertisingId);

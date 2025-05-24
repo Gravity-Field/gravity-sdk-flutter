@@ -29,7 +29,7 @@ class _BottomSheetProductsRowState extends State<BottomSheetProductsRow> {
   void initState() {
     super.initState();
 
-    onClickHandler = OnClickHandler(widget.content.events);
+    onClickHandler = OnClickHandler(campaign: widget.campaign, content: widget.content);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ContentEventsService.instance.sendContentImpression(widget.content);

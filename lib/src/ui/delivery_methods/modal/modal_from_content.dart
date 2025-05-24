@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gravity_sdk/src/ui/elements/gravity_element.dart';
 import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+
 import '../../../models/external/campaign.dart';
 import '../../../models/internal/campaign_content.dart';
 import '../../../utils/content_events_service.dart';
@@ -18,13 +19,13 @@ class ModalFromContent extends StatefulWidget {
 }
 
 class _ModalFromContentState extends State<ModalFromContent> {
-  late final OnClickHandler eventsHandler;
+  late final OnClickHandler onClickHandler;
 
   @override
   void initState() {
     super.initState();
 
-    eventsHandler = OnClickHandler(widget.content.events);
+    onClickHandler = OnClickHandler(campaign: widget.campaign, content: widget.content);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ContentEventsService.instance.sendContentImpression(widget.content);
@@ -70,7 +71,7 @@ class _ModalFromContentState extends State<ModalFromContent> {
                         element: e,
                         campaign: widget.campaign,
                         content: widget.content,
-                        onClickCallback: (action) => eventsHandler.handeOnClick(action),
+                        onClickCallback: (action) => onClickHandler.handeOnClick(action),
                       ).getWidget(),
                     )
                     .toList(),
@@ -79,7 +80,7 @@ class _ModalFromContentState extends State<ModalFromContent> {
             if (close != null)
               GravityCloseButtonWidget(
                 close: close,
-                onClickCallback: (action) => eventsHandler.handeOnClick(action),
+                onClickCallback: (action) => onClickHandler.handeOnClick(action),
                 // onClosePressed: () {
                 //   ContentEventsService.instance.sendContentClosed(widget.content);
                 // },

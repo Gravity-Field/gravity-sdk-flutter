@@ -17,13 +17,14 @@ class InlineFromContent extends StatefulWidget {
 }
 
 class _InlineFromContentState extends State<InlineFromContent> {
-  late final OnClickHandler eventsHandler;
+  late final OnClickHandler onClickHandler;
 
   @override
   void initState() {
     super.initState();
 
-    eventsHandler = OnClickHandler(widget.content.events);
+    onClickHandler = OnClickHandler(campaign: widget.campaign, content: widget.content);
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ContentEventsService.instance.sendContentImpression(widget.content);
@@ -57,7 +58,7 @@ class _InlineFromContentState extends State<InlineFromContent> {
                 (e) => GravityElement(
                   element: e,
                   products: products,
-                  onClickCallback: (action) => eventsHandler.handeOnClick(action),
+                  onClickCallback: (action) => onClickHandler.handeOnClick(action),
                   campaign: widget.campaign,
                   content: widget.content,
                 ).getWidget(),

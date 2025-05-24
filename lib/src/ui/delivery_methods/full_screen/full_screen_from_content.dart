@@ -26,7 +26,8 @@ class _FullScreenFromContentState extends State<FullScreenFromContent> {
   void initState() {
     super.initState();
 
-    onClickHandler = OnClickHandler(widget.content.events);
+    onClickHandler = OnClickHandler(campaign: widget.campaign, content: widget.content);
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ContentEventsService.instance.sendContentImpression(widget.content);

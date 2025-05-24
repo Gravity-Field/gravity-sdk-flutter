@@ -1,8 +1,6 @@
 import 'package:example/visit_screen.dart';
 import 'package:flutter/material.dart' hide Action;
 import 'package:gravity_sdk/gravity_sdk.dart';
-import 'package:gravity_sdk/src/models/actions/action.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'inline_screen.dart';
 
@@ -14,13 +12,8 @@ void main() async {
     section: 'section',
     useAdvertisingId: true,
     // productWidgetBuilder: CustomProductWidgetBuilder(),
-    globalOnClickCallback: (onClick) {
-      if (onClick.action == Action.followUrl) {
-        final url = onClick.url;
-        if (url != null) {
-          launchUrl(Uri.parse(url), mode: LaunchMode.inAppWebView);
-        }
-      }
+    gravityEventCallback: (TrackingEvent event) {
+
     },
   );
   runApp(MyApp());
@@ -40,10 +33,8 @@ class CustomProductWidgetBuilder extends ProductWidgetBuilder {
 class MyApp extends StatelessWidget {
   MyApp({super.key});
 
-
   @override
   Widget build(BuildContext context) {
-
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
