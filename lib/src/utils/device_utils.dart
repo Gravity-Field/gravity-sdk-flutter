@@ -50,24 +50,14 @@ class DeviceUtils {
       deviceId = null;
     }
 
-    print('DeviceId id is $deviceId');
-
     if (!useAdvertisingId) {
       return deviceId;
     }
 
     TrackingStatus status = await AppTrackingTransparency.trackingAuthorizationStatus;
 
-    // if (status == TrackingStatus.notDetermined) {
-    //   print('Request tracking authorization');
-    //   status = await AppTrackingTransparency.requestTrackingAuthorization();
-    // }
-    //
-    // print('Tracking status is $status');
-
     if (status == TrackingStatus.authorized) {
       String? advertisingId = await AppTrackingTransparency.getAdvertisingIdentifier();
-      print('Advertising id is $advertisingId');
       return advertisingId;
     } else {
       return deviceId;
@@ -84,20 +74,15 @@ class DeviceUtils {
       deviceId = null;
     }
 
-    print('DeviceId id is $deviceId');
-
     if (!useAdvertisingId) {
       return deviceId;
     }
 
     final isLimitAdTrackingEnabled = await AdvertisingId.isLimitAdTrackingEnabled;
 
-    print('isLimitAdTrackingEnabled is $isLimitAdTrackingEnabled');
-
     if (isLimitAdTrackingEnabled == false) {
       try {
         String? advertisingId = await AdvertisingId.id(true);
-        print('Advertising id is $advertisingId');
         return advertisingId;
       } on PlatformException {
         return deviceId;

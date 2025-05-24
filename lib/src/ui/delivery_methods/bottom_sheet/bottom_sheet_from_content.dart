@@ -92,9 +92,6 @@ class _BottomSheetFromContentState extends State<BottomSheetFromContent> {
                   onClickCallback: (action) {
                     onClickHandler.handeOnClick(action);
                   },
-                  // onClosePressed: () {
-                  //   ContentEventsService.instance.sendContentClosed(widget.content);
-                  // },
                 )
             ],
           ),

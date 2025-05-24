@@ -32,7 +32,6 @@ class GravityCloseButtonWidget extends StatelessWidget {
           if (close.onClick != null) {
             onClickCallback(close.onClick!);
           }
-          // onClosePressed();
           Navigator.of(context).pop();
         },
       ),
