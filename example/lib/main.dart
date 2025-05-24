@@ -16,6 +16,7 @@ void main() async {
       print('Gravity event callback $event');
     },
   );
+
   runApp(MyApp());
 }
 

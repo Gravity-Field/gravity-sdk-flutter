@@ -10,9 +10,10 @@ import 'content_response.dart';
 class Api {
   final _dio = Dio();
 
+  String get baseUrl => GravitySDK.instance.proxyUrl ?? 'https://mock.apidog.com/m1/807903-786789-default';
+
   Api() {
     _dio.options
-      ..baseUrl = 'https://mock.apidog.com/m1/807903-786789-default'
       ..connectTimeout = const Duration(seconds: 30)
       ..receiveTimeout = const Duration(seconds: 60)
       ..sendTimeout = const Duration(seconds: 30);
@@ -48,7 +49,7 @@ class Api {
       'contentSettings': contentSettings.toJson(),
     };
 
-    final response = await _dio.post('/choose', queryParameters: {'templateId': templateId}, data: data);
+    final response = await _dio.post('$baseUrl/choose', queryParameters: {'templateId': templateId}, data: data);
     return ContentResponse.fromJson(response.data);
   }
 
@@ -62,7 +63,7 @@ class Api {
       'options': options.toJson(),
     };
 
-    final response = await _dio.post('/visit', data: data);
+    final response = await _dio.post('$baseUrl/visit', data: data);
     return ContentResponse.fromJson(response.data);
   }
 
@@ -80,7 +81,7 @@ class Api {
       'options': options.toJson(),
     };
 
-    final response = await _dio.post('/event', data: data);
+    final response = await _dio.post('$baseUrl/event', data: data);
     return ContentResponse.fromJson(response.data);
   }
 

@@ -34,12 +34,12 @@ class GravitySDK {
   late Device device;
   ContentSettings contentSettings = ContentSettings();
   Options options = Options();
+  String? proxyUrl;
 
   GravitySDK._();
 
   static final GravitySDK instance = GravitySDK._();
 
-  final _gravityRepo = GravityRepo.instance;
 
   Future<void> initialize({
     required String apiKey,
@@ -62,13 +62,18 @@ class GravitySDK {
     );
   }
 
-  void setOptions({Options? options, ContentSettings? contentSettings}) {
+  void setOptions({
+    Options? options,
+    ContentSettings? contentSettings,
+    String? proxyUrl,
+  }) {
     if (options != null) {
       this.options = options;
     }
     if (contentSettings != null) {
       this.contentSettings = contentSettings;
     }
+    this.proxyUrl = proxyUrl;
   }
 
   void setUser(String userId, String sessionId) {
@@ -80,15 +85,16 @@ class GravitySDK {
 
   Future<void> trackView({required PageContext pageContext}) async {
     _checkIsInitialized();
-    await _gravityRepo.visit(customUser: user, pageContext: pageContext, options: options);
+    await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
   }
 
   Future<void> triggerEvent({required List<TriggerEvent> events, required PageContext pageContext}) async {
     _checkIsInitialized();
-    await _gravityRepo.event(events: events, customUser: user, pageContext: pageContext, options: options);
+    await GravityRepo.instance.event(events: events, customUser: user, pageContext: pageContext, options: options);
   }
 
   void sendContentEngagement(ContentEngagement engagement) {
+    _checkIsInitialized();
     switch (engagement) {
       case ContentImpressionEngagement():
         ContentEventsService.instance.sendContentImpression(
@@ -112,6 +118,8 @@ class GravitySDK {
   }
 
   void sendProductEngagement(ProductEngagement engagement) {
+    _checkIsInitialized();
+
     switch (engagement) {
       case ProductClickEngagement():
         ProductEventsService.instance.sendProductClick(
@@ -135,7 +143,7 @@ class GravitySDK {
     _checkIsInitialized();
 
     final content =
-        await _gravityRepo.getContent(templateId: template, options: options, contentSetting: contentSettings);
+        await GravityRepo.instance.getContent(templateId: template, options: options, contentSetting: contentSettings);
 
     for (final campaign in content.data) {
       for (final payload in campaign.payload) {
