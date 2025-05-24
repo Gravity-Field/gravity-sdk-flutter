@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart' hide Action;
-import 'package:gravity_sdk/gravity_sdk.dart';
-import 'package:gravity_sdk/src/models/actions/product_action.dart';
-import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
-import 'package:gravity_sdk/src/utils/content_events_service.dart';
-import 'package:gravity_sdk/src/utils/device_utils.dart';
+import 'package:gravity_sdk/src/utils/product_events_service.dart';
 
 import 'data/api/content_response.dart';
+import 'models/external/content_engagement.dart';
+import 'models/external/content_settings.dart';
+import 'models/external/options.dart';
+import 'models/external/page_context.dart';
+import 'models/external/product_engagement.dart';
+import 'models/external/tracking_event.dart';
+import 'models/external/trigger_event.dart';
 import 'models/external/user.dart';
 import 'models/internal/device.dart';
 import 'repos/gravity_repo.dart';
+import 'settings/product_widget_builder.dart';
 import 'ui/delivery_methods/bottom_sheet/bottom_sheet_from_content.dart';
+import 'ui/delivery_methods/bottom_sheet/bottom_sheet_products_row.dart';
 import 'ui/delivery_methods/full_screen/full_screen_from_content.dart';
 import 'ui/delivery_methods/modal/modal_from_content.dart';
+import 'utils/content_events_service.dart';
+import 'utils/device_utils.dart';
 
 typedef GravityEventCallback = void Function(TrackingEvent event);
 
@@ -81,7 +88,48 @@ class GravitySDK {
     await _gravityRepo.event(events: events, customUser: user, pageContext: pageContext, options: options);
   }
 
-  void sendEngagement(ProductAction action, Slot slot) {}
+  void sendContentEngagement(ContentEngagement engagement) {
+    switch (engagement) {
+      case ContentImpressionEngagement():
+        ContentEventsService.instance.sendContentImpression(
+          content: engagement.content,
+          campaign: engagement.campaign,
+          callbackTrackingEvent: false,
+        );
+      case ContentVisibleImpressionEngagement():
+        ContentEventsService.instance.sendContentVisibleImpression(
+          content: engagement.content,
+          campaign: engagement.campaign,
+          callbackTrackingEvent: false,
+        );
+      case ContentCloseEngagement():
+        ContentEventsService.instance.sendContentVisibleImpression(
+          content: engagement.content,
+          campaign: engagement.campaign,
+          callbackTrackingEvent: false,
+        );
+    }
+  }
+
+  void sendProductEngagement(ProductEngagement engagement) {
+    switch (engagement) {
+      case ProductClickEngagement():
+        ProductEventsService.instance.sendProductClick(
+          slot: engagement.slot,
+          content: engagement.content,
+          campaign: engagement.campaign,
+          callbackTrackingEvent: false,
+        );
+
+      case ProductVisibleImpressionEngagement():
+        ProductEventsService.instance.sendProductVisibleImpression(
+          slot: engagement.slot,
+          content: engagement.content,
+          campaign: engagement.campaign,
+          callbackTrackingEvent: false,
+        );
+    }
+  }
 
   Future<ContentResponse> getContent(String template) async {
     _checkIsInitialized();
@@ -89,10 +137,10 @@ class GravitySDK {
     final content =
         await _gravityRepo.getContent(templateId: template, options: options, contentSetting: contentSettings);
 
-    for (final data in content.data) {
-      for (final payload in data.payload) {
+    for (final campaign in content.data) {
+      for (final payload in campaign.payload) {
         for (final content in payload.contents) {
-          ContentEventsService.instance.sendContentLoaded(content);
+          ContentEventsService.instance.sendContentLoaded(content: content, campaign: campaign);
         }
       }
     }

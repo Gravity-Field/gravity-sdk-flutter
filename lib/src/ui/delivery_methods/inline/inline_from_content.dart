@@ -27,7 +27,7 @@ class _InlineFromContentState extends State<InlineFromContent> {
 
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ContentEventsService.instance.sendContentImpression(widget.content);
+      ContentEventsService.instance.sendContentImpression(campaign: widget.campaign, content: widget.content);
     });
   }
 

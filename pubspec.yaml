@@ -21,6 +21,7 @@ dependencies:
   android_id: 0.4.0
   app_tracking_transparency: 2.0.6+1
   talker_dio_logger: 4.7.9
+  collection: 1.19.1
 
 
 dev_dependencies:

@@ -30,7 +30,7 @@ class _FullScreenFromContentState extends State<FullScreenFromContent> {
 
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ContentEventsService.instance.sendContentImpression(widget.content);
+      ContentEventsService.instance.sendContentImpression(campaign: widget.campaign, content: widget.content);
     });
   }
 
@@ -49,7 +49,7 @@ class _FullScreenFromContentState extends State<FullScreenFromContent> {
       onVisibilityChanged: (info) {
         var visiblePercentage = info.visibleFraction * 100;
         if (visiblePercentage >= 50) {
-          ContentEventsService.instance.sendContentVisibleImpression(widget.content);
+          ContentEventsService.instance.sendContentVisibleImpression(campaign: widget.campaign, content: widget.content);
         }
       },
       child: Scaffold(

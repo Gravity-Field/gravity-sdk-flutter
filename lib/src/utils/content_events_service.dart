@@ -1,52 +1,100 @@
 import 'package:collection/collection.dart';
+import 'package:gravity_sdk/gravity_sdk.dart';
+import 'package:gravity_sdk/src/models/external/campaign.dart';
 import 'package:gravity_sdk/src/repos/gravity_repo.dart';
 
 import '../models/actions/content_action.dart';
 import '../models/internal/campaign_content.dart';
-import '../models/actions/event.dart';
 
 class ContentEventsService {
   ContentEventsService._();
 
   static final ContentEventsService instance = ContentEventsService._();
 
-  sendContentLoaded(CampaignContent content) {
-    print('sendContentLoaded');
+  void sendContentLoaded({
+    required CampaignContent content,
+    required Campaign campaign,
+    bool callbackTrackingEvent = true,
+  }) {
     final onLoad = content.variables.onLoad;
-    final events = content.events;
-    _handleAction(onLoad, events);
+    _trackEvent(
+      action: onLoad,
+      content: content,
+      campaign: campaign,
+      callbackTrackingEvent: callbackTrackingEvent,
+    );
   }
 
-  sendContentImpression(CampaignContent content) {
-    print('sendContentImpression');
+  void sendContentImpression({
+    required CampaignContent content,
+    required Campaign campaign,
+    bool callbackTrackingEvent = true,
+  }) {
     final onImpression = content.variables.onImpression;
-    final events = content.events;
-    _handleAction(onImpression, events);
+    _trackEvent(
+      action: onImpression,
+      content: content,
+      campaign: campaign,
+      callbackTrackingEvent: callbackTrackingEvent,
+    );
   }
 
-  sendContentVisibleImpression(CampaignContent content) {
-    print('sendContentVisibleImpression');
+  void sendContentVisibleImpression({
+    required CampaignContent content,
+    required Campaign campaign,
+    bool callbackTrackingEvent = true,
+  }) {
     final onVisibleImpression = content.variables.onVisibleImpression;
-    final events = content.events;
-    _handleAction(onVisibleImpression, events);
+    _trackEvent(
+      action: onVisibleImpression,
+      content: content,
+      campaign: campaign,
+      callbackTrackingEvent: callbackTrackingEvent,
+    );
   }
 
-  sendContentClosed(CampaignContent content) {
-    print('sendContentClosed');
+  void sendContentClosed({
+    required CampaignContent content,
+    required Campaign campaign,
+    bool callbackTrackingEvent = true,
+  }) {
     final onClose = content.variables.onClose;
-    final events = content.events;
-    _handleAction(onClose, events);
+    _trackEvent(
+      action: onClose,
+      content: content,
+      campaign: campaign,
+      callbackTrackingEvent: callbackTrackingEvent,
+    );
   }
 
-  void _handleAction(ContentAction? action, List<Event> events) {
+  void _trackEvent({
+    required ContentAction? action,
+    required CampaignContent content,
+    required Campaign campaign,
+    bool callbackTrackingEvent = true,
+  }) {
     if (action == null) return;
 
-    final event = events.firstWhereOrNull((event) => event.name == action.action);
+    final event = content.events.firstWhereOrNull((event) => event.name == action.action);
 
     if (event == null) return;
 
     final urls = event.urls;
 
     GravityRepo.instance.triggerEventUrls(urls);
+
+    if (callbackTrackingEvent) {
+      final event = switch (action.action) {
+        Action.load => ContentLoadEvent(content, campaign),
+        Action.impression => ContentImpressionEvent(content, campaign),
+        Action.visibleImpression => ContentVisibleImpressionEvent(content, campaign),
+        Action.close => ContentCloseEvent(content, campaign),
+        _ => null,
+      };
+
+      if (event != null) {
+        GravitySDK.instance.gravityEventCallback?.call(event);
+      }
+    }
   }
 }

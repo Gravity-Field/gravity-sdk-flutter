@@ -28,7 +28,7 @@ class _BottomSheetFromContentState extends State<BottomSheetFromContent> {
     onClickHandler = OnClickHandler(campaign: widget.campaign, content: widget.content);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ContentEventsService.instance.sendContentImpression(widget.content);
+      ContentEventsService.instance.sendContentImpression(campaign: widget.campaign, content: widget.content);
     });
   }
 
@@ -48,7 +48,7 @@ class _BottomSheetFromContentState extends State<BottomSheetFromContent> {
       onVisibilityChanged: (info) {
         var visiblePercentage = info.visibleFraction * 100;
         if (visiblePercentage >= 50) {
-          ContentEventsService.instance.sendContentVisibleImpression(widget.content);
+          ContentEventsService.instance.sendContentVisibleImpression(campaign: widget.campaign, content: widget.content);
         }
       },
       child: SafeArea(
