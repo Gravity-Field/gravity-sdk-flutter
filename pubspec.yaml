@@ -8,28 +8,28 @@ environment:
   flutter: ">=1.17.0"
 
 dependencies:
-  dio: 5.8.0+1
+  dio: ^5.8.0+1
   flutter:
     sdk: flutter
-  flutter_svg: 2.0.17
-  json_annotation: 4.9.0
-  shared_preferences: 2.5.2
-  ua_client_hints: 1.4.1
-  visibility_detector: 0.4.0+2
-  advertising_id: 2.7.1
-  device_info_plus: 11.4.0
-  android_id: 0.4.0
-  app_tracking_transparency: 2.0.6+1
-  talker_dio_logger: 4.7.9
-  collection: 1.19.1
+  flutter_svg: ^2.0.17
+  json_annotation: ^4.9.0
+  shared_preferences: ^2.5.2
+  ua_client_hints: ^1.4.1
+  visibility_detector: ^0.4.0+2
+  advertising_id: ^2.7.1
+  device_info_plus: ^11.4.0
+  android_id: ^0.4.0
+  app_tracking_transparency: ^2.0.6+1
+  talker_dio_logger: ^4.7.9
+  collection: ^1.19.1
 
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: 5.0.0
-  json_serializable: 6.9.5
-  build_runner: 2.4.15
+  flutter_lints: ^5.0.0
+  json_serializable: ^6.9.5
+  build_runner: ^2.4.15
 
 flutter:
   uses-material-design: true
