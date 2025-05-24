@@ -1,39 +1,130 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# 📦 GravitySDK for Flutter
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+`GravitySDK` — это мощный инструмент для интеграции персонализированного контента, отслеживания взаимодействия пользователей и отображения кампаний в мобильных Flutter-приложениях. Он позволяет получать контент по шаблонам, отслеживать события и отображать контент в различных форматах (модальное окно, полноэкранный режим, bottom sheet).
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+## ✨ Возможности
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+- Инициализация SDK с ключом API и параметрами секции
+- Настройка контента и прокси
+- Отслеживание посещений страниц и пользовательских событий
+- Получение контента по шаблону
+- Отображение контента в:
+    - Модальном окне
+    - Bottom sheet
+    - Полноэкранном режиме
+    - Bottom sheet с рядом товаров
+- Отправка взаимодействий с контентом и продуктами
 
-## Features
+## 🚀 Установка
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+Добавь пакет в файл `pubspec.yaml`:
 
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
-
-## Usage
-
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
-
-```dart
-const like = 'sample';
+```yaml
+dependencies:
+  gravity_sdk: ^0.8.0
 ```
 
-## Additional information
+Затем выполни команду:
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+```bash
+flutter pub get
+```
+
+И импортируй пакет в своём коде:
+
+```dart
+import 'package:gravity_sdk/gravity_sdk.dart';
+```
+
+## ⚙️ Инициализация
+
+```dart
+await GravitySDK.instance.initialize(
+apiKey: 'your-api-key',
+section: 'your-section-id',
+productWidgetBuilder: CustomProductWidgetBuilder(), // необязательно
+gravityEventCallback: (event) {
+// обработка событий
+},
+useAdvertisingId: true, // если нужен рекламный ID
+);
+```
+
+## 🧑 Пользователь и настройки
+
+```dart
+GravitySDK.instance.setUser('user-id', 'session-id');
+
+GravitySDK.instance.setOptions(
+options: Options(...),
+contentSettings: ContentSettings(...),
+proxyUrl: 'https://your-proxy.com', // если используется прокси
+);
+```
+
+## 📄 Отслеживание и события
+
+```dart
+await GravitySDK.instance.trackView(
+pageContext: PageContext(...),
+);
+
+await GravitySDK.instance.triggerEvent(
+events: [TriggerEvent(...)],
+pageContext: PageContext(...),
+);
+```
+
+## 📈 Взаимодействие
+
+```dart
+GravitySDK.instance.sendContentEngagement(ContentImpressionEngagement(...));
+GravitySDK.instance.sendProductEngagement(ProductClickEngagement(...));
+```
+
+## 🧩 Получение контента
+
+```dart
+final content = await GravitySDK.instance.getContent('template-id');
+```
+
+## 🖼️ Отображение контента
+
+### Модальное окно
+
+```dart
+GravitySDK.instance.showModalContent(context, content);
+```
+
+### Bottom Sheet
+
+```dart
+GravitySDK.instance.showBottomSheetContent(context, content);
+```
+
+### Bottom Sheet: Ряд товаров
+
+```dart
+GravitySDK.instance.showBottomSheetProductsRow(context, content);
+```
+
+### Полноэкранное окно
+
+```dart
+GravitySDK.instance.showFullScreenContent(context, content);
+```
+
+## ❗ Обработка ошибок
+
+Перед вызовами SDK необходимо убедиться, что он инициализирован. В противном случае будет выброшено исключение:
+
+```
+GravitySDK is not initialized. Call initialize() first.
+```
+
+## 📌 Требования
+
+- Flutter 3.0+
+- Dart 2.17+
+
+
