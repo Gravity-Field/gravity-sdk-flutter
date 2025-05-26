@@ -11,9 +11,8 @@ void main() async {
     apiKey: 'api-key',
     section: 'section',
     useAdvertisingId: true,
-    // productWidgetBuilder: CustomProductWidgetBuilder(),
-    gravityEventCallback: (TrackingEvent event) {
-    },
+    productWidgetBuilder: CustomProductWidgetBuilder(),
+    gravityEventCallback: (TrackingEvent event) {},
   );
 
   runApp(MyApp());
