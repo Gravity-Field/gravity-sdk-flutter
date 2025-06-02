@@ -4,7 +4,9 @@ part 'trigger_event.g.dart';
 
 abstract class TriggerEvent {
   String get type;
+
   String get name;
+
   Map<String, dynamic> toJson();
 }
 
@@ -109,7 +111,7 @@ class AddToWishlistEvent extends TriggerEvent {
   @override
   final String name = 'Add to Wishlist';
 
-  AddToWishlistEvent({ required this.productId });
+  AddToWishlistEvent({required this.productId});
 
   @override
   Map<String, dynamic> toJson() => _$AddToWishlistEventToJson(this);
@@ -138,9 +140,9 @@ class SignUpEvent extends TriggerEvent {
 
 @JsonSerializable(createFactory: false, createToJson: true)
 class LoginEvent extends TriggerEvent {
-  final String hashedEmail;
-  final String cuid;
-  final String cuidType;
+  final String? hashedEmail;
+  final String? cuid;
+  final String? cuidType;
 
   @override
   final String type = 'login-v1';
@@ -148,9 +150,9 @@ class LoginEvent extends TriggerEvent {
   final String name = 'Login';
 
   LoginEvent({
-    required this.hashedEmail,
-    required this.cuid,
-    required this.cuidType,
+    this.hashedEmail,
+    this.cuid,
+    this.cuidType,
   });
 
   @override
