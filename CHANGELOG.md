@@ -1,3 +1,8 @@
+## 0.8.4
+
+* Добавлены поля data, location, lng, utm, attributes в класс PageContext.
+* Поля hashedEmail, cuid, cuidType теперь не обязательные.
+
 ## 0.8.3
 
 * Обновлён README.md. Исправлена навигация в Оглавлении.
