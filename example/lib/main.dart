@@ -138,7 +138,14 @@ class _SendAddToCartEvent extends StatelessWidget {
           ),
           CustomEvent(type: 'new_type', name: 'New name'),
         ];
-        GravitySDK.instance.triggerEvent(events: events, pageContext: PageContext(ContextType.cart));
+        GravitySDK.instance.triggerEvent(
+          events: events,
+          pageContext: PageContext(
+            type: ContextType.cart,
+            data: [],
+            location: 'cart_screen',
+          ),
+        );
       },
       child: Text('Send Add To Cart Event'),
     );

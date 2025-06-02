@@ -9,6 +9,11 @@ part of 'page_context.dart';
 Map<String, dynamic> _$PageContextToJson(PageContext instance) =>
     <String, dynamic>{
       'type': _$ContextTypeEnumMap[instance.type]!,
+      'data': instance.data,
+      'location': instance.location,
+      'lng': instance.lng,
+      'utm': instance.utm,
+      'attributes': instance.attributes,
     };
 
 const _$ContextTypeEnumMap = {

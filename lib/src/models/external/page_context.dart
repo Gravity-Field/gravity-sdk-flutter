@@ -15,8 +15,22 @@ enum ContextType {
 @JsonSerializable(createToJson: true, createFactory: false)
 class PageContext {
   final ContextType type;
+  final List<String> data;
+  final String location;
+  final String? lng;
+  final Map<String, String>? utm;
+  final Map<String, Object>? attributes;
 
-  PageContext(this.type);
+  const PageContext({
+    required this.type,
+    required this.data,
+    required this.location,
+    this.lng,
+    this.utm,
+    this.attributes,
+  });
 
   Map<String, dynamic> toJson() => _$PageContextToJson(this);
+
+
 }
