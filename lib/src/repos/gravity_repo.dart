@@ -14,7 +14,7 @@ class GravityRepo {
   static final GravityRepo instance = GravityRepo._();
 
   final _api = Api();
-  final _prefs = Prefs();
+
 
   String? userIdCache;
   String? sessionIdCache;
@@ -75,7 +75,7 @@ class GravityRepo {
     } else if (userIdCache != null && sessionIdCache != null) {
       return User(uid: userIdCache, ses: sessionIdCache);
     } else {
-      final userIdFromPrefs = await _prefs.getUserId();
+      final userIdFromPrefs = await Prefs.instance.getUserId();
       return User(uid: userIdFromPrefs, ses: null);
     }
   }
@@ -86,7 +86,7 @@ class GravityRepo {
     }
 
     if (contentResponseUser != null) {
-      await _prefs.setUserId(contentResponseUser.uid!);
+      await Prefs.instance.setUserId(contentResponseUser.uid!);
       userIdCache = contentResponseUser.uid;
       sessionIdCache = contentResponseUser.ses;
     }

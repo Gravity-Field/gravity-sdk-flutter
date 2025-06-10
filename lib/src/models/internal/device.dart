@@ -4,7 +4,7 @@ part 'device.g.dart';
 
 @JsonSerializable(createToJson: true, createFactory: false)
 class Device {
-  final Map<String, dynamic> userAgent;
+  final String userAgent;
   final String? id;
 
   const Device({

@@ -40,13 +40,11 @@ class GravitySDK {
 
   static final GravitySDK instance = GravitySDK._();
 
-
   Future<void> initialize({
     required String apiKey,
     required String section,
     ProductWidgetBuilder? productWidgetBuilder,
     GravityEventCallback? gravityEventCallback,
-    bool useAdvertisingId = false,
   }) async {
     this.apiKey = apiKey;
     this.section = section;
@@ -54,7 +52,7 @@ class GravitySDK {
     this.gravityEventCallback = gravityEventCallback;
 
     final userAgent = await DeviceUtils.getUserAgent();
-    final deviceIdentifier = await DeviceUtils.getDeviceId(useAdvertisingId);
+    final deviceIdentifier = await DeviceUtils.getDeviceId();
 
     device = Device(
       userAgent: userAgent,
