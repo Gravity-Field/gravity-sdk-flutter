@@ -133,16 +133,20 @@ class _SendAddToCartEvent extends StatelessWidget {
             currency: 'RUB',
             productId: 'item-34454',
             quantity: 2,
-            cart: [],
+            cart: [
+              CartItem(productId: 'sku-123', quantity: 2, itemPrice: 59.99),
+              CartItem(productId: 'sku-456', quantity: 1, itemPrice: 69.99),
+            ],
           ),
-          CustomEvent(type: 'new_type', name: 'New name'),
         ];
         GravitySDK.instance.triggerEvent(
           events: events,
           pageContext: PageContext(
             type: ContextType.cart,
-            data: [],
-            location: 'cart_screen',
+            data: [
+              'checkout'
+            ],
+            location: 'app://checkout',
           ),
         );
       },
