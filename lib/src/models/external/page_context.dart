@@ -4,11 +4,17 @@ part 'page_context.g.dart';
 
 @JsonEnum()
 enum ContextType {
+  @JsonValue('HOMEPAGE')
   homepage,
+  @JsonValue('PRODUCT')
   product,
+  @JsonValue('CART')
   cart,
+  @JsonValue('CATEGORY')
   category,
+  @JsonValue('SEARCH')
   search,
+  @JsonValue('OTHER')
   other;
 }
 

@@ -17,10 +17,10 @@ Map<String, dynamic> _$PageContextToJson(PageContext instance) =>
     };
 
 const _$ContextTypeEnumMap = {
-  ContextType.homepage: 'homepage',
-  ContextType.product: 'product',
-  ContextType.cart: 'cart',
-  ContextType.category: 'category',
-  ContextType.search: 'search',
-  ContextType.other: 'other',
+  ContextType.homepage: 'HOMEPAGE',
+  ContextType.product: 'PRODUCT',
+  ContextType.cart: 'CART',
+  ContextType.category: 'CATEGORY',
+  ContextType.search: 'SEARCH',
+  ContextType.other: 'OTHER',
 };

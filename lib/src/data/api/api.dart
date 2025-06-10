@@ -2,6 +2,7 @@ import 'package:dio/dio.dart' hide Options;
 import 'package:flutter/foundation.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/api/gravity_interceptor.dart';
+import 'package:gravity_sdk/src/utils/logger.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
 
 import '../../models/external/user.dart';
@@ -16,17 +17,21 @@ class Api {
     _dio.options
       ..connectTimeout = const Duration(seconds: 30)
       ..receiveTimeout = const Duration(seconds: 60)
-      ..sendTimeout = const Duration(seconds: 30);
+      ..sendTimeout = const Duration(seconds: 30)
+      ..receiveDataWhenStatusError = true;
 
     _dio.interceptors.add(GravityInterceptor());
 
     if (kDebugMode) {
       _dio.interceptors.add(
         TalkerDioLogger(
+          talker: talker,
           settings: const TalkerDioLoggerSettings(
             printRequestHeaders: true,
+            printRequestData: true,
             printResponseHeaders: true,
             printResponseMessage: true,
+            printResponseData: true,
           ),
         ),
       );

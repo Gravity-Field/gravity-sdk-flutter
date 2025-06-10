@@ -15,7 +15,6 @@ class GravityRepo {
 
   final _api = Api();
 
-
   String? userIdCache;
   String? sessionIdCache;
 
@@ -85,10 +84,13 @@ class GravityRepo {
       return;
     }
 
-    if (contentResponseUser != null) {
-      await Prefs.instance.setUserId(contentResponseUser.uid!);
-      userIdCache = contentResponseUser.uid;
-      sessionIdCache = contentResponseUser.ses;
+    final uid = contentResponseUser?.uid;
+    final sec = contentResponseUser?.ses;
+
+    if (uid != null && sec != null) {
+      await Prefs.instance.setUserId(uid);
+      userIdCache = uid;
+      sessionIdCache = sec;
     }
   }
 }

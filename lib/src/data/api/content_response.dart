@@ -10,8 +10,7 @@ class ContentResponse {
   final User user;
   final List<Campaign> data;
 
-  ContentResponse({required this.user, required this.data});
+  ContentResponse({required this.user, this.data = const []});
 
   factory ContentResponse.fromJson(Map<String, dynamic> json) => _$ContentResponseFromJson(json);
 }
-
