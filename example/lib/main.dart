@@ -10,7 +10,6 @@ void main() async {
   await GravitySDK.instance.initialize(
     apiKey: 'api-key',
     section: 'section',
-    useAdvertisingId: true,
     productWidgetBuilder: CustomProductWidgetBuilder(),
     gravityEventCallback: (TrackingEvent event) {},
   );
