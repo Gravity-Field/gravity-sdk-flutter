@@ -1,3 +1,8 @@
+## 0.8.5
+
+* В качестве id устройства используется UUID
+* UserAgent передаётся строкой.
+
 ## 0.8.4
 
 * Добавлены поля data, location, lng, utm, attributes в класс PageContext.
