@@ -76,7 +76,7 @@ class Api {
     final data = {
       'sec': GravitySDK.instance.section,
       'device': GravitySDK.instance.device.toJson(),
-      'events': events
+      'data': events
           .map(
             (e) => e.toJson(),
           )
