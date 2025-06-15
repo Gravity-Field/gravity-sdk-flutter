@@ -12,7 +12,7 @@ import 'content_response.dart';
 class Api {
   final _dio = Dio();
 
-  String get baseUrl => GravitySDK.instance.proxyUrl ?? 'https://mock.apidog.com/m1/807903-786789-default';
+  String get baseUrl => GravitySDK.instance.proxyUrl ?? 'https://ev.stellarlabs.ai/v2';
 
   Api() {
     _dio.options
