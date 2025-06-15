@@ -38,14 +38,15 @@ class _ModalFromContentState extends State<ModalFromContent> {
     final container = frameUi.container;
     final close = frameUi.close;
     final elements = widget.content.variables.elements;
-    final templateId = widget.content.templateId;
+    final contentId = widget.content.contentId;
 
     return VisibilityDetector(
-      key: ValueKey(templateId),
+      key: ValueKey(contentId),
       onVisibilityChanged: (info) {
         var visiblePercentage = info.visibleFraction * 100;
         if (visiblePercentage >= 50) {
-          ContentEventsService.instance.sendContentVisibleImpression(campaign: widget.campaign, content: widget.content);
+          ContentEventsService.instance
+              .sendContentVisibleImpression(campaign: widget.campaign, content: widget.content);
         }
       },
       child: Dialog(

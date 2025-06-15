@@ -43,10 +43,10 @@ class _BottomSheetProductsRowState extends State<BottomSheetProductsRow> {
     final close = frameUi?.close;
     final elements = widget.content.variables.elements;
     final products = widget.content.products;
-    final templateId = widget.content.templateId;
+    final contentId = widget.content.contentId;
 
     return VisibilityDetector(
-      key: ValueKey(templateId),
+      key: ValueKey(contentId),
       onVisibilityChanged: (info) {
         var visiblePercentage = info.visibleFraction * 100;
         if (visiblePercentage >= 50) {

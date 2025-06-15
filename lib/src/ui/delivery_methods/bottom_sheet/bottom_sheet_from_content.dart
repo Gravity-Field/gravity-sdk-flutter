@@ -39,10 +39,10 @@ class _BottomSheetFromContentState extends State<BottomSheetFromContent> {
     final close = frameUi.close;
     final elements = widget.content.variables.elements;
     final isBanner = widget.content.contentType == 'banner';
-    final templateId = widget.content.templateId;
+    final contentId = widget.content.contentId;
 
     return VisibilityDetector(
-      key: ValueKey(templateId),
+      key: ValueKey(contentId),
       onVisibilityChanged: (info) {
         var visiblePercentage = info.visibleFraction * 100;
         if (visiblePercentage >= 50) {

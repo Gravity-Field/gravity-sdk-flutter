@@ -9,7 +9,6 @@ part of 'campaign_content.dart';
 CampaignContent _$CampaignContentFromJson(Map<String, dynamic> json) =>
     CampaignContent(
       contentId: json['contentId'] as String,
-      templateId: json['templateId'] as String,
       deliveryMethod:
           $enumDecode(_$DeliveryMethodEnumMap, json['deliveryMethod']),
       contentType: json['contentType'] as String,
@@ -17,8 +16,8 @@ CampaignContent _$CampaignContentFromJson(Map<String, dynamic> json) =>
       products: json['products'] == null
           ? null
           : Products.fromJson(json['products'] as Map<String, dynamic>),
-      events: (json['events'] as List<dynamic>)
-          .map((e) => Event.fromJson(e as Map<String, dynamic>))
+      events: (json['events'] as List<dynamic>?)
+          ?.map((e) => Event.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
 

@@ -23,7 +23,7 @@ class OnClickHandler {
   }
 
   void handeOnClick(OnClick onClick) {
-    final event = content.events.firstWhereOrNull((element) => element.name == onClick.action);
+    final event = content.events?.firstWhereOrNull((element) => element.name == onClick.action);
     if (event != null) {
       GravityRepo.instance.triggerEventUrls(event.urls);
     }

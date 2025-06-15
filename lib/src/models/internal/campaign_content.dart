@@ -1,7 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
-import 'delivery_type.dart';
 import '../actions/event.dart';
+import 'delivery_type.dart';
 import 'products.dart';
 import 'variables.dart';
 
@@ -10,16 +10,14 @@ part 'campaign_content.g.dart';
 @JsonSerializable()
 class CampaignContent {
   final String contentId;
-  final String templateId;
   final DeliveryMethod deliveryMethod;
   final String contentType;
   final Variables variables;
   final Products? products;
-  final List<Event> events;
+  final List<Event>? events;
 
   CampaignContent({
     required this.contentId,
-    required this.templateId,
     required this.deliveryMethod,
     required this.contentType,
     required this.variables,
