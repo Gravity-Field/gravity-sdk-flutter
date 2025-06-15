@@ -61,16 +61,8 @@ class MyHomePage extends StatelessWidget {
           children: <Widget>[
             _InlineButton(),
             _VisitButton(),
-            _Demo(),
             _SendAddToCartEvent(),
             SizedBox(height: 32),
-            _ModalButton1(),
-            _ModalButton2(),
-            _BottomSheetButton1(),
-            _BottomSheetBanner(),
-            _BottomSheetProductsRow(),
-            // _BottomSheetProductsGrid(),
-            _FullScreenButton(),
           ],
         ),
       ),
@@ -99,26 +91,6 @@ class _InlineButton extends StatelessWidget {
   }
 }
 
-class _Demo extends StatelessWidget {
-  const _Demo();
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.all(Colors.green),
-      ),
-      onPressed: () async {
-        final response = await GravitySDK.instance.getContent('bottom-sheet-banner');
-        if (context.mounted) {
-          GravitySDK.instance.showBottomSheetContent(context, response);
-        }
-      },
-      child: Text('Demo'),
-    );
-  }
-}
-
 class _SendAddToCartEvent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -140,12 +112,11 @@ class _SendAddToCartEvent extends StatelessWidget {
           ),
         ];
         GravitySDK.instance.triggerEvent(
+          context: context,
           events: events,
           pageContext: PageContext(
             type: ContextType.cart,
-            data: [
-              'checkout'
-            ],
+            data: ['checkout'],
             location: 'app://checkout',
           ),
         );
@@ -172,108 +143,6 @@ class _VisitButton extends StatelessWidget {
         );
       },
       child: Text('Go To Visit'),
-    );
-  }
-}
-
-class _ModalButton1 extends StatelessWidget {
-  const _ModalButton1();
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      onPressed: () async {
-        final response = await GravitySDK.instance.getContent('modal-template-1');
-        if (context.mounted) {
-          GravitySDK.instance.showModalContent(context, response);
-        }
-      },
-      child: Text('Modal 1'),
-    );
-  }
-}
-
-class _ModalButton2 extends StatelessWidget {
-  const _ModalButton2();
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      onPressed: () async {
-        final response = await GravitySDK.instance.getContent('modal-template-2');
-        if (context.mounted) {
-          GravitySDK.instance.showModalContent(context, response);
-        }
-      },
-      child: Text('Modal 2'),
-    );
-  }
-}
-
-class _BottomSheetButton1 extends StatelessWidget {
-  const _BottomSheetButton1();
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      onPressed: () async {
-        final response = await GravitySDK.instance.getContent('bottom-sheet-template-1');
-        if (context.mounted) {
-          GravitySDK.instance.showBottomSheetContent(context, response);
-        }
-      },
-      child: Text('BottomSheet 1'),
-    );
-  }
-}
-
-class _BottomSheetBanner extends StatelessWidget {
-  const _BottomSheetBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      onPressed: () async {
-        final response = await GravitySDK.instance.getContent('bottom-sheet-banner');
-        if (context.mounted) {
-          GravitySDK.instance.showBottomSheetContent(context, response);
-        }
-      },
-      child: Text('Bottom Sheet Banner'),
-    );
-  }
-}
-
-class _FullScreenButton extends StatelessWidget {
-  const _FullScreenButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      onPressed: () async {
-        final response = await GravitySDK.instance.getContent('fullscreen-banner');
-        if (context.mounted) {
-          GravitySDK.instance.showFullScreenContent(context, response);
-        }
-      },
-      child: Text('Show Full Screen'),
-    );
-  }
-}
-
-class _BottomSheetProductsRow extends StatelessWidget {
-  const _BottomSheetProductsRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      onPressed: () async {
-        final response = await GravitySDK.instance.getContent('bottom-sheet-products-row');
-        if (context.mounted) {
-          GravitySDK.instance.showBottomSheetProductsRow(context, response);
-        }
-      },
-      child: Text('Bottom Sheet Products Row'),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:gravity_sdk/src/models/external/page_context.dart';
 import 'package:gravity_sdk/src/models/external/trigger_event.dart';
 
 import '../data/api/api.dart';
+import '../data/api/content_ids_response.dart';
 import '../data/api/content_response.dart';
 import '../data/prefs/prefs.dart';
 import '../models/external/content_settings.dart';
@@ -18,7 +19,7 @@ class GravityRepo {
   String? userIdCache;
   String? sessionIdCache;
 
-  Future<void> event({
+  Future<CampaignIdsResponse> event({
     required List<TriggerEvent> events,
     User? customUser,
     required PageContext pageContext,
@@ -27,9 +28,10 @@ class GravityRepo {
     final finalUser = await _determineUser(customUser);
     final response = await _api.event(events, finalUser, pageContext, options);
     await _saveUserIfNeeded(customUser, response.user);
+    return response;
   }
 
-  Future<void> visit({
+  Future<CampaignIdsResponse> visit({
     User? customUser,
     required PageContext pageContext,
     required Options options,
@@ -37,18 +39,38 @@ class GravityRepo {
     final finalUser = await _determineUser(customUser);
     final response = await _api.visit(finalUser, pageContext, options);
     await _saveUserIfNeeded(customUser, response.user);
+    return response;
   }
 
-  Future<ContentResponse> getContent({
-    String? templateId,
+  Future<ContentResponse> getContentByCampaignId({
+    required String campaignId,
     User? customUser,
     PageContext? pageContext,
     required Options options,
     required ContentSettings contentSetting,
   }) async {
     final finalUser = await _determineUser(customUser);
-    final response = await _api.choose(
-      templateId: templateId,
+    final response = await _api.chooseByCampaignId(
+      campaignId: campaignId,
+      user: finalUser,
+      context: pageContext,
+      options: options,
+      contentSettings: contentSetting,
+    );
+    await _saveUserIfNeeded(customUser, response.user);
+    return response;
+  }
+
+  Future<ContentResponse> getContentBySelector({
+    required String selector,
+    User? customUser,
+    PageContext? pageContext,
+    required Options options,
+    required ContentSettings contentSetting,
+  }) async {
+    final finalUser = await _determineUser(customUser);
+    final response = await _api.chooseBySelector(
+      selector: selector,
       user: finalUser,
       context: pageContext,
       options: options,

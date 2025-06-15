@@ -6,6 +6,7 @@ import 'package:gravity_sdk/src/utils/logger.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
 
 import '../../models/external/user.dart';
+import 'content_ids_response.dart';
 import 'content_response.dart';
 
 class Api {
@@ -38,7 +39,33 @@ class Api {
     }
   }
 
-  Future<ContentResponse> choose({
+  Future<ContentResponse> chooseByCampaignId({
+    required String campaignId,
+    User? user,
+    PageContext? context,
+    required Options options,
+    required ContentSettings contentSettings,
+  }) async {
+    final data = {
+      'sec': GravitySDK.instance.section,
+      'data': [
+        {
+          'campaignId': campaignId,
+        }
+      ],
+      'device': GravitySDK.instance.device.toJson(),
+      'user': user?.toJson(),
+      'ctx': context?.toJson(),
+      'options': options.toJson(),
+      'contentSettings': contentSettings.toJson(),
+    };
+
+    final response = await _dio.post('$baseUrl/choose', data: data);
+    return ContentResponse.fromJson(response.data);
+  }
+
+  Future<ContentResponse> chooseBySelector({
+    required String selector,
     User? user,
     String? templateId,
     PageContext? context,
@@ -47,6 +74,11 @@ class Api {
   }) async {
     final data = {
       'sec': GravitySDK.instance.section,
+      'data': [
+        {
+          'selector': selector,
+        }
+      ],
       'device': GravitySDK.instance.device.toJson(),
       'user': user?.toJson(),
       'ctx': context?.toJson(),
@@ -54,11 +86,11 @@ class Api {
       'contentSettings': contentSettings.toJson(),
     };
 
-    final response = await _dio.post('$baseUrl/choose', queryParameters: {'templateId': templateId}, data: data);
+    final response = await _dio.post('$baseUrl/choose', data: data);
     return ContentResponse.fromJson(response.data);
   }
 
-  Future<ContentResponse> visit(User? user, PageContext context, Options options) async {
+  Future<CampaignIdsResponse> visit(User? user, PageContext context, Options options) async {
     final data = {
       'sec': GravitySDK.instance.section,
       'device': GravitySDK.instance.device.toJson(),
@@ -69,10 +101,10 @@ class Api {
     };
 
     final response = await _dio.post('$baseUrl/visit', data: data);
-    return ContentResponse.fromJson(response.data);
+    return CampaignIdsResponse.fromJson(response.data);
   }
 
-  Future<ContentResponse> event(List<TriggerEvent> events, User? user, PageContext context, Options options) async {
+  Future<CampaignIdsResponse> event(List<TriggerEvent> events, User? user, PageContext context, Options options) async {
     final data = {
       'sec': GravitySDK.instance.section,
       'device': GravitySDK.instance.device.toJson(),
@@ -87,7 +119,7 @@ class Api {
     };
 
     final response = await _dio.post('$baseUrl/event', data: data);
-    return ContentResponse.fromJson(response.data);
+    return CampaignIdsResponse.fromJson(response.data);
   }
 
   Future<void> triggerEventUrl(String url) async {

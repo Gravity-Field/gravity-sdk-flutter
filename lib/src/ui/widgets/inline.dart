@@ -6,13 +6,13 @@ import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_from_content.d
 import '../../models/internal/campaign_content.dart';
 
 class GravityInlineWidget extends StatefulWidget {
-  final String templateId;
+  final String selector;
   final double? width;
   final double? height;
 
   const GravityInlineWidget({
     super.key,
-    required this.templateId,
+    required this.selector,
     this.width,
     this.height,
   });
@@ -33,7 +33,7 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
   }
 
   void _loadContent() async {
-    final response = await GravitySDK.instance.getContent(widget.templateId);
+    final response = await GravitySDK.instance.getContentBySelector(selector: widget.selector);
     final campaign = response.data.first;
     final content = campaign.payload.first.contents.first;
     setState(() {

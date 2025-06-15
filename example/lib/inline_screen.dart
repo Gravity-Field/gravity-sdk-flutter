@@ -15,11 +15,11 @@ class InlineScreen extends StatelessWidget {
           GravityInlineWidget(
             width: 200,
             height: 200,
-            templateId: 'bottom-sheet-banner',
+            selector: 'bottom-sheet-banner',
           ),
           SizedBox(height: 36,),
           GravityInlineWidget(
-            templateId: 'bottom-sheet-products-row',
+            selector: 'bottom-sheet-products-row',
           ),
         ],
       ),

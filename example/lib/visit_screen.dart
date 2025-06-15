@@ -34,6 +34,7 @@ class _VisitButton extends StatelessWidget {
       ),
       onPressed: () {
         GravitySDK.instance.trackView(
+          context: context,
           pageContext: PageContext(
             type: ContextType.cart,
             data: [],
