@@ -8,10 +8,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await GravitySDK.instance.initialize(
-    apiKey: 'api-key',
-    section: 'section',
+    apiKey: 'Mjk3OWQ1MDg2NGQzZTQ1YzI0Yjk3N2Y4ZDlmN2QxOGE5MGVhNTU5ZmY1MThjZDEwYTAzNGE4ZDZiZTI2MzQ1NA==',
+    section: '6819e7c0d7303f0f6b0ef263',
     productWidgetBuilder: CustomProductWidgetBuilder(),
-    gravityEventCallback: (TrackingEvent event) {},
+    gravityEventCallback: (TrackingEvent event) {
+      print('event: $event');
+    },
   );
 
   runApp(MyApp());
