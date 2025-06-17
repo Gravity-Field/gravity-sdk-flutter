@@ -15,7 +15,8 @@ class VisitScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _VisitButton(),
+            _CartVisitButton(),
+            _HomePageVisitButton(),
           ],
         ),
       ),
@@ -23,8 +24,8 @@ class VisitScreen extends StatelessWidget {
   }
 }
 
-class _VisitButton extends StatelessWidget {
-  const _VisitButton();
+class _CartVisitButton extends StatelessWidget {
+  const _CartVisitButton();
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +43,32 @@ class _VisitButton extends StatelessWidget {
           ),
         );
       },
-      child: Text('Go To Visit'),
+      child: Text('Cart Visit'),
     );
   }
 }
+
+class _HomePageVisitButton extends StatelessWidget {
+  const _HomePageVisitButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(Colors.green),
+      ),
+      onPressed: () {
+        GravitySDK.instance.trackView(
+          context: context,
+          pageContext: PageContext(
+            type: ContextType.homepage,
+            data: [],
+            location: 'homepage',
+          ),
+        );
+      },
+      child: Text('HomePage Visit'),
+    );
+  }
+}
+

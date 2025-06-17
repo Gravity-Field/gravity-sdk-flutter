@@ -22,9 +22,9 @@ CampaignContent _$CampaignContentFromJson(Map<String, dynamic> json) =>
     );
 
 const _$DeliveryMethodEnumMap = {
-  DeliveryMethod.snackBar: 'snack-bar',
+  DeliveryMethod.snackBar: 'snackbar',
   DeliveryMethod.modal: 'modal',
-  DeliveryMethod.bottomSheet: 'bottom-sheet',
+  DeliveryMethod.bottomSheet: 'bottom_sheet',
   DeliveryMethod.fullScreen: 'fullscreen',
   DeliveryMethod.inline: 'inline',
   DeliveryMethod.unknown: 'unknown',
