@@ -2,7 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 @JsonEnum()
 enum DeliveryMethod {
-  @JsonValue('snack-bar')
+  @JsonValue('snackbar')
   snackBar,
   @JsonValue('modal')
   modal,

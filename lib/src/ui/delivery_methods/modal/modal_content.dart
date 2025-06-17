@@ -8,17 +8,17 @@ import '../../../models/internal/campaign_content.dart';
 import '../../../utils/content_events_service.dart';
 import '../../widgets/close_button.dart';
 
-class ModalFromContent extends StatefulWidget {
+class ModalContent extends StatefulWidget {
   final CampaignContent content;
   final Campaign campaign;
 
-  const ModalFromContent({super.key, required this.content, required this.campaign});
+  const ModalContent({super.key, required this.content, required this.campaign});
 
   @override
-  State<ModalFromContent> createState() => _ModalFromContentState();
+  State<ModalContent> createState() => _ModalContentState();
 }
 
-class _ModalFromContentState extends State<ModalFromContent> {
+class _ModalContentState extends State<ModalContent> {
   late final OnClickHandler onClickHandler;
 
   @override

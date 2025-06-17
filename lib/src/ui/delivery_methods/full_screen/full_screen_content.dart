@@ -8,18 +8,18 @@ import '../../../utils/content_events_service.dart';
 import '../../elements/gravity_element.dart';
 import '../../widgets/close_button.dart';
 
-class FullScreenFromContent extends StatefulWidget {
+class FullScreenContent extends StatefulWidget {
   final CampaignContent content;
   final Campaign campaign;
 
 
-  const FullScreenFromContent({super.key, required this.content, required this.campaign});
+  const FullScreenContent({super.key, required this.content, required this.campaign});
 
   @override
-  State<FullScreenFromContent> createState() => _FullScreenFromContentState();
+  State<FullScreenContent> createState() => _FullScreenContentState();
 }
 
-class _FullScreenFromContentState extends State<FullScreenFromContent> {
+class _FullScreenContentState extends State<FullScreenContent> {
   late final OnClickHandler onClickHandler;
 
   @override

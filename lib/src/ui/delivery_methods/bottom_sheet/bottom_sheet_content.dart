@@ -8,17 +8,17 @@ import '../../../utils/on_click_handler.dart';
 import '../../elements/gravity_element.dart';
 import '../../widgets/close_button.dart';
 
-class BottomSheetFromContent extends StatefulWidget {
+class BottomSheetContent extends StatefulWidget {
   final CampaignContent content;
   final Campaign campaign;
 
-  const BottomSheetFromContent({super.key, required this.content, required this.campaign});
+  const BottomSheetContent({super.key, required this.content, required this.campaign});
 
   @override
-  State<BottomSheetFromContent> createState() => _BottomSheetFromContentState();
+  State<BottomSheetContent> createState() => _BottomSheetContentState();
 }
 
-class _BottomSheetFromContentState extends State<BottomSheetFromContent> {
+class _BottomSheetContentState extends State<BottomSheetContent> {
   late final OnClickHandler onClickHandler;
 
   @override

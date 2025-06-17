@@ -6,17 +6,17 @@ import '../../../models/internal/campaign_content.dart';
 import '../../../utils/content_events_service.dart';
 import '../../elements/gravity_element.dart';
 
-class InlineFromContent extends StatefulWidget {
+class InlineContent extends StatefulWidget {
   final CampaignContent content;
   final Campaign campaign;
 
-  const InlineFromContent({super.key, required this.content, required this.campaign});
+  const InlineContent({super.key, required this.content, required this.campaign});
 
   @override
-  State<InlineFromContent> createState() => _InlineFromContentState();
+  State<InlineContent> createState() => _InlineContentState();
 }
 
-class _InlineFromContentState extends State<InlineFromContent> {
+class _InlineContentState extends State<InlineContent> {
   late final OnClickHandler onClickHandler;
 
   @override

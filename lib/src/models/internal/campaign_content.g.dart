@@ -9,6 +9,8 @@ part of 'campaign_content.dart';
 CampaignContent _$CampaignContentFromJson(Map<String, dynamic> json) =>
     CampaignContent(
       contentId: json['contentId'] as String,
+      templateSystemName: $enumDecodeNullable(
+          _$TemplateSystemNameEnumMap, json['templateSystemName']),
       deliveryMethod:
           $enumDecode(_$DeliveryMethodEnumMap, json['deliveryMethod']),
       contentType: json['contentType'] as String,
@@ -21,8 +23,14 @@ CampaignContent _$CampaignContentFromJson(Map<String, dynamic> json) =>
           .toList(),
     );
 
+const _$TemplateSystemNameEnumMap = {
+  TemplateSystemName.snackbar1: 'snackbar-1',
+  TemplateSystemName.snackbar2: 'snackbar-2',
+  TemplateSystemName.unknown: 'unknown',
+};
+
 const _$DeliveryMethodEnumMap = {
-  DeliveryMethod.snackBar: 'snack-bar',
+  DeliveryMethod.snackBar: 'snackbar',
   DeliveryMethod.modal: 'modal',
   DeliveryMethod.bottomSheet: 'bottom-sheet',
   DeliveryMethod.fullScreen: 'fullscreen',

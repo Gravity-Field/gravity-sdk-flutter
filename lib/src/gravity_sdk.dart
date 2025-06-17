@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart' hide Action;
 import 'package:gravity_sdk/src/models/internal/delivery_type.dart';
+import 'package:gravity_sdk/src/models/internal/template_system_name.dart';
+import 'package:gravity_sdk/src/ui/delivery_methods/snackbar/snack_bar_content.dart';
 import 'package:gravity_sdk/src/utils/product_events_service.dart';
 
 import 'data/api/content_response.dart';
@@ -16,9 +18,9 @@ import 'models/internal/campaign_content.dart';
 import 'models/internal/device.dart';
 import 'repos/gravity_repo.dart';
 import 'settings/product_widget_builder.dart';
-import 'ui/delivery_methods/bottom_sheet/bottom_sheet_from_content.dart';
-import 'ui/delivery_methods/full_screen/full_screen_from_content.dart';
-import 'ui/delivery_methods/modal/modal_from_content.dart';
+import 'ui/delivery_methods/bottom_sheet/bottom_sheet_content.dart';
+import 'ui/delivery_methods/full_screen/full_screen_content.dart';
+import 'ui/delivery_methods/modal/modal_content.dart';
 import 'utils/content_events_service.dart';
 import 'utils/device_utils.dart';
 
@@ -221,7 +223,7 @@ class GravitySDK {
 
   void _showModalContent(BuildContext context, CampaignContent content, Campaign campaign) {
     if (context.mounted) {
-      final modal = ModalFromContent(content: content, campaign: campaign);
+      final modal = ModalContent(content: content, campaign: campaign);
 
       showDialog(
         context: context,
@@ -234,7 +236,7 @@ class GravitySDK {
 
   void _showBottomSheetContent(BuildContext context, CampaignContent content, Campaign campaign) {
     if (context.mounted) {
-      final bottomSheet = BottomSheetFromContent(content: content, campaign: campaign);
+      final bottomSheet = BottomSheetContent(content: content, campaign: campaign);
 
       final frameUi = content.variables.frameUI!;
       final container = frameUi.container;
@@ -257,7 +259,7 @@ class GravitySDK {
 
   void _showFullScreenContent(BuildContext context, CampaignContent content, Campaign campaign) {
     if (context.mounted) {
-      final fullScreen = FullScreenFromContent(content: content, campaign: campaign);
+      final fullScreen = FullScreenContent(content: content, campaign: campaign);
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) {
@@ -269,18 +271,17 @@ class GravitySDK {
   }
 
   void _showSnackBar(BuildContext context, CampaignContent content, Campaign campaign) {
-    // final snackBarType = SnackBarType.type1;
-    // final snackBarData = SnackBarData(
-    //   title: 'Скидка 5% 🔥',
-    //   text: 'Для вас доступен промокод на первую покупку в Gravity',
-    //   circleIconBackground: Color(0xFFF0F0F0),
-    //   circeIconAssetImage: 'assets/images/heart.png',
-    // );
-    //
-    // if (context.mounted) {
-    //   final snackBar = GravitySnackBar.getSnackBar(type: snackBarType, data: snackBarData);
-    //   ScaffoldMessenger.of(context).showSnackBar(snackBar.toMaterialSnackBar());
-    // }
+    final template = content.templateSystemName;
+
+    if (template == null || template == TemplateSystemName.unknown) {
+      return;
+    }
+
+    final snackBar = SnackBarContent.getSnackBar(template: template, content: content, campaign: campaign);
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar.toMaterialSnackBar());
+    }
   }
 
   void _checkIsInitialized() {

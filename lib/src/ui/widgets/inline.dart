@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/models/external/campaign.dart';
-import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_from_content.dart';
+import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_content.dart';
 
 import '../../models/internal/campaign_content.dart';
 
@@ -51,7 +51,7 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
       child: Builder(
         builder: (context) {
           if (content != null && campaign != null) {
-            return InlineFromContent(
+            return InlineContent(
               content: content!,
               campaign: campaign!,
             );
