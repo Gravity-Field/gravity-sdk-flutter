@@ -6,7 +6,7 @@ enum DeliveryMethod {
   snackBar,
   @JsonValue('modal')
   modal,
-  @JsonValue('bottom-sheet')
+  @JsonValue('bottom_sheet')
   bottomSheet,
   @JsonValue('fullscreen')
   fullScreen,

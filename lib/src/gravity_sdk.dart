@@ -243,6 +243,7 @@ class GravitySDK {
 
       showModalBottomSheet(
         backgroundColor: container.style.backgroundColor,
+        isScrollControlled: true,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(container.style.cornerRadius ?? 0),

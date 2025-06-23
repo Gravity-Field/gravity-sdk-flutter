@@ -32,7 +32,7 @@ const _$TemplateSystemNameEnumMap = {
 const _$DeliveryMethodEnumMap = {
   DeliveryMethod.snackBar: 'snackbar',
   DeliveryMethod.modal: 'modal',
-  DeliveryMethod.bottomSheet: 'bottom-sheet',
+  DeliveryMethod.bottomSheet: 'bottom_sheet',
   DeliveryMethod.fullScreen: 'fullscreen',
   DeliveryMethod.inline: 'inline',
   DeliveryMethod.unknown: 'unknown',
