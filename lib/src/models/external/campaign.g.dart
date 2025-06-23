@@ -7,7 +7,7 @@ part of 'campaign.dart';
 // **************************************************************************
 
 Campaign _$CampaignFromJson(Map<String, dynamic> json) => Campaign(
-      selector: json['selector'] as String,
+      selector: json['selector'] as String?,
       payload: (json['payload'] as List<dynamic>)
           .map((e) => CampaignVariation.fromJson(e as Map<String, dynamic>))
           .toList(),

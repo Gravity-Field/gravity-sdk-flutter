@@ -20,7 +20,6 @@ class CampaignIdsResponse {
 @JsonSerializable()
 class CampaignId {
   final String campaignId;
-  @JsonKey(defaultValue: '')
   final String trigger;
 
   CampaignId({
