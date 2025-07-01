@@ -11,7 +11,7 @@ class CampaignIdsResponse {
 
   CampaignIdsResponse({
     required this.user,
-    required this.campaigns,
+    this.campaigns = const [],
   });
 
   factory CampaignIdsResponse.fromJson(Map<String, dynamic> json) => _$CampaignIdsResponseFromJson(json);
