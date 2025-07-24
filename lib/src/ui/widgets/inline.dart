@@ -9,12 +9,14 @@ class GravityInlineWidget extends StatefulWidget {
   final String selector;
   final double? width;
   final double? height;
+  final PageContext? pageContext;
 
   const GravityInlineWidget({
     super.key,
     required this.selector,
     this.width,
     this.height,
+    this.pageContext,
   });
 
   @override
@@ -33,7 +35,7 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
   }
 
   void _loadContent() async {
-    final response = await GravitySDK.instance.getContentBySelector(selector: widget.selector);
+    final response = await GravitySDK.instance.getContentBySelector(selector: widget.selector, pageContext: widget.pageContext);
     final campaign = response.data.first;
     final content = campaign.payload.first.contents.first;
     setState(() {

@@ -16,6 +16,7 @@ class InlineScreen extends StatelessWidget {
             width: 200,
             height: 200,
             selector: 'bottom-sheet-banner',
+            pageContext: PageContext(type: ContextType.search, data: ['adsfasdf'], location: 'sdfsdf'),
           ),
           SizedBox(height: 36,),
           GravityInlineWidget(
