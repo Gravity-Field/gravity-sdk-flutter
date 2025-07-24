@@ -8,16 +8,16 @@ part 'products.g.dart';
 class Products {
   final String strategyId;
   final String name;
-  final int pageNumber;
-  final int countPages;
+  final int? pageNumber;
+  final int? countPages;
   final bool fallback;
   final List<Slot> slots;
 
   Products({
     required this.strategyId,
     required this.name,
-    required this.pageNumber,
-    required this.countPages,
+    this.pageNumber,
+    this.countPages,
     required this.fallback,
     required this.slots,
   });
