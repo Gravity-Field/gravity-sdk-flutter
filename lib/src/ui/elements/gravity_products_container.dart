@@ -32,7 +32,13 @@ class GravityProductsContainer extends StatelessWidget {
         itemCount: products.slots.length,
         itemBuilder: (context, index) {
           final slot = products.slots[index];
-          final productWidget = GravitySDK.instance.productWidgetBuilder.build(slot, context);
+
+          final productWidget = GravitySDK.instance.productWidgetBuilder.build(
+            context: context,
+            product: slot,
+            content: content,
+            campaign: campaign,
+          );
 
           return VisibilityDetector(
             key: ValueKey(slot.slotId),

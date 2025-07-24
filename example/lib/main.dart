@@ -1,6 +1,8 @@
 import 'package:example/visit_screen.dart';
 import 'package:flutter/material.dart' hide Action;
 import 'package:gravity_sdk/gravity_sdk.dart';
+import 'package:gravity_sdk/src/models/external/campaign.dart';
+import 'package:gravity_sdk/src/models/internal/campaign_content.dart';
 
 import 'inline_screen.dart';
 
@@ -21,7 +23,12 @@ void main() async {
 
 class CustomProductWidgetBuilder extends ProductWidgetBuilder {
   @override
-  Widget build(Slot product, BuildContext context) {
+  Widget build({
+    required BuildContext context,
+    required Slot product,
+    required CampaignContent content,
+    required Campaign campaign,
+  }) {
     return Container(
       width: 20,
       color: Colors.amber,
