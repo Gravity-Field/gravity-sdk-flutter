@@ -1,3 +1,9 @@
+## 0.9.0
+
+* Поля pageNumber и countPage в Products теперь опциональные.
+* Добавлена возможность передавать PageContext в GravityInlineWidget
+* Добавлены CampaignContent и Campaign в ProductWidgetBuilder
+
 ## 0.8.10
 
 * Поправлена ошибка с парсингом CampaignIdsResponse

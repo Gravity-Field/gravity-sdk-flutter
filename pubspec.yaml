@@ -1,6 +1,6 @@
 name: gravity_sdk
 description: "Gravity SDK"
-version: 0.8.10
+version: 0.9.0
 repository: https://github.com/Gravity-Field/gravity-sdk-flutter
 
 environment:
