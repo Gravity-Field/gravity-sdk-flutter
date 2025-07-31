@@ -11,7 +11,7 @@ Slot _$SlotFromJson(Map<String, dynamic> json) => Slot(
       fallback: json['fallback'] as bool,
       strId: (json['strId'] as num).toInt(),
       slotId: json['slotId'] as String,
-      events: (json['events'] as List<dynamic>)
-          .map((e) => ProductEvent.fromJson(e as Map<String, dynamic>))
+      events: (json['events'] as List<dynamic>?)
+          ?.map((e) => ProductEvent.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
