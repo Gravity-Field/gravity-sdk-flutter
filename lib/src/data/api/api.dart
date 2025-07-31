@@ -114,7 +114,7 @@ class Api {
           )
           .toList(),
       'user': user?.toJson(),
-      'context': context.toJson(),
+      'ctx': context.toJson(),
       'options': options.toJson(),
     };
 
