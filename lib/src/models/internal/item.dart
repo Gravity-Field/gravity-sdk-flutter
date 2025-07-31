@@ -13,8 +13,8 @@ class Item {
   final String? isNew;
   final String? oldPrice;
   final String? bitrixId;
-  final List<String> categories;
-  final List<String> keywords;
+  final List<String>? categories;
+  final List<String>? keywords;
   final String? brand;
   final bool? inStock;
 
@@ -28,8 +28,8 @@ class Item {
     this.isNew,
     this.oldPrice,
     this.bitrixId,
-    required this.categories,
-    required this.keywords,
+    this.categories,
+    this.keywords,
     this.brand,
     this.inStock,
   });

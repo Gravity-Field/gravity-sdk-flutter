@@ -16,11 +16,12 @@ Item _$ItemFromJson(Map<String, dynamic> json) => Item(
       isNew: json['isNew'] as String?,
       oldPrice: json['oldPrice'] as String?,
       bitrixId: json['bitrixId'] as String?,
-      categories: (json['categories'] as List<dynamic>)
-          .map((e) => e as String)
+      categories: (json['categories'] as List<dynamic>?)
+          ?.map((e) => e as String)
           .toList(),
-      keywords:
-          (json['keywords'] as List<dynamic>).map((e) => e as String).toList(),
+      keywords: (json['keywords'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
       brand: json['brand'] as String?,
       inStock: json['inStock'] as bool?,
     );
