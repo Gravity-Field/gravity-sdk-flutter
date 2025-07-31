@@ -45,7 +45,12 @@ class SnackBarContent1 extends SnackBarContent {
       content: Row(
         children: [
           if (images.isNotEmpty) ...[
-            GravityImageWidget(element: images.first),
+            GravityImageWidget(
+              element: images.first,
+              onClickCallback: (onClick) {
+                onClickHandler.handeOnClick(onClick);
+              },
+            ),
             SizedBox(width: 12),
           ],
           Expanded(
@@ -53,16 +58,18 @@ class SnackBarContent1 extends SnackBarContent {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (texts.elementAtOrNull(0) != null) GravityText(element: texts.elementAt(0)),
-                if (texts.elementAtOrNull(1) != null) ...[
-                  SizedBox(height: 4),
-                  GravityText(element: texts.elementAt(1))
-                ]
+                if (texts.elementAtOrNull(1) != null) ...[SizedBox(height: 4), GravityText(element: texts.elementAt(1))]
               ],
             ),
           ),
           if (images.elementAtOrNull(1) != null) ...[
             SizedBox(width: 8),
-            GravityImageWidget(element: images.elementAt(1)),
+            GravityImageWidget(
+              element: images.elementAt(1),
+              onClickCallback: (onClick) {
+                onClickHandler.handeOnClick(onClick);
+              },
+            ),
           ],
         ],
       ),

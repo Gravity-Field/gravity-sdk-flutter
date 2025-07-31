@@ -48,7 +48,12 @@ class SnackBarContent2 extends SnackBarContent {
       content: Row(
         children: [
           if (image != null) ...[
-            GravityImageWidget(element: image),
+            GravityImageWidget(
+              element: image,
+              onClickCallback: (onClick) {
+                onClickHandler.handeOnClick(onClick);
+              },
+            ),
             SizedBox(width: 12),
           ],
           Expanded(

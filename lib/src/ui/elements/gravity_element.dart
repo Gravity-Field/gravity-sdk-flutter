@@ -28,7 +28,10 @@ class GravityElement {
   Widget getWidget() {
     switch (element.type) {
       case ElementType.image:
-        return GravityImageWidget(element: element);
+        return GravityImageWidget(
+          element: element,
+          onClickCallback: onClickCallback,
+        );
       case ElementType.text:
         return GravityText(element: element);
       case ElementType.button:

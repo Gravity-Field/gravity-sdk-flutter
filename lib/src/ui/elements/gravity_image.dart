@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart' hide Element;
 
+import '../../models/actions/on_click.dart';
 import '../../models/internal/element.dart';
 import '../../models/internal/style.dart';
 
 class GravityImageWidget extends StatelessWidget {
   final Element element;
+  final Function(OnClick onClick) onClickCallback;
 
-  const GravityImageWidget({super.key, required this.element});
+  const GravityImageWidget({
+    super.key,
+    required this.element,
+    required this.onClickCallback,
+  });
 
   @override
   Widget build(BuildContext context) {
     final style = element.style!;
     final layoutWidth = style.layoutWidth;
+    final onClick = element.onClick;
 
     final imageWidget = Image.network(
       element.src ?? '',
@@ -40,6 +47,13 @@ class GravityImageWidget extends StatelessWidget {
       );
     }
 
-    return outputWidget;
+    return GestureDetector(
+      onTap: onClick != null
+          ? () {
+              onClickCallback(onClick);
+            }
+          : null,
+      child: outputWidget,
+    );
   }
 }
