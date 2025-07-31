@@ -9,6 +9,7 @@ class Options {
   final bool isReturnAnalyticsMetadata;
   final bool isImplicitPageview;
   final bool isImplicitImpression;
+  @JsonKey(includeToJson: true, includeFromJson: true)
   final bool isBuildEngagementUrl = true;
 
   const Options({

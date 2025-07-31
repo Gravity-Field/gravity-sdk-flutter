@@ -21,4 +21,5 @@ Map<String, dynamic> _$OptionsToJson(Options instance) => <String, dynamic>{
       'isReturnAnalyticsMetadata': instance.isReturnAnalyticsMetadata,
       'isImplicitPageview': instance.isImplicitPageview,
       'isImplicitImpression': instance.isImplicitImpression,
+      'isBuildEngagementUrl': instance.isBuildEngagementUrl,
     };
