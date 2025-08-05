@@ -7,7 +7,8 @@ part of 'event.dart';
 // **************************************************************************
 
 Event _$EventFromJson(Map<String, dynamic> json) => Event(
-      name: $enumDecode(_$ActionEnumMap, json['name']),
+      type: $enumDecode(_$ActionEnumMap, json['type'],
+          unknownValue: Action.unknown),
       urls: (json['urls'] as List<dynamic>).map((e) => e as String).toList(),
     );
 

@@ -36,7 +36,7 @@ class ProductEventsService {
     required Campaign campaign,
     bool callbackTrackingEvent = true,
   }) {
-    final event = slot.events?.firstWhereOrNull((event) => event.name == action);
+    final event = slot.events?.firstWhereOrNull((event) => event.type == action);
 
     if (event == null) return;
 

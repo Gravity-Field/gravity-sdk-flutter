@@ -75,7 +75,7 @@ class ContentEventsService {
   }) {
     if (action == null) return;
 
-    final event = content.events?.firstWhereOrNull((event) => event.name == action.action);
+    final event = content.events?.firstWhereOrNull((event) => event.type == action.action);
 
     if (event == null) return;
 

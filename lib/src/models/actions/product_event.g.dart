@@ -7,7 +7,7 @@ part of 'product_event.dart';
 // **************************************************************************
 
 ProductEvent _$ProductEventFromJson(Map<String, dynamic> json) => ProductEvent(
-      name: $enumDecode(_$ProductActionEnumMap, json['name']),
+      type: $enumDecode(_$ProductActionEnumMap, json['type']),
       urls: (json['urls'] as List<dynamic>).map((e) => e as String).toList(),
     );
 

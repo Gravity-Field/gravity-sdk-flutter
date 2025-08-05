@@ -5,10 +5,10 @@ part 'product_event.g.dart';
 
 @JsonSerializable()
 class ProductEvent {
-  final ProductAction name;
+  final ProductAction type;
   final List<String> urls;
 
-  ProductEvent({required this.name, required this.urls});
+  ProductEvent({required this.type, required this.urls});
 
   factory ProductEvent.fromJson(Map<String, dynamic> json) => _$ProductEventFromJson(json);
 }
