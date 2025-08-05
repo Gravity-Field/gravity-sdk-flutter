@@ -1,3 +1,12 @@
+## 0.9.1
+
+* Исправлена отправка ctx в event.
+* Поле events в объекте Slot теперь nullable.
+* Поля categories и keywords в объекте Item теперь nullable.
+* Обработка клика по картинке.
+* Отправка isBuildEngagementUrl в Options
+* Поле name в Event переименовано в type.
+
 ## 0.9.0
 
 * Поля pageNumber и countPage в Products теперь опциональные.
