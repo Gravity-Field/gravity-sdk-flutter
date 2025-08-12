@@ -2,6 +2,7 @@ import 'package:dio/dio.dart' hide Options;
 import 'package:flutter/foundation.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/api/gravity_interceptor.dart';
+import 'package:gravity_sdk/src/utils/device_utils.dart';
 import 'package:gravity_sdk/src/utils/logger.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
 
@@ -46,6 +47,9 @@ class Api {
     required Options options,
     required ContentSettings contentSettings,
   }) async {
+
+    final device = await DeviceUtils.instance.getDevice();
+
     final data = {
       'sec': GravitySDK.instance.section,
       'data': [
@@ -53,7 +57,7 @@ class Api {
           'campaignId': campaignId,
         }
       ],
-      'device': GravitySDK.instance.device.toJson(),
+      'device': device.toJson(),
       'user': user?.toJson(),
       'ctx': context?.toJson(),
       'options': options.toJson(),
@@ -72,6 +76,8 @@ class Api {
     required Options options,
     required ContentSettings contentSettings,
   }) async {
+    final device = await DeviceUtils.instance.getDevice();
+
     final data = {
       'sec': GravitySDK.instance.section,
       'data': [
@@ -79,7 +85,7 @@ class Api {
           'selector': selector,
         }
       ],
-      'device': GravitySDK.instance.device.toJson(),
+      'device': device.toJson(),
       'user': user?.toJson(),
       'ctx': context?.toJson(),
       'options': options.toJson(),
@@ -91,9 +97,11 @@ class Api {
   }
 
   Future<CampaignIdsResponse> visit(User? user, PageContext context, Options options) async {
+    final device = await DeviceUtils.instance.getDevice();
+
     final data = {
       'sec': GravitySDK.instance.section,
-      'device': GravitySDK.instance.device.toJson(),
+      'device': device.toJson(),
       'type': 'screenview',
       'user': user?.toJson(),
       'ctx': context.toJson(),
@@ -105,9 +113,11 @@ class Api {
   }
 
   Future<CampaignIdsResponse> event(List<TriggerEvent> events, User? user, PageContext context, Options options) async {
+    final device = await DeviceUtils.instance.getDevice();
+
     final data = {
       'sec': GravitySDK.instance.section,
-      'device': GravitySDK.instance.device.toJson(),
+      'device': device.toJson(),
       'data': events
           .map(
             (e) => e.toJson(),

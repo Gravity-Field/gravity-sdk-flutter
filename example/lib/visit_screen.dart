@@ -17,6 +17,7 @@ class VisitScreen extends StatelessWidget {
           children: [
             _CartVisitButton(),
             _HomePageVisitButton(),
+            _OtherVisitButton(),
           ],
         ),
       ),
@@ -68,6 +69,30 @@ class _HomePageVisitButton extends StatelessWidget {
         );
       },
       child: Text('HomePage Visit'),
+    );
+  }
+}
+
+class _OtherVisitButton extends StatelessWidget {
+  const _OtherVisitButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(Colors.green),
+      ),
+      onPressed: () {
+        GravitySDK.instance.trackView(
+          context: context,
+          pageContext: PageContext(
+            type: ContextType.other,
+            data: [],
+            location: 'other',
+          ),
+        );
+      },
+      child: Text('Other Visit'),
     );
   }
 }

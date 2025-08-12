@@ -15,14 +15,12 @@ import 'models/external/tracking_event.dart';
 import 'models/external/trigger_event.dart';
 import 'models/external/user.dart';
 import 'models/internal/campaign_content.dart';
-import 'models/internal/device.dart';
 import 'repos/gravity_repo.dart';
 import 'settings/product_widget_builder.dart';
 import 'ui/delivery_methods/bottom_sheet/bottom_sheet_content.dart';
 import 'ui/delivery_methods/full_screen/full_screen_content.dart';
 import 'ui/delivery_methods/modal/modal_content.dart';
 import 'utils/content_events_service.dart';
-import 'utils/device_utils.dart';
 
 typedef GravityEventCallback = void Function(TrackingEvent event);
 
@@ -35,7 +33,6 @@ class GravitySDK {
 
   //other fields
   User? user;
-  late Device device;
   ContentSettings contentSettings = ContentSettings();
   Options options = Options();
   String? proxyUrl;
@@ -54,14 +51,6 @@ class GravitySDK {
     this.section = section;
     this.productWidgetBuilder = productWidgetBuilder ?? DefaultProductWidgetBuilder();
     this.gravityEventCallback = gravityEventCallback;
-
-    final userAgent = await DeviceUtils.getUserAgent();
-    final deviceIdentifier = await DeviceUtils.getDeviceId();
-
-    device = Device(
-      userAgent: userAgent,
-      id: deviceIdentifier,
-    );
   }
 
   void setOptions({
