@@ -5,6 +5,7 @@ part 'product_event.g.dart';
 
 @JsonSerializable()
 class ProductEvent {
+  @JsonKey(unknownEnumValue: ProductAction.unknown)
   final ProductAction type;
   final List<String> urls;
 

@@ -2,9 +2,11 @@ import 'package:json_annotation/json_annotation.dart';
 
 @JsonEnum()
 enum ProductAction {
-  @JsonValue('PIMP')
-  pimp,
-  @JsonValue('PCLICK')
-  pclick,
+  @JsonValue('impression')
+  impression,
+  @JsonValue('visible_impression')
+  visibleImpression,
+  @JsonValue('click')
+  click,
   unknown;
 }
