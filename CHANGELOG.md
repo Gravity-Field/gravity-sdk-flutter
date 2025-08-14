@@ -1,3 +1,8 @@
+## 0.9.4
+
+* Исправлены значения enum product_action
+* Поле Item в объекте Slot теперь просто Map<String, dynamic>
+
 ## 0.9.3
 
 * В объекте device предаются tracking и permission.
