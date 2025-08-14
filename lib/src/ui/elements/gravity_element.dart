@@ -44,7 +44,7 @@ class GravityElement {
 
       case ElementType.productsContainer:
         if (products == null) {
-          throw Exception('Products mast not be null when element type is products-container');
+          return SizedBox.shrink();
         }
         return GravityProductsContainer(
           element: element,

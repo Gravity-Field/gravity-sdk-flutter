@@ -17,7 +17,13 @@ class ProductEventsService {
     required Campaign campaign,
     bool callbackTrackingEvent = true,
   }) {
-    _trackEvent(action: ProductAction.pclick, slot: slot, content: content, campaign: campaign);
+    _trackEvent(
+      action: ProductAction.click,
+      slot: slot,
+      content: content,
+      campaign: campaign,
+      callbackTrackingEvent: callbackTrackingEvent,
+    );
   }
 
   void sendProductVisibleImpression({
@@ -26,7 +32,13 @@ class ProductEventsService {
     required Campaign campaign,
     bool callbackTrackingEvent = true,
   }) {
-    _trackEvent(action: ProductAction.pimp, slot: slot, content: content, campaign: campaign);
+    _trackEvent(
+      action: ProductAction.visibleImpression,
+      slot: slot,
+      content: content,
+      campaign: campaign,
+      callbackTrackingEvent: callbackTrackingEvent,
+    );
   }
 
   void _trackEvent({
@@ -46,7 +58,7 @@ class ProductEventsService {
 
     if (callbackTrackingEvent) {
       final event = switch (action) {
-        ProductAction.pimp => ProductImpressionEvent(slot, content, campaign),
+        ProductAction.visibleImpression => ProductImpressionEvent(slot, content, campaign),
         _ => null,
       };
       if (event != null) {

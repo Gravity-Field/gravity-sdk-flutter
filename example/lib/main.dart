@@ -30,9 +30,15 @@ class CustomProductWidgetBuilder extends ProductWidgetBuilder {
     required Campaign campaign,
   }) {
     return Container(
-      width: 20,
+      width: 200,
       color: Colors.amber,
-      height: 20,
+      height: 250,
+      padding: EdgeInsets.all(8),
+      child: Column(
+        children: [
+          Text(product.item['sku']),
+        ],
+      ),
     );
   }
 }

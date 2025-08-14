@@ -33,7 +33,13 @@ class GravityProductsContainer extends StatelessWidget {
         itemBuilder: (context, index) {
           final slot = products.slots[index];
 
-          final productWidget = GravitySDK.instance.productWidgetBuilder.build(
+          final productBuilder = GravitySDK.instance.productWidgetBuilder;
+
+          if (productBuilder == null) {
+            return SizedBox.shrink();
+          }
+
+          final productWidget = productBuilder.build(
             context: context,
             product: slot,
             content: content,

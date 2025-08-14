@@ -13,15 +13,14 @@ class InlineScreen extends StatelessWidget {
       body: Column(
         children: [
           GravityInlineWidget(
-            width: 200,
-            height: 200,
-            selector: 'bottom-sheet-banner',
-            pageContext: PageContext(type: ContextType.search, data: ['adsfasdf'], location: 'sdfsdf'),
+            height: 289,
+            selector: 'inline_widget_qa',
+            pageContext: PageContext(type: ContextType.homepage, data: ['adsfasdf'], location: 'sdfsdf'),
           ),
           SizedBox(height: 36,),
-          GravityInlineWidget(
-            selector: 'bottom-sheet-products-row',
-          ),
+          // GravityInlineWidget(
+          //   selector: 'bottom-sheet-products-row',
+          // ),
         ],
       ),
     );

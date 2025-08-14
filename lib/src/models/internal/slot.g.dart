@@ -7,7 +7,7 @@ part of 'slot.dart';
 // **************************************************************************
 
 Slot _$SlotFromJson(Map<String, dynamic> json) => Slot(
-      item: Item.fromJson(json['item'] as Map<String, dynamic>),
+      item: json['item'] as Map<String, dynamic>,
       fallback: json['fallback'] as bool,
       strId: (json['strId'] as num).toInt(),
       slotId: json['slotId'] as String,

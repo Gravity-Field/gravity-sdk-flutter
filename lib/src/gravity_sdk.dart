@@ -28,7 +28,7 @@ class GravitySDK {
   //init fields
   String apiKey = '';
   String section = '';
-  ProductWidgetBuilder productWidgetBuilder = DefaultProductWidgetBuilder();
+  ProductWidgetBuilder? productWidgetBuilder;
   GravityEventCallback? gravityEventCallback;
 
   //other fields
@@ -49,7 +49,7 @@ class GravitySDK {
   }) async {
     this.apiKey = apiKey;
     this.section = section;
-    this.productWidgetBuilder = productWidgetBuilder ?? DefaultProductWidgetBuilder();
+    this.productWidgetBuilder = productWidgetBuilder;
     this.gravityEventCallback = gravityEventCallback;
   }
 
