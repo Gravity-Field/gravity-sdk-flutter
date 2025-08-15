@@ -18,6 +18,8 @@ void main() async {
     },
   );
 
+  GravitySDK.instance.setNotificationPermissionStatus(NotificationPermissionStatus.denied);
+
   runApp(MyApp());
 }
 

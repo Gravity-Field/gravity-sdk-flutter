@@ -1,6 +1,7 @@
 export 'src/gravity_sdk.dart';
 export 'src/models/actions/action.dart';
 export 'src/models/external/content_settings.dart';
+export 'src/models/external/notification_permission_status.dart';
 export 'src/models/external/options.dart';
 export 'src/models/external/page_context.dart';
 export 'src/models/external/tracking_event.dart';

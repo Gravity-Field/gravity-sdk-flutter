@@ -8,6 +8,7 @@ import 'data/api/content_response.dart';
 import 'models/external/campaign.dart';
 import 'models/external/content_engagement.dart';
 import 'models/external/content_settings.dart';
+import 'models/external/notification_permission_status.dart';
 import 'models/external/options.dart';
 import 'models/external/page_context.dart';
 import 'models/external/product_engagement.dart';
@@ -31,11 +32,13 @@ class GravitySDK {
   ProductWidgetBuilder? productWidgetBuilder;
   GravityEventCallback? gravityEventCallback;
 
+
   //other fields
   User? user;
   ContentSettings contentSettings = ContentSettings();
   Options options = Options();
   String? proxyUrl;
+  NotificationPermissionStatus notificationPermissionStatus = NotificationPermissionStatus.unknown;
 
   GravitySDK._();
 
@@ -72,6 +75,10 @@ class GravitySDK {
       custom: userId,
       ses: sessionId,
     );
+  }
+
+  void setNotificationPermissionStatus(NotificationPermissionStatus status) {
+    notificationPermissionStatus = status;
   }
 
   Future<void> trackView({required BuildContext context, required PageContext pageContext}) async {

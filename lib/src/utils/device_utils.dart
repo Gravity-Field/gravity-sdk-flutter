@@ -1,5 +1,5 @@
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
-import 'package:notification_permissions/notification_permissions.dart';
+import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:ua_client_hints/ua_client_hints.dart';
 import 'package:uuid/v4.dart';
 
@@ -17,14 +17,14 @@ class DeviceUtils {
   Future<Device> getDevice() async {
     final userAgent = await _getUserAgent();
     final deviceId = await _getDeviceId();
-    final permissionStatus = await NotificationPermissions.getNotificationPermissionStatus();
     final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+    final permission = await GravitySDK.instance.notificationPermissionStatus;
 
     return Device(
       userAgent: userAgent,
       id: deviceId,
-      permission: permissionStatus.name,
       tracking: status.name,
+      permission: permission.name,
     );
   }
 
