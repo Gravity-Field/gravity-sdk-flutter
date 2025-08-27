@@ -26,6 +26,11 @@ class GravityButton extends StatelessWidget {
         backgroundColor: WidgetStateProperty.all(style.backgroundColor),
         overlayColor: WidgetStateProperty.all(style.pressColor),
         fixedSize: WidgetStateProperty.all(Size.fromHeight(style.size?.height ?? 48)),
+        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(style.cornerRadius ?? 0),
+          ),
+        ),
       ),
       onPressed: onClick != null
           ? () {
