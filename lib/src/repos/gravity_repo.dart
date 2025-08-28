@@ -95,6 +95,9 @@ class GravityRepo {
       return customUser;
     } else if (userIdCache != null && sessionIdCache != null) {
       return User(uid: userIdCache, ses: sessionIdCache);
+    } else if (userIdCache == null && sessionIdCache != null) {
+      final userIdFromPrefs = await Prefs.instance.getUserId();
+      return User(uid: userIdFromPrefs, ses: sessionIdCache);
     } else {
       final userIdFromPrefs = await Prefs.instance.getUserId();
       return User(uid: userIdFromPrefs, ses: null);
@@ -109,9 +112,12 @@ class GravityRepo {
     final uid = contentResponseUser?.uid;
     final sec = contentResponseUser?.ses;
 
-    if (uid != null && sec != null) {
+    if (uid != null) {
       await Prefs.instance.setUserId(uid);
       userIdCache = uid;
+    }
+
+    if (sec != null) {
       sessionIdCache = sec;
     }
   }
