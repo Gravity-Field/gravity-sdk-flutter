@@ -10,6 +10,7 @@ class GravityInlineWidget extends StatefulWidget {
   final double? width;
   final double? height;
   final PageContext pageContext;
+  final bool showLoading;
 
   const GravityInlineWidget({
     super.key,
@@ -17,6 +18,7 @@ class GravityInlineWidget extends StatefulWidget {
     this.width,
     this.height,
     required this.pageContext,
+    this.showLoading = true,
   });
 
   @override
@@ -25,6 +27,8 @@ class GravityInlineWidget extends StatefulWidget {
 
 class _GravityInlineWidgetState extends State<GravityInlineWidget> {
   bool isLoading = true;
+  bool isFailure = false;
+
   CampaignContent? content;
   Campaign? campaign;
 
@@ -35,35 +39,53 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
   }
 
   void _loadContent() async {
-    final response = await GravitySDK.instance.getContentBySelector(selector: widget.selector, pageContext: widget.pageContext);
-    final campaign = response.data.first;
-    final content = campaign.payload.first.contents.first;
-    setState(() {
-      this.content = content;
-      this.campaign = campaign;
-      isLoading = false;
-    });
+    try {
+      final response = await GravitySDK.instance.getContentBySelector(
+        selector: widget.selector,
+        pageContext: widget.pageContext,
+      );
+      final campaign = response.data.first;
+      final content = campaign.payload.first.contents.first;
+      setState(() {
+        this.content = content;
+        this.campaign = campaign;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        isFailure = true;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: widget.width,
-      height: widget.height,
-      child: Builder(
-        builder: (context) {
-          if (content != null && campaign != null) {
-            return InlineContent(
-              content: content!,
-              campaign: campaign!,
-            );
-          }
+    if (isFailure) {
+      return SizedBox.shrink();
+    }
 
-          return Center(
-            child: CircularProgressIndicator(),
-          );
-        },
-      ),
-    );
+    Widget? child;
+
+    if (isLoading && widget.showLoading) {
+      child = Center(
+        child: CircularProgressIndicator(),
+      );
+    } else if (content != null && campaign != null) {
+      child = InlineContent(
+        content: content!,
+        campaign: campaign!,
+      );
+    }
+
+    if (widget.width != null || widget.height != null) {
+      child = SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: child,
+      );
+    }
+
+    return child ?? SizedBox.shrink();
   }
 }

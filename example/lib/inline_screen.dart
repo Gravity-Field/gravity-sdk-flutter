@@ -18,9 +18,7 @@ class InlineScreen extends StatelessWidget {
             pageContext: PageContext(type: ContextType.homepage, data: ['adsfasdf'], location: 'sdfsdf'),
           ),
           SizedBox(height: 36,),
-          // GravityInlineWidget(
-          //   selector: 'bottom-sheet-products-row',
-          // ),
+          Container(height: 200, color: Colors.cyan,)
         ],
       ),
     );
