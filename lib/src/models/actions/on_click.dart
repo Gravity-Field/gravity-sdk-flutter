@@ -11,6 +11,7 @@ class OnClick {
   final int? step;
   final String? url;
   final String? deeplink;
+  final bool closeOnClick;
 
   OnClick({
     required this.action,
@@ -18,6 +19,7 @@ class OnClick {
     this.step,
     this.url,
     this.deeplink,
+    this.closeOnClick = true,
   });
 
   factory OnClick.fromJson(Map<String, dynamic> json) => _$OnClickFromJson(json);

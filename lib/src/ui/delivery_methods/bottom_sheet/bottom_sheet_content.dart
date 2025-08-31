@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/src/models/internal/campaign_content.dart';
+import 'package:gravity_sdk/src/models/internal/element.dart';
 import 'package:gravity_sdk/src/utils/content_events_service.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -77,6 +78,9 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
                           content: widget.content,
                           campaign: widget.campaign,
                           onClickCallback: (action) {
+                            if (e.type == ElementType.button && action.closeOnClick) {
+                              Navigator.of(context).pop();
+                            }
                             onClickHandler.handeOnClick(action);
                           },
                         ).getWidget(),

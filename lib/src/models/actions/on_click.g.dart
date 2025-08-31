@@ -12,6 +12,7 @@ OnClick _$OnClickFromJson(Map<String, dynamic> json) => OnClick(
       step: (json['step'] as num?)?.toInt(),
       url: json['url'] as String?,
       deeplink: json['deeplink'] as String?,
+      closeOnClick: json['closeOnClick'] as bool? ?? true,
     );
 
 const _$ActionEnumMap = {
