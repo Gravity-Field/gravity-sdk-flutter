@@ -54,13 +54,13 @@ class Api {
       'data': [
         {
           'campaignId': campaignId,
+          'options': contentSettings.toJson(),
         }
       ],
       'device': device.toJson(),
       'user': user?.toJson(),
       'ctx': context.toJson(),
       'options': options.toJson(),
-      'contentSettings': contentSettings.toJson(),
     };
 
     final response = await _dio.post('$baseUrl/choose', data: data);
@@ -82,13 +82,13 @@ class Api {
       'data': [
         {
           'selector': selector,
+          'options': contentSettings.toJson(),
         }
       ],
       'device': device.toJson(),
       'user': user?.toJson(),
       'ctx': context.toJson(),
       'options': options.toJson(),
-      'contentSettings': contentSettings.toJson(),
     };
 
     final response = await _dio.post('$baseUrl/choose', data: data);
