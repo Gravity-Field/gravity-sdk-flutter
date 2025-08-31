@@ -43,11 +43,10 @@ class Api {
   Future<ContentResponse> chooseByCampaignId({
     required String campaignId,
     User? user,
-    PageContext? context,
+    required PageContext context,
     required Options options,
     required ContentSettings contentSettings,
   }) async {
-
     final device = await DeviceUtils.instance.getDevice();
 
     final data = {
@@ -59,7 +58,7 @@ class Api {
       ],
       'device': device.toJson(),
       'user': user?.toJson(),
-      'ctx': context?.toJson(),
+      'ctx': context.toJson(),
       'options': options.toJson(),
       'contentSettings': contentSettings.toJson(),
     };
@@ -72,7 +71,7 @@ class Api {
     required String selector,
     User? user,
     String? templateId,
-    PageContext? context,
+    required PageContext context,
     required Options options,
     required ContentSettings contentSettings,
   }) async {
@@ -87,7 +86,7 @@ class Api {
       ],
       'device': device.toJson(),
       'user': user?.toJson(),
-      'ctx': context?.toJson(),
+      'ctx': context.toJson(),
       'options': options.toJson(),
       'contentSettings': contentSettings.toJson(),
     };

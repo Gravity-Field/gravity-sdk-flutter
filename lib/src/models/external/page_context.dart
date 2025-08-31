@@ -25,7 +25,7 @@ class PageContext {
   final String location;
   final String? lng;
   final Map<String, String>? utm;
-  final Map<String, Object>? attributes;
+  final Map<String, Object> attributes;
 
   const PageContext({
     required this.type,
@@ -33,10 +33,26 @@ class PageContext {
     required this.location,
     this.lng,
     this.utm,
-    this.attributes,
+    this.attributes = const {},
   });
 
   Map<String, dynamic> toJson() => _$PageContextToJson(this);
 
-
+  PageContext copyWith({
+    ContextType? type,
+    List<String>? data,
+    String? location,
+    String? lng,
+    Map<String, String>? utm,
+    Map<String, Object>? attributes,
+  }) {
+    return PageContext(
+      type: type ?? this.type,
+      data: data ?? this.data,
+      location: location ?? this.location,
+      lng: lng ?? this.lng,
+      utm: utm ?? this.utm,
+      attributes: attributes ?? this.attributes,
+    );
+  }
 }

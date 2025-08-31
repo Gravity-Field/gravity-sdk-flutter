@@ -161,7 +161,7 @@ class GravitySDK {
     }
   }
 
-  Future<ContentResponse> getContentBySelector({required String selector, PageContext? pageContext}) async {
+  Future<ContentResponse> getContentBySelector({required String selector, required PageContext pageContext}) async {
     _checkIsInitialized();
 
     final content = await GravityRepo.instance.getContentBySelector(
@@ -182,7 +182,7 @@ class GravitySDK {
     return content;
   }
 
-  Future<ContentResponse> getContentByCampaignId({required String campaignId, PageContext? pageContext}) async {
+  Future<ContentResponse> getContentByCampaignId({required String campaignId, required PageContext pageContext}) async {
     _checkIsInitialized();
 
     final content = await GravityRepo.instance.getContentByCampaignId(

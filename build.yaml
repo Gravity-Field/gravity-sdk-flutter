@@ -2,5 +2,7 @@ targets:
   $default:
     builders:
       json_serializable:
+        generate_for:
+          - lib/**/*.dart
         options:
           create_to_json: false

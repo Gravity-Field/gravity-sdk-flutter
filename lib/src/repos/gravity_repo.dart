@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:gravity_sdk/src/models/external/page_context.dart';
 import 'package:gravity_sdk/src/models/external/trigger_event.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../data/api/api.dart';
 import '../data/api/content_ids_response.dart';
@@ -8,6 +11,7 @@ import '../data/prefs/prefs.dart';
 import '../models/external/content_settings.dart';
 import '../models/external/options.dart';
 import '../models/external/user.dart';
+import '../version.dart';
 
 class GravityRepo {
   GravityRepo._();
@@ -26,7 +30,8 @@ class GravityRepo {
     required Options options,
   }) async {
     final finalUser = await _determineUser(customUser);
-    final response = await _api.event(events, finalUser, pageContext, options);
+    final finalPageContext = await _mixPageContextAttributes(pageContext);
+    final response = await _api.event(events, finalUser, finalPageContext, options);
     await _saveUserIfNeeded(customUser, response.user);
     return response;
   }
@@ -37,7 +42,8 @@ class GravityRepo {
     required Options options,
   }) async {
     final finalUser = await _determineUser(customUser);
-    final response = await _api.visit(finalUser, pageContext, options);
+    final finalPageContext = await _mixPageContextAttributes(pageContext);
+    final response = await _api.visit(finalUser, finalPageContext, options);
     await _saveUserIfNeeded(customUser, response.user);
     return response;
   }
@@ -45,15 +51,16 @@ class GravityRepo {
   Future<ContentResponse> getContentByCampaignId({
     required String campaignId,
     User? customUser,
-    PageContext? pageContext,
+    required PageContext pageContext,
     required Options options,
     required ContentSettings contentSetting,
   }) async {
     final finalUser = await _determineUser(customUser);
+    final finalPageContext = await _mixPageContextAttributes(pageContext);
     final response = await _api.chooseByCampaignId(
       campaignId: campaignId,
       user: finalUser,
-      context: pageContext,
+      context: finalPageContext,
       options: options,
       contentSettings: contentSetting,
     );
@@ -64,15 +71,16 @@ class GravityRepo {
   Future<ContentResponse> getContentBySelector({
     required String selector,
     User? customUser,
-    PageContext? pageContext,
+    required PageContext pageContext,
     required Options options,
     required ContentSettings contentSetting,
   }) async {
     final finalUser = await _determineUser(customUser);
+    final finalPageContext = await _mixPageContextAttributes(pageContext);
     final response = await _api.chooseBySelector(
       selector: selector,
       user: finalUser,
-      context: pageContext,
+      context: finalPageContext,
       options: options,
       contentSettings: contentSetting,
     );
@@ -120,5 +128,19 @@ class GravityRepo {
     if (sec != null) {
       sessionIdCache = sec;
     }
+  }
+
+  Future<PageContext> _mixPageContextAttributes(PageContext pageContext) async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    final version = packageInfo.version;
+    final buildNumber = packageInfo.buildNumber;
+
+    final attributes = Map<String, Object>.from(pageContext.attributes);
+
+    attributes['app_version'] = '$version+$buildNumber';
+    attributes['sdk_version'] = packageVersion;
+    attributes['app_platform'] = Platform.operatingSystem;
+
+    return pageContext.copyWith(attributes: attributes);
   }
 }

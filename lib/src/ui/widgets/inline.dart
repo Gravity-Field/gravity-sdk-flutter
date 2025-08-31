@@ -9,14 +9,14 @@ class GravityInlineWidget extends StatefulWidget {
   final String selector;
   final double? width;
   final double? height;
-  final PageContext? pageContext;
+  final PageContext pageContext;
 
   const GravityInlineWidget({
     super.key,
     required this.selector,
     this.width,
     this.height,
-    this.pageContext,
+    required this.pageContext,
   });
 
   @override
