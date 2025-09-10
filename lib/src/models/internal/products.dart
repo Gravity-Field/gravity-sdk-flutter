@@ -7,7 +7,7 @@ part 'products.g.dart';
 @JsonSerializable()
 class Products {
   final String strategyId;
-  final String name;
+  final String? name;
   final int? pageNumber;
   final int? countPages;
   final bool fallback;
@@ -15,7 +15,7 @@ class Products {
 
   Products({
     required this.strategyId,
-    required this.name,
+    this.name,
     this.pageNumber,
     this.countPages,
     required this.fallback,
