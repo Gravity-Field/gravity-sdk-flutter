@@ -12,6 +12,8 @@ Map<String, dynamic> _$PageContextToJson(PageContext instance) =>
       'data': instance.data,
       'location': instance.location,
       'lng': instance.lng,
+      'pageNumber': instance.pageNumber,
+      'referrer': instance.referrer,
       'utm': instance.utm,
       'attributes': instance.attributes,
     };

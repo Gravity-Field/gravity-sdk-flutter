@@ -21,6 +21,7 @@ Map<String, dynamic> _$PurchaseEventToJson(PurchaseEvent instance) =>
     <String, dynamic>{
       'uniqueTransactionId': instance.uniqueTransactionId,
       'value': instance.value,
+      'productId': instance.productId,
       'currency': instance.currency,
       'cart': instance.cart,
       'type': instance.type,
@@ -41,6 +42,7 @@ Map<String, dynamic> _$RemoveFromCartEventToJson(
 
 Map<String, dynamic> _$SyncCartEventToJson(SyncCartEvent instance) =>
     <String, dynamic>{
+      'value': instance.value,
       'currency': instance.currency,
       'cart': instance.cart,
       'type': instance.type,
@@ -49,6 +51,7 @@ Map<String, dynamic> _$SyncCartEventToJson(SyncCartEvent instance) =>
 
 Map<String, dynamic> _$AddToWishlistEventToJson(AddToWishlistEvent instance) =>
     <String, dynamic>{
+      'value': instance.value,
       'productId': instance.productId,
       'type': instance.type,
       'name': instance.name,

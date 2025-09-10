@@ -39,8 +39,9 @@ class AddToCartEvent extends TriggerEvent {
 class PurchaseEvent extends TriggerEvent {
   final String uniqueTransactionId;
   final double value;
+  final String productId;
   final String? currency;
-  final List<CartItem>? cart;
+  final List<CartItem> cart;
 
   @override
   final String type = 'purchase-v1';
@@ -50,8 +51,9 @@ class PurchaseEvent extends TriggerEvent {
   PurchaseEvent({
     required this.uniqueTransactionId,
     required this.value,
+    required this.productId,
+    required this.cart,
     this.currency,
-    this.cart,
   });
 
   @override
@@ -85,6 +87,7 @@ class RemoveFromCartEvent extends TriggerEvent {
 
 @JsonSerializable(createFactory: false, createToJson: true)
 class SyncCartEvent extends TriggerEvent {
+  final double value;
   final String? currency;
   final List<CartItem>? cart;
 
@@ -94,6 +97,7 @@ class SyncCartEvent extends TriggerEvent {
   final String name = 'Sync cart';
 
   SyncCartEvent({
+    required this.value,
     this.currency,
     this.cart,
   });
@@ -104,6 +108,7 @@ class SyncCartEvent extends TriggerEvent {
 
 @JsonSerializable(createFactory: false, createToJson: true)
 class AddToWishlistEvent extends TriggerEvent {
+  final double value;
   final String productId;
 
   @override
@@ -111,7 +116,10 @@ class AddToWishlistEvent extends TriggerEvent {
   @override
   final String name = 'Add to Wishlist';
 
-  AddToWishlistEvent({required this.productId});
+  AddToWishlistEvent({
+    required this.value,
+    required this.productId,
+  });
 
   @override
   Map<String, dynamic> toJson() => _$AddToWishlistEventToJson(this);
@@ -119,9 +127,9 @@ class AddToWishlistEvent extends TriggerEvent {
 
 @JsonSerializable(createFactory: false, createToJson: true)
 class SignUpEvent extends TriggerEvent {
-  final String hashedEmail;
-  final String cuid;
-  final String cuidType;
+  final String? hashedEmail;
+  final String? cuid;
+  final String? cuidType;
 
   @override
   final String type = 'signup-v1';
@@ -129,9 +137,9 @@ class SignUpEvent extends TriggerEvent {
   final String name = 'Signup';
 
   SignUpEvent({
-    required this.hashedEmail,
-    required this.cuid,
-    required this.cuidType,
+    this.hashedEmail,
+    this.cuid,
+    this.cuidType,
   });
 
   @override
