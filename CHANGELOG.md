@@ -1,3 +1,6 @@
+## 0.9.9
+* Соответствие nullable и required полей API.
+
 ## 0.9.8
 * Закрытие bottom sheet при нажатии на кнопку. Отключатеся через closeOnClick = false в классе OnClick.
 * В поле attributes объекта PageContenxt подмешиваются app_version, sdk_version, app_platform
