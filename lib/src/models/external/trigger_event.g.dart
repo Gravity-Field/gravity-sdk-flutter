@@ -76,7 +76,7 @@ Map<String, dynamic> _$CustomEventToJson(CustomEvent instance) =>
     <String, dynamic>{
       'type': instance.type,
       'name': instance.name,
-      'properties': instance.properties,
+      'customProps': instance.customProps,
     };
 
 Map<String, dynamic> _$CartItemToJson(CartItem instance) => <String, dynamic>{

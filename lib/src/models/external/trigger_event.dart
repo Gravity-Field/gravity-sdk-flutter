@@ -165,12 +165,12 @@ class CustomEvent extends TriggerEvent {
   final String type;
   @override
   final String name;
-  final Map<String, String>? properties;
+  final Map<String, String>? customProps;
 
   CustomEvent({
     required this.type,
     required this.name,
-    this.properties,
+    this.customProps,
   });
 
   @override
