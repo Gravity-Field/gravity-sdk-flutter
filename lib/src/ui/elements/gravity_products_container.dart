@@ -24,14 +24,22 @@ class GravityProductsContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final slots = products.slots;
+
+    if (slots == null) {
+      return SizedBox(
+        height: element.style?.size?.height,
+      );
+    }
+
     return SizedBox(
       height: element.style?.size?.height,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
-        itemCount: products.slots.length,
+        itemCount: slots.length,
         itemBuilder: (context, index) {
-          final slot = products.slots[index];
+          final slot = slots[index];
 
           final productBuilder = GravitySDK.instance.productWidgetBuilder;
 

@@ -11,7 +11,7 @@ class Products {
   final int? pageNumber;
   final int? countPages;
   final bool fallback;
-  final List<Slot> slots;
+  final List<Slot>? slots;
 
   Products({
     required this.strategyId,
@@ -19,7 +19,7 @@ class Products {
     this.pageNumber,
     this.countPages,
     required this.fallback,
-    required this.slots,
+    this.slots,
   });
 
   factory Products.fromJson(Map<String, dynamic> json) => _$ProductsFromJson(json);

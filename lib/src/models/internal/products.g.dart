@@ -12,7 +12,7 @@ Products _$ProductsFromJson(Map<String, dynamic> json) => Products(
       pageNumber: (json['pageNumber'] as num?)?.toInt(),
       countPages: (json['countPages'] as num?)?.toInt(),
       fallback: json['fallback'] as bool,
-      slots: (json['slots'] as List<dynamic>)
-          .map((e) => Slot.fromJson(e as Map<String, dynamic>))
+      slots: (json['slots'] as List<dynamic>?)
+          ?.map((e) => Slot.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
