@@ -238,12 +238,12 @@ class GravitySDK {
       final container = frameUi.container;
 
       showModalBottomSheet(
-        backgroundColor: container.style.backgroundColor,
+        backgroundColor: container.style?.backgroundColor,
         isScrollControlled: true,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(container.style.cornerRadius ?? 0),
-            topRight: Radius.circular(container.style.cornerRadius ?? 0),
+            topLeft: Radius.circular(container.style?.cornerRadius ?? 0),
+            topRight: Radius.circular(container.style?.cornerRadius ?? 0),
           ),
         ),
         context: context,

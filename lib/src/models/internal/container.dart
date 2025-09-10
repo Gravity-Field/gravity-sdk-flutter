@@ -5,9 +5,9 @@ part 'container.g.dart';
 
 @JsonSerializable()
 class Container {
-  final Style style;
+  final Style? style;
 
-  Container({required this.style});
+  Container({this.style});
 
 
   factory Container.fromJson(Map<String, dynamic> json) => _$ContainerFromJson(json);

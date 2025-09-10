@@ -54,22 +54,22 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
         child: ClipRRect(
           borderRadius: isBanner
               ? BorderRadius.only(
-                  topLeft: Radius.circular(container.style.cornerRadius ?? 0),
-                  topRight: Radius.circular(container.style.cornerRadius ?? 0),
+                  topLeft: Radius.circular(container.style?.cornerRadius ?? 0),
+                  topRight: Radius.circular(container.style?.cornerRadius ?? 0),
                 )
               : BorderRadius.zero,
           child: Stack(
             children: [
               Padding(
                 padding: EdgeInsets.only(
-                  left: container.style.padding?.left ?? 0,
-                  right: container.style.padding?.right ?? 0,
-                  top: container.style.padding?.top ?? 0,
-                  bottom: container.style.padding?.bottom ?? 0,
+                  left: container.style?.padding?.left ?? 0,
+                  right: container.style?.padding?.right ?? 0,
+                  top: container.style?.padding?.top ?? 0,
+                  bottom: container.style?.padding?.bottom ?? 0,
                 ),
                 child: Column(
                   crossAxisAlignment:
-                      container.style.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
+                      container.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: elements
                       .map(

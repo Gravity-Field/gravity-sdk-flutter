@@ -28,7 +28,7 @@ class SnackBarContent2 extends SnackBarContent {
     final frameUi = content.variables.frameUI!;
     final container = frameUi.container;
     final style = container.style;
-    final padding = style.padding;
+    final padding = style?.padding;
     final elements = content.variables.elements;
     final texts = elements.where((element) => element.type == ElementType.text);
     final image = elements.firstWhereOrNull((element) => element.type == ElementType.image);
@@ -42,8 +42,8 @@ class SnackBarContent2 extends SnackBarContent {
         right: padding?.right ?? 0,
         bottom: padding?.bottom ?? 0,
       ),
-      backgroundColor: container.style.backgroundColor ?? Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(style.cornerRadius ?? 0)),
+      backgroundColor: container.style?.backgroundColor ?? Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(style?.cornerRadius ?? 0)),
       elevation: 0,
       content: Row(
         children: [

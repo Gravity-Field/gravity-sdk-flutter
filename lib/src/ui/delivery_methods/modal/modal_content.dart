@@ -50,18 +50,18 @@ class _ModalContentState extends State<ModalContent> {
         }
       },
       child: Dialog(
-        backgroundColor: container.style.backgroundColor ?? Colors.white,
+        backgroundColor: container.style?.backgroundColor ?? Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(container.style.cornerRadius ?? 0),
+          borderRadius: BorderRadius.circular(container.style?.cornerRadius ?? 0),
         ),
         child: Stack(
           children: [
             Padding(
               padding: EdgeInsets.only(
-                left: container.style.padding?.left ?? 0,
-                top: container.style.padding?.top ?? 0,
-                right: container.style.padding?.right ?? 0,
-                bottom: container.style.padding?.bottom ?? 0,
+                left: container.style?.padding?.left ?? 0,
+                top: container.style?.padding?.top ?? 0,
+                right: container.style?.padding?.right ?? 0,
+                bottom: container.style?.padding?.bottom ?? 0,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
