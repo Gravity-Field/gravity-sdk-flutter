@@ -6,9 +6,9 @@ part 'item.g.dart';
 class Item {
   final String sku;
   final String? groupId;
-  final String name;
-  final String price;
-  final String url;
+  final String? name;
+  final String? price;
+  final String? url;
   final String? imageUrl;
   final String? isNew;
   final String? oldPrice;
@@ -21,9 +21,9 @@ class Item {
   Item({
     required this.sku,
     this.groupId,
-    required this.name,
-    required this.price,
-    required this.url,
+    this.name,
+    this.price,
+    this.url,
     this.imageUrl,
     this.isNew,
     this.oldPrice,

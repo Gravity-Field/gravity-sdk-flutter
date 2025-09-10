@@ -9,9 +9,9 @@ part of 'item.dart';
 Item _$ItemFromJson(Map<String, dynamic> json) => Item(
       sku: json['sku'] as String,
       groupId: json['groupId'] as String?,
-      name: json['name'] as String,
-      price: json['price'] as String,
-      url: json['url'] as String,
+      name: json['name'] as String?,
+      price: json['price'] as String?,
+      url: json['url'] as String?,
       imageUrl: json['imageUrl'] as String?,
       isNew: json['isNew'] as String?,
       oldPrice: json['oldPrice'] as String?,
