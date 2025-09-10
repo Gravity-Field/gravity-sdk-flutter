@@ -9,9 +9,9 @@ part 'close.g.dart';
 class Close {
   final String? image;
   final OnClick? onClick;
-  final Style style;
+  final Style? style;
 
-  Close({this.image, this.onClick, required this.style});
+  Close({this.image, this.onClick, this.style});
 
   factory Close.fromJson(Map<String, dynamic> json) => _$CloseFromJson(json);
 }

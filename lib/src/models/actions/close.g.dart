@@ -11,5 +11,7 @@ Close _$CloseFromJson(Map<String, dynamic> json) => Close(
       onClick: json['onClick'] == null
           ? null
           : OnClick.fromJson(json['onClick'] as Map<String, dynamic>),
-      style: Style.fromJson(json['style'] as Map<String, dynamic>),
+      style: json['style'] == null
+          ? null
+          : Style.fromJson(json['style'] as Map<String, dynamic>),
     );

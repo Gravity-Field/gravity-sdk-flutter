@@ -20,13 +20,13 @@ class GravityCloseButtonWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      left: close.style.positioned?.left,
-      top: close.style.positioned?.top,
-      right: close.style.positioned?.right,
-      bottom: close.style.positioned?.bottom,
+      left: close.style?.positioned?.left,
+      top: close.style?.positioned?.top,
+      right: close.style?.positioned?.right,
+      bottom: close.style?.positioned?.bottom,
       child: IconButton(
         icon: close.image != null
-            ? Image.network(close.image!, width: close.style.size?.width, height: close.style.size?.height)
+            ? Image.network(close.image!, width: close.style?.size?.width, height: close.style?.size?.height)
             : Icon(Icons.close),
         onPressed: () {
           if (close.onClick != null) {
