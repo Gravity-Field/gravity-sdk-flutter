@@ -54,7 +54,7 @@ class Api {
       'data': [
         {
           'campaignId': campaignId,
-          'options': contentSettings.toJson(),
+          'option': contentSettings.toJson(),
         }
       ],
       'device': device.toJson(),
@@ -82,7 +82,7 @@ class Api {
       'data': [
         {
           'selector': selector,
-          'options': contentSettings.toJson(),
+          'option': contentSettings.toJson(),
         }
       ],
       'device': device.toJson(),
