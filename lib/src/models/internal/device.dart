@@ -4,6 +4,7 @@ part 'device.g.dart';
 
 @JsonSerializable(createToJson: true, createFactory: false, includeIfNull: false)
 class Device {
+  @JsonKey(name: 'ua')
   final String userAgent;
   final String? id;
   final String? tracking;
