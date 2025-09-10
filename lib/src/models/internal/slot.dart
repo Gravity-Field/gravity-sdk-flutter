@@ -8,14 +8,14 @@ class Slot {
   final Map<String, dynamic> item;
   final bool fallback;
   final int strId;
-  final String slotId;
+  final String? slotId;
   final List<ProductEvent>? events;
 
   Slot({
     required this.item,
     required this.fallback,
     required this.strId,
-    required this.slotId,
+    this.slotId,
     this.events,
   });
 
