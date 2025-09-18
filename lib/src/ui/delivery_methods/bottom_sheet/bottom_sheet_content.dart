@@ -39,7 +39,6 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
     final container = frameUi.container;
     final close = frameUi.close;
     final elements = widget.content.variables.elements;
-    final isBanner = widget.content.contentType == 'banner';
     final contentId = widget.content.contentId;
 
     return VisibilityDetector(
@@ -47,17 +46,16 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
       onVisibilityChanged: (info) {
         var visiblePercentage = info.visibleFraction * 100;
         if (visiblePercentage >= 50) {
-          ContentEventsService.instance.sendContentVisibleImpression(campaign: widget.campaign, content: widget.content);
+          ContentEventsService.instance
+              .sendContentVisibleImpression(campaign: widget.campaign, content: widget.content);
         }
       },
       child: SafeArea(
         child: ClipRRect(
-          borderRadius: isBanner
-              ? BorderRadius.only(
-                  topLeft: Radius.circular(container.style?.cornerRadius ?? 0),
-                  topRight: Radius.circular(container.style?.cornerRadius ?? 0),
-                )
-              : BorderRadius.zero,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(container.style?.cornerRadius ?? 0),
+            topRight: Radius.circular(container.style?.cornerRadius ?? 0),
+          ),
           child: Stack(
             children: [
               Padding(
