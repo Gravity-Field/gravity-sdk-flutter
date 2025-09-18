@@ -39,7 +39,6 @@ class AddToCartEvent extends TriggerEvent {
 class PurchaseEvent extends TriggerEvent {
   final String uniqueTransactionId;
   final double value;
-  final String productId;
   final String? currency;
   final List<CartItem> cart;
 
@@ -51,7 +50,6 @@ class PurchaseEvent extends TriggerEvent {
   PurchaseEvent({
     required this.uniqueTransactionId,
     required this.value,
-    required this.productId,
     required this.cart,
     this.currency,
   });

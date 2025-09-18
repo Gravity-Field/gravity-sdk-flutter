@@ -21,7 +21,6 @@ Map<String, dynamic> _$PurchaseEventToJson(PurchaseEvent instance) =>
     <String, dynamic>{
       'uniqueTransactionId': instance.uniqueTransactionId,
       'value': instance.value,
-      'productId': instance.productId,
       'currency': instance.currency,
       'cart': instance.cart,
       'type': instance.type,
