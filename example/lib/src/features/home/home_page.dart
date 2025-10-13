@@ -1,0 +1,81 @@
+import 'package:example/gen/assets.gen.dart';
+import 'package:example/src/core/widgets/bottom_navigation_bar.dart';
+import 'package:flutter/material.dart';
+
+import 'package:gravity_sdk/gravity_sdk.dart';
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+
+    GravitySDK.instance.trackView(
+      context: context,
+      pageContext: PageContext(
+        type: ContextType.homepage,
+        data: [],
+        location: 'homepage',
+        attributes: {'segment': 'vip'},
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Assets.images.novasushi.image(),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        leading: const Icon(Icons.menu),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: Assets.icons.search.image(
+              width: 24,
+              height: 24,
+              color: Colors.grey,
+            ),
+          ),
+          IconButton(
+            onPressed: () {},
+            icon: Assets.icons.person.image(
+              width: 24,
+              height: 24,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          GravityInlineWidget(
+            selector: 'inline_banner',
+            pageContext: PageContext(
+              type: ContextType.homepage,
+              data: [],
+              location: 'homepage',
+            ),
+          ),
+          GravityInlineWidget(
+            selector: 'inline_widget_qa',
+            pageContext: PageContext(
+              type: ContextType.homepage,
+              data: [],
+              location: 'homepage',
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: AppBottomNavigationBar(selectedIndex: 0),
+    );
+  }
+}
