@@ -28,10 +28,13 @@ class GravityImageWidget extends StatelessWidget {
     Widget outputWidget = imageWidget;
 
     if (style.size != null) {
-      outputWidget = SizedBox(
-        width: layoutWidth == GravityLayoutWidth.matchParent ? double.infinity : style.size!.width,
-        height: style.size!.height,
-        child: imageWidget,
+      outputWidget = ClipRRect(
+        borderRadius: BorderRadius.circular(style.cornerRadius ?? 0),
+        child: SizedBox(
+          width: layoutWidth == GravityLayoutWidth.matchParent ? double.infinity : style.size!.width,
+          height: style.size!.height,
+          child: imageWidget,
+        ),
       );
     }
 
