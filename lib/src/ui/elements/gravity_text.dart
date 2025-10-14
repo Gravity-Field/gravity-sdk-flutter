@@ -31,14 +31,17 @@ class GravityText extends StatelessWidget {
     Widget outputWidget = textWidget;
 
     if (style.margin != null) {
-      outputWidget = Padding(
-        padding: EdgeInsets.only(
-          left: style.margin!.left,
-          right: style.margin!.right,
-          top: style.margin!.top,
-          bottom: style.margin!.bottom,
+      outputWidget = SizedBox(
+        width: double.infinity,
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: style.margin!.left,
+            right: style.margin!.right,
+            top: style.margin!.top,
+            bottom: style.margin!.bottom,
+          ),
+          child: outputWidget,
         ),
-        child: outputWidget,
       );
     }
 
