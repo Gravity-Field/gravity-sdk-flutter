@@ -9,6 +9,7 @@ part of 'campaign_content.dart';
 CampaignContent _$CampaignContentFromJson(Map<String, dynamic> json) =>
     CampaignContent(
       contentId: json['contentId'] as String,
+      placeholderId: json['placeholderId'] as String?,
       templateSystemName: $enumDecodeNullable(
           _$TemplateSystemNameEnumMap, json['templateSystemName']),
       deliveryMethod:

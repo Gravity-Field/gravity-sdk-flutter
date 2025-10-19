@@ -11,6 +11,7 @@ part 'campaign_content.g.dart';
 @JsonSerializable()
 class CampaignContent {
   final String contentId;
+  final String? placeholderId;
   final TemplateSystemName? templateSystemName;
   final DeliveryMethod deliveryMethod;
   final String contentType;
@@ -20,6 +21,7 @@ class CampaignContent {
 
   CampaignContent({
     required this.contentId,
+    this.placeholderId,
     required this.templateSystemName,
     required this.deliveryMethod,
     required this.contentType,

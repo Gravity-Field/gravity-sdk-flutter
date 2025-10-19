@@ -55,25 +55,68 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          GravityInlineWidget(
-            selector: 'inline_banner',
-            pageContext: PageContext(
-              type: ContextType.homepage,
-              data: [],
-              location: 'homepage',
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            GravityInlineWidget(
+              key: Key('inline_banner'),
+              selector: 'inline_banner',
+              pageContext: PageContext(
+                type: ContextType.homepage,
+                data: [],
+                location: 'homepage',
+              ),
             ),
-          ),
-          GravityInlineWidget(
-            selector: 'inline_widget_qa',
-            pageContext: PageContext(
-              type: ContextType.homepage,
-              data: [],
-              location: 'homepage',
+            GravityInlineWidget(
+              key: Key('inline_widget_qa'),
+              selector: 'inline_widget_qa',
+              pageContext: PageContext(
+                type: ContextType.homepage,
+                data: [],
+                location: 'homepage',
+              ),
             ),
-          ),
-        ],
+            GravityInlineWidget(
+              key: Key('inline_multi_widget_qa_placeholder_1'),
+              selector: 'inline_multi_widget_qa',
+              placeholderId: 'placeholder_1',
+              pageContext: PageContext(
+                type: ContextType.homepage,
+                data: [],
+                location: 'homepage',
+              ),
+            ),
+            GravityInlineWidget(
+              key: Key('inline_banner_2'),
+              selector: 'inline_banner_2',
+              pageContext: PageContext(
+                type: ContextType.homepage,
+                data: [],
+                location: 'homepage',
+              ),
+            ),
+            GravityInlineWidget(
+              key: Key('inline_multi_widget_qa_placeholder_2'),
+              selector: 'inline_multi_widget_qa',
+              placeholderId: 'placeholder_2',
+              pageContext: PageContext(
+                type: ContextType.homepage,
+                data: [],
+                location: 'homepage',
+              ),
+            ),
+            GravityInlineWidget(
+              key: Key('inline_multi_widget_qa_placeholder_3'),
+              selector: 'inline_multi_widget_qa',
+              placeholderId: 'placeholder_3',
+              pageContext: PageContext(
+                type: ContextType.homepage,
+                data: [],
+                location: 'homepage',
+              ),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: AppBottomNavigationBar(selectedIndex: 0),
     );
