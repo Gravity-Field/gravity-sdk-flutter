@@ -1,3 +1,6 @@
+## 0.9.13
+* Добавлена поддержка отображения контента в GravityInlineWidget в зависимости от placeholderId.
+
 ## 0.9.12
 * Добавлены скругления углов для GravityImageWidget.
 * Фикс выравнивания GravityText.
