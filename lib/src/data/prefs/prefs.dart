@@ -18,6 +18,11 @@ class Prefs {
     return _readStringValue(_keyUserId);
   }
 
+  Future<bool> clearUserId() async {
+    final prefs = await _prefs;
+    return prefs.remove(_keyUserId);
+  }
+
   Future<void> setDeviceId(String deviceId) async {
     await _setStringValue(_keyDeviceId, deviceId);
   }

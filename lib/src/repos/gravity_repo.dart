@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:gravity_sdk/src/data/session/session_manager.dart';
 import 'package:gravity_sdk/src/models/external/page_context.dart';
 import 'package:gravity_sdk/src/models/external/trigger_event.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -7,7 +9,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../data/api/api.dart';
 import '../data/api/content_ids_response.dart';
 import '../data/api/content_response.dart';
-import '../data/prefs/prefs.dart';
 import '../models/external/content_settings.dart';
 import '../models/external/options.dart';
 import '../models/external/user.dart';
@@ -19,9 +20,7 @@ class GravityRepo {
   static final GravityRepo instance = GravityRepo._();
 
   final _api = Api();
-
-  String? userIdCache;
-  String? sessionIdCache;
+  final _sessionManager = SessionManager.instance;
 
   Future<CampaignIdsResponse> event({
     required List<TriggerEvent> events,
@@ -29,11 +28,19 @@ class GravityRepo {
     required PageContext pageContext,
     required Options options,
   }) async {
-    final finalUser = await _determineUser(customUser);
-    final finalPageContext = await _mixPageContextAttributes(pageContext);
-    final response = await _api.event(events, finalUser, finalPageContext, options);
-    await _saveUserIfNeeded(customUser, response.user);
-    return response;
+    final sessionCompleter = _startSessionInitializationIfFirst(customUser);
+
+    try {
+      final user = await _getUserForRequest(customUser, sessionCompleter);
+      final context = await _mixPageContextAttributes(pageContext);
+      final response = await _api.event(events, user, context, options);
+
+      await _finalizeSession(customUser, response.user, sessionCompleter);
+      return response;
+    } catch (error, stackTrace) {
+      _handleSessionFailure(sessionCompleter, error, stackTrace);
+      rethrow;
+    }
   }
 
   Future<CampaignIdsResponse> visit({
@@ -41,11 +48,19 @@ class GravityRepo {
     required PageContext pageContext,
     required Options options,
   }) async {
-    final finalUser = await _determineUser(customUser);
-    final finalPageContext = await _mixPageContextAttributes(pageContext);
-    final response = await _api.visit(finalUser, finalPageContext, options);
-    await _saveUserIfNeeded(customUser, response.user);
-    return response;
+    final sessionCompleter = _startSessionInitializationIfFirst(customUser);
+
+    try {
+      final user = await _getUserForRequest(customUser, sessionCompleter);
+      final context = await _mixPageContextAttributes(pageContext);
+      final response = await _api.visit(user, context, options);
+
+      await _finalizeSession(customUser, response.user, sessionCompleter);
+      return response;
+    } catch (error, stackTrace) {
+      _handleSessionFailure(sessionCompleter, error, stackTrace);
+      rethrow;
+    }
   }
 
   Future<ContentResponse> getContentByCampaignId({
@@ -55,17 +70,26 @@ class GravityRepo {
     required Options options,
     required ContentSettings contentSetting,
   }) async {
-    final finalUser = await _determineUser(customUser);
-    final finalPageContext = await _mixPageContextAttributes(pageContext);
-    final response = await _api.chooseByCampaignId(
-      campaignId: campaignId,
-      user: finalUser,
-      context: finalPageContext,
-      options: options,
-      contentSettings: contentSetting,
-    );
-    await _saveUserIfNeeded(customUser, response.user);
-    return response;
+    final sessionCompleter = _startSessionInitializationIfFirst(customUser);
+
+    try {
+      final user = await _getUserForRequest(customUser, sessionCompleter);
+      final context = await _mixPageContextAttributes(pageContext);
+
+      final response = await _api.chooseByCampaignId(
+        campaignId: campaignId,
+        user: user,
+        context: context,
+        options: options,
+        contentSettings: contentSetting,
+      );
+
+      await _finalizeSession(customUser, response.user, sessionCompleter);
+      return response;
+    } catch (error, stackTrace) {
+      _handleSessionFailure(sessionCompleter, error, stackTrace);
+      rethrow;
+    }
   }
 
   Future<ContentResponse> getContentBySelector({
@@ -75,17 +99,26 @@ class GravityRepo {
     required Options options,
     required ContentSettings contentSetting,
   }) async {
-    final finalUser = await _determineUser(customUser);
-    final finalPageContext = await _mixPageContextAttributes(pageContext);
-    final response = await _api.chooseBySelector(
-      selector: selector,
-      user: finalUser,
-      context: finalPageContext,
-      options: options,
-      contentSettings: contentSetting,
-    );
-    await _saveUserIfNeeded(customUser, response.user);
-    return response;
+    final sessionCompleter = _startSessionInitializationIfFirst(customUser);
+
+    try {
+      final user = await _getUserForRequest(customUser, sessionCompleter);
+      final context = await _mixPageContextAttributes(pageContext);
+
+      final response = await _api.chooseBySelector(
+        selector: selector,
+        user: user,
+        context: context,
+        options: options,
+        contentSettings: contentSetting,
+      );
+
+      await _finalizeSession(customUser, response.user, sessionCompleter);
+      return response;
+    } catch (error, stackTrace) {
+      _handleSessionFailure(sessionCompleter, error, stackTrace);
+      rethrow;
+    }
   }
 
   Future<void> triggerEventUrls(List<String> urls) async {
@@ -95,38 +128,6 @@ class GravityRepo {
       } catch (e) {
         //TODO: add logger
       }
-    }
-  }
-
-  Future<User?> _determineUser(User? customUser) async {
-    if (customUser != null) {
-      return customUser;
-    } else if (userIdCache != null && sessionIdCache != null) {
-      return User(uid: userIdCache, ses: sessionIdCache);
-    } else if (userIdCache == null && sessionIdCache != null) {
-      final userIdFromPrefs = await Prefs.instance.getUserId();
-      return User(uid: userIdFromPrefs, ses: sessionIdCache);
-    } else {
-      final userIdFromPrefs = await Prefs.instance.getUserId();
-      return User(uid: userIdFromPrefs, ses: null);
-    }
-  }
-
-  Future<void> _saveUserIfNeeded(User? customUser, User? contentResponseUser) async {
-    if (customUser != null) {
-      return;
-    }
-
-    final uid = contentResponseUser?.uid;
-    final sec = contentResponseUser?.ses;
-
-    if (uid != null) {
-      await Prefs.instance.setUserId(uid);
-      userIdCache = uid;
-    }
-
-    if (sec != null) {
-      sessionIdCache = sec;
     }
   }
 
@@ -142,5 +143,44 @@ class GravityRepo {
     attributes['app_platform'] = Platform.operatingSystem;
 
     return pageContext.copyWith(attributes: attributes);
+  }
+
+  Completer<void>? _startSessionInitializationIfFirst(User? customUser) {
+    final isFirstRequest = customUser == null && !_sessionManager.hasSession && !_sessionManager.isInitializing;
+    if (isFirstRequest) {
+      return _sessionManager.beginSessionInitialization();
+    }
+    return null;
+  }
+
+  Future<User?> _getUserForRequest(User? customUser, Completer<void>? sessionCompleter) async {
+    if (sessionCompleter != null) {
+      return customUser ?? _sessionManager.getCachedUser();
+    } else {
+      return await _ensureUser(customUser);
+    }
+  }
+
+  Future<void> _finalizeSession(User? customUser, User? serverUser, Completer<void>? sessionCompleter) async {
+    await _sessionManager.saveUser(customUser, serverUser);
+
+    if (sessionCompleter != null) {
+      _sessionManager.completeSessionInitialization(sessionCompleter);
+    }
+  }
+
+  void _handleSessionFailure(Completer<void>? sessionCompleter, Object error, StackTrace stackTrace) {
+    if (sessionCompleter != null) {
+      _sessionManager.failSessionInitialization(sessionCompleter, error, stackTrace);
+    }
+  }
+
+  Future<User?> _ensureUser(User? customUser) async {
+    if (customUser != null) {
+      return customUser;
+    }
+
+    final user = await _sessionManager.getUser(null);
+    return user;
   }
 }
