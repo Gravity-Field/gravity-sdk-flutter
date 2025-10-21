@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:gravity_sdk/src/data/batching/request_batcher.dart';
 import 'package:gravity_sdk/src/data/session/session_manager.dart';
 import 'package:gravity_sdk/src/models/external/page_context.dart';
 import 'package:gravity_sdk/src/models/external/trigger_event.dart';
@@ -21,6 +22,14 @@ class GravityRepo {
 
   final _api = Api();
   final _sessionManager = SessionManager.instance;
+
+  late final _selectorBatcher = RequestBatcher<ContentResponse>(
+    batchExecutor: _executeSelectorBatch,
+  );
+
+  late final _campaignIdBatcher = RequestBatcher<ContentResponse>(
+    batchExecutor: _executeCampaignIdBatch,
+  );
 
   Future<CampaignIdsResponse> event({
     required List<TriggerEvent> events,
@@ -70,26 +79,21 @@ class GravityRepo {
     required Options options,
     required ContentSettings contentSetting,
   }) async {
-    final sessionCompleter = _startSessionInitializationIfFirst(customUser);
+    final finalUser = await _ensureUser(customUser);
+    final finalPageContext = await _mixPageContextAttributes(pageContext);
 
-    try {
-      final user = await _getUserForRequest(customUser, sessionCompleter);
-      final context = await _mixPageContextAttributes(pageContext);
+    final requestData = {
+      'campaignId': campaignId,
+      'user': finalUser,
+      'context': finalPageContext,
+      'options': options,
+      'contentSettings': contentSetting,
+    };
 
-      final response = await _api.chooseByCampaignId(
-        campaignId: campaignId,
-        user: user,
-        context: context,
-        options: options,
-        contentSettings: contentSetting,
-      );
+    final response = await _campaignIdBatcher.schedule(requestData);
 
-      await _finalizeSession(customUser, response.user, sessionCompleter);
-      return response;
-    } catch (error, stackTrace) {
-      _handleSessionFailure(sessionCompleter, error, stackTrace);
-      rethrow;
-    }
+    await _sessionManager.saveUser(customUser, response.user);
+    return response;
   }
 
   Future<ContentResponse> getContentBySelector({
@@ -99,26 +103,21 @@ class GravityRepo {
     required Options options,
     required ContentSettings contentSetting,
   }) async {
-    final sessionCompleter = _startSessionInitializationIfFirst(customUser);
+    final finalUser = await _ensureUser(customUser);
+    final finalPageContext = await _mixPageContextAttributes(pageContext);
 
-    try {
-      final user = await _getUserForRequest(customUser, sessionCompleter);
-      final context = await _mixPageContextAttributes(pageContext);
+    final requestData = {
+      'selector': selector,
+      'user': finalUser,
+      'context': finalPageContext,
+      'options': options,
+      'contentSettings': contentSetting,
+    };
 
-      final response = await _api.chooseBySelector(
-        selector: selector,
-        user: user,
-        context: context,
-        options: options,
-        contentSettings: contentSetting,
-      );
+    final response = await _selectorBatcher.schedule(requestData);
 
-      await _finalizeSession(customUser, response.user, sessionCompleter);
-      return response;
-    } catch (error, stackTrace) {
-      _handleSessionFailure(sessionCompleter, error, stackTrace);
-      rethrow;
-    }
+    await _sessionManager.saveUser(customUser, response.user);
+    return response;
   }
 
   Future<void> triggerEventUrls(List<String> urls) async {
@@ -180,7 +179,124 @@ class GravityRepo {
       return customUser;
     }
 
-    final user = await _sessionManager.getUser(null);
-    return user;
+    return await _sessionManager.getUser(null);
+  }
+
+  Future<List<ContentResponse>> _executeSelectorBatch(List<Map<String, dynamic>> requests) async {
+    if (requests.isEmpty) {
+      return [];
+    }
+
+    final completer = _sessionManager.beginSessionInitialization();
+
+    try {
+      final responses = requests.length == 1
+          ? [await _executeSingleChooseBySelector(requests.first)]
+          : await _executeBatchedChooseBySelector(requests);
+
+      _sessionManager.completeSessionInitialization(completer);
+      return responses;
+    } catch (error, stackTrace) {
+      _sessionManager.failSessionInitialization(completer, error, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<List<ContentResponse>> _executeCampaignIdBatch(List<Map<String, dynamic>> requests) async {
+    if (requests.isEmpty) {
+      return [];
+    }
+
+    final completer = _sessionManager.beginSessionInitialization();
+
+    try {
+      final responses = requests.length == 1
+          ? [await _executeSingleChooseByCampaignId(requests.first)]
+          : await _executeBatchedChooseByCampaignId(requests);
+
+      _sessionManager.completeSessionInitialization(completer);
+      return responses;
+    } catch (error, stackTrace) {
+      _sessionManager.failSessionInitialization(completer, error, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<ContentResponse> _executeSingleChooseBySelector(Map<String, dynamic> req) async {
+    final response = await _api.chooseBySelector(
+      selector: req['selector'] as String,
+      user: req['user'] as User?,
+      context: req['context'] as PageContext,
+      options: req['options'] as Options,
+      contentSettings: req['contentSettings'] as ContentSettings,
+    );
+    return response;
+  }
+
+  Future<ContentResponse> _executeSingleChooseByCampaignId(Map<String, dynamic> req) async {
+    final response = await _api.chooseByCampaignId(
+      campaignId: req['campaignId'] as String,
+      user: req['user'] as User?,
+      context: req['context'] as PageContext,
+      options: req['options'] as Options,
+      contentSettings: req['contentSettings'] as ContentSettings,
+    );
+    return response;
+  }
+
+  Future<List<ContentResponse>> _executeBatchedChooseBySelector(List<Map<String, dynamic>> requests) async {
+    final firstReq = requests.first;
+    final user = firstReq['user'] as User?;
+    final context = firstReq['context'] as PageContext;
+    final options = firstReq['options'] as Options;
+
+    final dataArray = requests.map((req) {
+      return {
+        'selector': req['selector'],
+        'option': (req['contentSettings'] as ContentSettings).toJson(),
+      };
+    }).toList();
+
+    final batchResponse = await _api.chooseBatchBySelector(
+      dataArray: dataArray,
+      user: user,
+      context: context,
+      options: options,
+    );
+
+    return batchResponse.data.map((campaign) {
+      return ContentResponse(
+        user: batchResponse.user,
+        data: [campaign],
+      );
+    }).toList();
+  }
+
+  Future<List<ContentResponse>> _executeBatchedChooseByCampaignId(List<Map<String, dynamic>> requests) async {
+    final firstReq = requests.first;
+    final user = firstReq['user'] as User?;
+    final context = firstReq['context'] as PageContext;
+    final options = firstReq['options'] as Options;
+
+    final dataArray = requests.map((req) {
+      return {
+        'campaignId': req['campaignId'],
+        'option': (req['contentSettings'] as ContentSettings).toJson(),
+      };
+    }).toList();
+
+    final batchResponse = await _api.chooseBatchByCampaignId(
+      dataArray: dataArray,
+      user: user,
+      context: context,
+      options: options,
+    );
+
+    return batchResponse.data.map((campaign) {
+      return ContentResponse(
+        user: batchResponse.user,
+        data: [campaign],
+      );
+    }).toList();
   }
 }

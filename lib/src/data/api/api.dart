@@ -67,6 +67,20 @@ class Api {
     return ContentResponse.fromJson(response.data);
   }
 
+  Future<ContentResponse> chooseBatchByCampaignId({
+    required List<Map<String, dynamic>> dataArray,
+    User? user,
+    required PageContext context,
+    required Options options,
+  }) async {
+    return _chooseBatch(
+      dataArray: dataArray,
+      user: user,
+      context: context,
+      options: options,
+    );
+  }
+
   Future<ContentResponse> chooseBySelector({
     required String selector,
     User? user,
@@ -85,6 +99,41 @@ class Api {
           'option': contentSettings.toJson(),
         }
       ],
+      'device': device.toJson(),
+      'user': user?.toJson(),
+      'ctx': context.toJson(),
+      'options': options.toJson(),
+    };
+
+    final response = await _dio.post('$baseUrl/choose', data: data);
+    return ContentResponse.fromJson(response.data);
+  }
+
+  Future<ContentResponse> chooseBatchBySelector({
+    required List<Map<String, dynamic>> dataArray,
+    User? user,
+    required PageContext context,
+    required Options options,
+  }) async {
+    return _chooseBatch(
+      dataArray: dataArray,
+      user: user,
+      context: context,
+      options: options,
+    );
+  }
+
+  Future<ContentResponse> _chooseBatch({
+    required List<Map<String, dynamic>> dataArray,
+    User? user,
+    required PageContext context,
+    required Options options,
+  }) async {
+    final device = await DeviceUtils.instance.getDevice();
+
+    final data = {
+      'sec': GravitySDK.instance.section,
+      'data': dataArray,
       'device': device.toJson(),
       'user': user?.toJson(),
       'ctx': context.toJson(),

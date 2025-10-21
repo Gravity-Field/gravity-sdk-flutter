@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/models/external/user.dart';
 
+/// Manages user session.
+/// Prevents duplicate session initialization when multiple requests happen at the same time.
 class SessionManager {
   SessionManager._();
 
@@ -34,8 +36,6 @@ class SessionManager {
     return null;
   }
 
-  /// Gets cached user without waiting for session initialization.
-  /// Used by the leader to avoid deadlock.
   User? getCachedUser() {
     if (_userIdCache != null || _sessionIdCache != null) {
       return User(uid: _userIdCache, ses: _sessionIdCache);
