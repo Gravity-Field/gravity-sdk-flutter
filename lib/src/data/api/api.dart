@@ -67,20 +67,6 @@ class Api {
     return ContentResponse.fromJson(response.data);
   }
 
-  Future<ContentResponse> chooseBatchByCampaignId({
-    required List<Map<String, dynamic>> dataArray,
-    User? user,
-    required PageContext context,
-    required Options options,
-  }) async {
-    return _chooseBatch(
-      dataArray: dataArray,
-      user: user,
-      context: context,
-      options: options,
-    );
-  }
-
   Future<ContentResponse> chooseBySelector({
     required String selector,
     User? user,
@@ -109,21 +95,7 @@ class Api {
     return ContentResponse.fromJson(response.data);
   }
 
-  Future<ContentResponse> chooseBatchBySelector({
-    required List<Map<String, dynamic>> dataArray,
-    User? user,
-    required PageContext context,
-    required Options options,
-  }) async {
-    return _chooseBatch(
-      dataArray: dataArray,
-      user: user,
-      context: context,
-      options: options,
-    );
-  }
-
-  Future<ContentResponse> _chooseBatch({
+  Future<ContentResponse> chooseBatch({
     required List<Map<String, dynamic>> dataArray,
     User? user,
     required PageContext context,
