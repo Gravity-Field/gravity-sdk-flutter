@@ -1,7 +1,7 @@
 import 'dart:async';
 
 /// Combines multiple requests into one batch call.
-/// Requests are grouped together within [batchDelay].
+/// Requests are grouped together within [batchDelay] and deduplicated.
 class RequestBatcher<T> {
   final Future<List<T>> Function(List<Map<String, dynamic>>) _batchExecutor;
   final Duration _batchDelay;
@@ -13,6 +13,7 @@ class RequestBatcher<T> {
         _batchDelay = batchDelay;
 
   final List<BatchRequest<T>> _pendingRequests = [];
+  final Map<String, BatchRequest<T>> _pendingRequestsMap = {};
 
   Timer? _batchTimer;
 
@@ -23,16 +24,33 @@ class RequestBatcher<T> {
   bool get isActive => _batchTimer != null || _isExecuting;
 
   Future<T> schedule(Map<String, dynamic> requestData) {
+    final requestKey = _generateRequestKey(requestData);
+    final existingRequest = _pendingRequestsMap[requestKey];
+
+    if (existingRequest != null) {
+      return existingRequest.completer.future;
+    }
+
     final completer = Completer<T>();
     final request = BatchRequest<T>(data: requestData, completer: completer);
 
     _pendingRequests.add(request);
+    _pendingRequestsMap[requestKey] = request;
 
     if (_batchTimer == null && !_isExecuting) {
       _scheduleBatchExecution();
     }
 
     return completer.future;
+  }
+
+  String _generateRequestKey(Map<String, dynamic> data) {
+    final sortedKeys = data.keys.toList()..sort();
+    final buffer = StringBuffer();
+    for (final key in sortedKeys) {
+      buffer.write('$key:${data[key]}|');
+    }
+    return buffer.toString();
   }
 
   void _scheduleBatchExecution() {
@@ -51,10 +69,10 @@ class RequestBatcher<T> {
 
     final batch = List<BatchRequest<T>>.from(_pendingRequests);
     _pendingRequests.clear();
+    _pendingRequestsMap.clear();
 
     try {
       final requestsData = batch.map((r) => r.data).toList();
-
       final results = await _batchExecutor(requestsData);
 
       if (results.length == batch.length) {
@@ -92,6 +110,7 @@ class RequestBatcher<T> {
     _batchTimer?.cancel();
     _batchTimer = null;
     _pendingRequests.clear();
+    _pendingRequestsMap.clear();
     _isExecuting = false;
   }
 }
