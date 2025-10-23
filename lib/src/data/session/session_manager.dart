@@ -23,17 +23,12 @@ class SessionManager {
       await _sessionInitializationFuture;
     }
 
-    if (_userIdCache != null || _sessionIdCache != null) {
+    if (_userIdCache != null && _sessionIdCache != null) {
       return User(uid: _userIdCache, ses: _sessionIdCache);
     }
 
     final userIdFromPrefs = await Prefs.instance.getUserId();
-    if (userIdFromPrefs != null) {
-      _userIdCache = userIdFromPrefs;
-      return User(uid: userIdFromPrefs, ses: _sessionIdCache);
-    }
-
-    return null;
+    return User(uid: userIdFromPrefs, ses: _sessionIdCache);
   }
 
   User? getCachedUser() {
@@ -51,7 +46,7 @@ class SessionManager {
     final uid = serverUser?.uid;
     final ses = serverUser?.ses;
 
-    if (uid != null) {
+    if (uid != null && uid != _userIdCache) {
       await Prefs.instance.setUserId(uid);
       _userIdCache = uid;
     }
@@ -84,13 +79,6 @@ class SessionManager {
   bool get isInitializing => _sessionInitializationFuture != null;
 
   bool get hasSession => _userIdCache != null || _sessionIdCache != null;
-
-  Future<void> clearSession() async {
-    _userIdCache = null;
-    _sessionIdCache = null;
-    _sessionInitializationFuture = null;
-    await Prefs.instance.clearUserId();
-  }
 
   String? get userId => _userIdCache;
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:gravity_sdk/src/data/batching/request_batcher.dart';
+import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/data/session/session_manager.dart';
 import 'package:gravity_sdk/src/models/external/page_context.dart';
 import 'package:gravity_sdk/src/models/external/trigger_event.dart';
@@ -150,7 +151,18 @@ class GravityRepo {
 
   Future<User?> _getUserForRequest(User? customUser, Completer<void>? sessionCompleter) async {
     if (sessionCompleter != null) {
-      return customUser ?? _sessionManager.getCachedUser();
+      if (customUser != null) {
+        return customUser;
+      }
+
+      final cachedUid = _sessionManager.userId;
+      final cachedSes = _sessionManager.sessionId;
+      if (cachedUid != null && cachedSes != null) {
+        return User(uid: cachedUid, ses: cachedSes);
+      }
+
+      final userIdFromPrefs = await Prefs.instance.getUserId();
+      return User(uid: userIdFromPrefs, ses: cachedSes);
     } else {
       return await _ensureUser(customUser);
     }
@@ -186,9 +198,8 @@ class GravityRepo {
     final completer = _sessionManager.beginSessionInitialization();
 
     try {
-      final responses = requests.length == 1
-          ? [await _executeSingleChoose(requests.first)]
-          : await _executeBatchedChoose(requests);
+      final responses =
+          requests.length == 1 ? [await _executeSingleChoose(requests.first)] : await _executeBatchedChoose(requests);
 
       _sessionManager.completeSessionInitialization(completer);
       return responses;
