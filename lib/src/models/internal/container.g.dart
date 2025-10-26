@@ -7,7 +7,7 @@ part of 'container.dart';
 // **************************************************************************
 
 Container _$ContainerFromJson(Map<String, dynamic> json) => Container(
-      style: json['style'] == null
-          ? null
-          : Style.fromJson(json['style'] as Map<String, dynamic>),
-    );
+  style: json['style'] == null
+      ? null
+      : Style.fromJson(json['style'] as Map<String, dynamic>),
+);

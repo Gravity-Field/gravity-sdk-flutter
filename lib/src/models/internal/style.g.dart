@@ -7,36 +7,38 @@ part of 'style.dart';
 // **************************************************************************
 
 Style _$StyleFromJson(Map<String, dynamic> json) => Style(
-      backgroundColor: ParseUtils.parseColor(json['backgroundColor']),
-      pressColor: ParseUtils.parseColor(json['pressColor']),
-      outlineColor: ParseUtils.parseColor(json['outlineColor']),
-      cornerRadius: ParseUtils.parseDimension(json['cornerRadius']),
-      size: json['size'] == null
-          ? null
-          : GravitySize.fromJson(json['size'] as Map<String, dynamic>),
-      margin: json['margin'] == null
-          ? null
-          : GravityMargin.fromJson(json['margin'] as Map<String, dynamic>),
-      padding: json['padding'] == null
-          ? null
-          : GravityPadding.fromJson(json['padding'] as Map<String, dynamic>),
-      fontSize: ParseUtils.parseFontSize(json['fontSize']),
-      fontWeight: ParseUtils.parseFontWeight(json['fontWeight']),
-      textColor: ParseUtils.parseColor(json['textColor']),
-      textStyle: json['textStyle'] == null
-          ? null
-          : GravityTextStyle.fromJson(
-              json['textStyle'] as Map<String, dynamic>),
-      fit: ParseUtils.parseBoxFit(json['fit']),
-      contentAlignment: $enumDecodeNullable(
-          _$GravityContentAlignmentEnumMap, json['contentAlignment']),
-      layoutWidth:
-          $enumDecodeNullable(_$GravityLayoutWidthEnumMap, json['layoutWidth']),
-      positioned: json['positioned'] == null
-          ? null
-          : GravityPositioned.fromJson(
-              json['positioned'] as Map<String, dynamic>),
-    );
+  backgroundColor: ParseUtils.parseColor(json['backgroundColor']),
+  pressColor: ParseUtils.parseColor(json['pressColor']),
+  outlineColor: ParseUtils.parseColor(json['outlineColor']),
+  cornerRadius: ParseUtils.parseDimension(json['cornerRadius']),
+  size: json['size'] == null
+      ? null
+      : GravitySize.fromJson(json['size'] as Map<String, dynamic>),
+  margin: json['margin'] == null
+      ? null
+      : GravityMargin.fromJson(json['margin'] as Map<String, dynamic>),
+  padding: json['padding'] == null
+      ? null
+      : GravityPadding.fromJson(json['padding'] as Map<String, dynamic>),
+  fontSize: ParseUtils.parseFontSize(json['fontSize']),
+  fontWeight: ParseUtils.parseFontWeight(json['fontWeight']),
+  textColor: ParseUtils.parseColor(json['textColor']),
+  textStyle: json['textStyle'] == null
+      ? null
+      : GravityTextStyle.fromJson(json['textStyle'] as Map<String, dynamic>),
+  fit: ParseUtils.parseBoxFit(json['fit']),
+  contentAlignment: $enumDecodeNullable(
+    _$GravityContentAlignmentEnumMap,
+    json['contentAlignment'],
+  ),
+  layoutWidth: $enumDecodeNullable(
+    _$GravityLayoutWidthEnumMap,
+    json['layoutWidth'],
+  ),
+  positioned: json['positioned'] == null
+      ? null
+      : GravityPositioned.fromJson(json['positioned'] as Map<String, dynamic>),
+);
 
 const _$GravityContentAlignmentEnumMap = {
   GravityContentAlignment.start: 'start',
@@ -50,9 +52,9 @@ const _$GravityLayoutWidthEnumMap = {
 };
 
 GravitySize _$GravitySizeFromJson(Map<String, dynamic> json) => GravitySize(
-      width: ParseUtils.parseDimension(json['width']),
-      height: ParseUtils.parseDimension(json['height']),
-    );
+  width: ParseUtils.parseDimension(json['width']),
+  height: ParseUtils.parseDimension(json['height']),
+);
 
 GravityMargin _$GravityMarginFromJson(Map<String, dynamic> json) =>
     GravityMargin(

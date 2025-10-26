@@ -7,11 +7,11 @@ part of 'close.dart';
 // **************************************************************************
 
 Close _$CloseFromJson(Map<String, dynamic> json) => Close(
-      image: json['image'] as String?,
-      onClick: json['onClick'] == null
-          ? null
-          : OnClick.fromJson(json['onClick'] as Map<String, dynamic>),
-      style: json['style'] == null
-          ? null
-          : Style.fromJson(json['style'] as Map<String, dynamic>),
-    );
+  image: json['image'] as String?,
+  onClick: json['onClick'] == null
+      ? null
+      : OnClick.fromJson(json['onClick'] as Map<String, dynamic>),
+  style: json['style'] == null
+      ? null
+      : Style.fromJson(json['style'] as Map<String, dynamic>),
+);
