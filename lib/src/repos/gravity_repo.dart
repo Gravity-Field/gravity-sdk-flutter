@@ -24,9 +24,7 @@ class GravityRepo {
   final _api = Api();
   final _sessionManager = SessionManager.instance;
 
-  late final _chooseBatcher = RequestBatcher<ContentResponse>(
-    batchExecutor: _executeChooseBatch,
-  );
+  late final _chooseBatcher = RequestBatcher<ContentResponse>(batchExecutor: _executeChooseBatch);
 
   Future<CampaignIdsResponse> event({
     required List<TriggerEvent> events,
@@ -198,8 +196,9 @@ class GravityRepo {
     final completer = _sessionManager.beginSessionInitialization();
 
     try {
-      final responses =
-          requests.length == 1 ? [await _executeSingleChoose(requests.first)] : await _executeBatchedChoose(requests);
+      final responses = requests.length == 1
+          ? [await _executeSingleChoose(requests.first)]
+          : await _executeBatchedChoose(requests);
 
       _sessionManager.completeSessionInitialization(completer);
       return responses;
@@ -241,9 +240,7 @@ class GravityRepo {
     final options = firstReq['options'] as Options;
 
     final dataArray = requests.map((req) {
-      final data = <String, dynamic>{
-        'option': (req['contentSettings'] as ContentSettings).toJson(),
-      };
+      final data = <String, dynamic>{'option': (req['contentSettings'] as ContentSettings).toJson()};
 
       if (req.containsKey('selector')) {
         data['selector'] = req['selector'];
@@ -254,18 +251,28 @@ class GravityRepo {
       return data;
     }).toList();
 
-    final batchResponse = await _api.chooseBatch(
-      dataArray: dataArray,
-      user: user,
-      context: context,
-      options: options,
-    );
+    final batchResponse = await _api.chooseBatch(dataArray: dataArray, user: user, context: context, options: options);
 
-    return batchResponse.data.map((campaign) {
-      return ContentResponse(
-        user: batchResponse.user,
-        data: [campaign],
-      );
-    }).toList();
+    final campaignsBySelector = <String, dynamic>{};
+    for (final campaign in batchResponse.data) {
+      if (campaign.selector != null) {
+        campaignsBySelector[campaign.selector!] = campaign;
+      }
+    }
+
+    final results = <ContentResponse>[];
+    for (final req in requests) {
+      final selector = req['selector'] as String?;
+
+      final matchingCampaign = selector != null ? campaignsBySelector[selector] : null;
+
+      if (matchingCampaign != null) {
+        results.add(ContentResponse(user: batchResponse.user, data: [matchingCampaign]));
+      } else {
+        results.add(ContentResponse(user: batchResponse.user, data: const []));
+      }
+    }
+
+    return results;
   }
 }
