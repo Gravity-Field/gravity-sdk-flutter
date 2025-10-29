@@ -7,13 +7,13 @@ part of 'on_click.dart';
 // **************************************************************************
 
 OnClick _$OnClickFromJson(Map<String, dynamic> json) => OnClick(
-      action: $enumDecode(_$ActionEnumMap, json['action']),
-      copyData: json['copyData'] as String?,
-      step: (json['step'] as num?)?.toInt(),
-      url: json['url'] as String?,
-      deeplink: json['deeplink'] as String?,
-      closeOnClick: json['closeOnClick'] as bool? ?? true,
-    );
+  action: $enumDecode(_$ActionEnumMap, json['action']),
+  copyData: json['copyData'] as String?,
+  step: (json['step'] as num?)?.toInt(),
+  url: json['url'] as String?,
+  deeplink: json['deeplink'] as String?,
+  closeOnClick: json['closeOnClick'] as bool? ?? true,
+);
 
 const _$ActionEnumMap = {
   Action.load: 'load',

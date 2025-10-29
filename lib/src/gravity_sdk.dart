@@ -32,7 +32,6 @@ class GravitySDK {
   ProductWidgetBuilder? productWidgetBuilder;
   GravityEventCallback? gravityEventCallback;
 
-
   //other fields
   User? user;
   ContentSettings contentSettings = ContentSettings();
@@ -56,11 +55,7 @@ class GravitySDK {
     this.gravityEventCallback = gravityEventCallback;
   }
 
-  void setOptions({
-    Options? options,
-    ContentSettings? contentSettings,
-    String? proxyUrl,
-  }) {
+  void setOptions({Options? options, ContentSettings? contentSettings, String? proxyUrl}) {
     if (options != null) {
       this.options = options;
     }
@@ -71,10 +66,7 @@ class GravitySDK {
   }
 
   void setUser(String userId, String sessionId) {
-    user = User(
-      custom: userId,
-      ses: sessionId,
-    );
+    user = User(custom: userId, ses: sessionId);
   }
 
   void setNotificationPermissionStatus(NotificationPermissionStatus status) {
@@ -97,11 +89,18 @@ class GravitySDK {
     }
   }
 
-  Future<void> triggerEvent(
-      {required BuildContext context, required List<TriggerEvent> events, required PageContext pageContext}) async {
+  Future<void> triggerEvent({
+    required BuildContext context,
+    required List<TriggerEvent> events,
+    required PageContext pageContext,
+  }) async {
     _checkIsInitialized();
-    final response =
-        await GravityRepo.instance.event(events: events, customUser: user, pageContext: pageContext, options: options);
+    final response = await GravityRepo.instance.event(
+      events: events,
+      customUser: user,
+      pageContext: pageContext,
+      options: options,
+    );
     final campaignId = response.campaigns.firstOrNull;
     if (campaignId != null) {
       final result = await getContentByCampaignId(campaignId: campaignId.campaignId, pageContext: pageContext);
@@ -240,6 +239,7 @@ class GravitySDK {
       showModalBottomSheet(
         backgroundColor: container.style?.backgroundColor,
         isScrollControlled: true,
+        useSafeArea: true,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(container.style?.cornerRadius ?? 0),
@@ -274,7 +274,11 @@ class GravitySDK {
       return;
     }
 
-    final snackBar = SnackBarContent.getSnackBar(template: template, content: content, campaign: campaign);
+    final snackBar = SnackBarContent.getSnackBar(
+      template: TemplateSystemName.snackbar1,
+      content: content,
+      campaign: campaign,
+    );
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(snackBar.toMaterialSnackBar());

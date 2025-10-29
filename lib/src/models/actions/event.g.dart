@@ -7,10 +7,13 @@ part of 'event.dart';
 // **************************************************************************
 
 Event _$EventFromJson(Map<String, dynamic> json) => Event(
-      type: $enumDecode(_$ActionEnumMap, json['type'],
-          unknownValue: Action.unknown),
-      urls: (json['urls'] as List<dynamic>).map((e) => e as String).toList(),
-    );
+  type: $enumDecode(
+    _$ActionEnumMap,
+    json['type'],
+    unknownValue: Action.unknown,
+  ),
+  urls: (json['urls'] as List<dynamic>).map((e) => e as String).toList(),
+);
 
 const _$ActionEnumMap = {
   Action.load: 'load',

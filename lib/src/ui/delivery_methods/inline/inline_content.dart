@@ -25,7 +25,6 @@ class _InlineContentState extends State<InlineContent> {
 
     onClickHandler = OnClickHandler(campaign: widget.campaign, content: widget.content);
 
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ContentEventsService.instance.sendContentImpression(campaign: widget.campaign, content: widget.content);
     });
@@ -39,9 +38,7 @@ class _InlineContentState extends State<InlineContent> {
     final products = widget.content.products;
 
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(container?.style?.cornerRadius ?? 0),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(container?.style?.cornerRadius ?? 0)),
       child: Padding(
         padding: EdgeInsets.only(
           left: container?.style?.padding?.left ?? 0,
@@ -56,10 +53,11 @@ class _InlineContentState extends State<InlineContent> {
               .map(
                 (e) => GravityElement(
                   element: e,
-                  products: products,
+
                   onClickCallback: (action) => onClickHandler.handeOnClick(action),
                   campaign: widget.campaign,
                   content: widget.content,
+                  products: products,
                 ).getWidget(),
               )
               .toList(),

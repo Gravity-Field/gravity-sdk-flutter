@@ -8,10 +8,10 @@ enum DeliveryMethod {
   modal,
   @JsonValue('bottom_sheet')
   bottomSheet,
-  @JsonValue('fullscreen')
+  @JsonValue('full_screen')
   fullScreen,
   @JsonValue('inline')
   inline,
   @JsonValue('unknown')
-  unknown;
+  unknown,
 }

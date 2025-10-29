@@ -7,8 +7,8 @@ part of 'device.dart';
 // **************************************************************************
 
 Map<String, dynamic> _$DeviceToJson(Device instance) => <String, dynamic>{
-      'ua': instance.userAgent,
-      if (instance.id case final value?) 'id': value,
-      if (instance.tracking case final value?) 'tracking': value,
-      if (instance.permission case final value?) 'permission': value,
-    };
+  'ua': instance.userAgent,
+  'id': ?instance.id,
+  'tracking': ?instance.tracking,
+  'permission': ?instance.permission,
+};

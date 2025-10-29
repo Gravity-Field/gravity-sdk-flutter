@@ -28,16 +28,16 @@ Map<String, dynamic> _$PurchaseEventToJson(PurchaseEvent instance) =>
     };
 
 Map<String, dynamic> _$RemoveFromCartEventToJson(
-        RemoveFromCartEvent instance) =>
-    <String, dynamic>{
-      'value': instance.value,
-      'productId': instance.productId,
-      'quantity': instance.quantity,
-      'currency': instance.currency,
-      'cart': instance.cart,
-      'type': instance.type,
-      'name': instance.name,
-    };
+  RemoveFromCartEvent instance,
+) => <String, dynamic>{
+  'value': instance.value,
+  'productId': instance.productId,
+  'quantity': instance.quantity,
+  'currency': instance.currency,
+  'cart': instance.cart,
+  'type': instance.type,
+  'name': instance.name,
+};
 
 Map<String, dynamic> _$SyncCartEventToJson(SyncCartEvent instance) =>
     <String, dynamic>{
@@ -82,7 +82,7 @@ Map<String, dynamic> _$CustomEventToJson(CustomEvent instance) =>
     };
 
 Map<String, dynamic> _$CartItemToJson(CartItem instance) => <String, dynamic>{
-      'productId': instance.productId,
-      'quantity': instance.quantity,
-      'itemPrice': instance.itemPrice,
-    };
+  'productId': instance.productId,
+  'quantity': instance.quantity,
+  'itemPrice': instance.itemPrice,
+};

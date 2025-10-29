@@ -1,6 +1,7 @@
 import 'package:example/src/core/services/push_notification_service.dart';
+import 'package:example/src/core/theme/app_theme.dart';
 import 'package:example/src/core/widgets/custom_product_widget_builder.dart';
-import 'package:example/src/features/home/home_page.dart';
+import 'package:example/src/features/main/main_page.dart';
 import 'package:example/src/features/webview/webview_page.dart';
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
@@ -45,6 +46,10 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(navigatorKey: navigatorKey, home: const HomePage());
+    return MaterialApp(
+      navigatorKey: navigatorKey,
+      theme: AppTheme.lightTheme,
+      home: const MainPage(),
+    );
   }
 }

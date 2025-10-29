@@ -35,64 +35,58 @@ class CustomProductWidgetBuilder extends ProductWidgetBuilder {
           );
         }
       },
-      child: Container(
+      child: SizedBox(
         width: 164,
-        margin: const EdgeInsets.only(right: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey[300]!, width: 1),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: imageUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            width: 164,
-                            height: 164,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              width: 164,
-                              height: 164,
-                              color: Colors.grey[100],
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.grey[400],
-                                ),
-                              ),
-                            ),
-                            errorWidget: (context, url, error) {
-                              return Container(
-                                width: 164,
-                                height: 164,
-                                color: Colors.grey[100],
-                                child: Icon(
-                                  Icons.image_not_supported,
-                                  size: 48,
-                                  color: Colors.grey[400],
-                                ),
-                              );
-                            },
-                          )
-                        : Container(
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey[300]!, width: 1),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: imageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.contain,
+                          placeholder: (context, url) => Container(
                             width: 164,
                             height: 164,
                             color: Colors.grey[100],
-                            child: Icon(
-                              Icons.shopping_bag,
-                              size: 48,
-                              color: Colors.grey[400],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.grey[400],
+                              ),
                             ),
                           ),
-                  ),
+                          errorWidget: (context, url, error) {
+                            return Container(
+                              width: 164,
+                              height: 164,
+                              color: Colors.grey[100],
+                              child: Icon(
+                                Icons.image_not_supported,
+                                size: 48,
+                                color: Colors.grey[400],
+                              ),
+                            );
+                          },
+                        )
+                      : ColoredBox(
+                          color: Colors.grey,
+                          child: Icon(
+                            Icons.shopping_bag,
+                            size: 48,
+                            color: Colors.grey[400],
+                          ),
+                        ),
                 ),
-              ],
+              ),
             ),
             const SizedBox(height: 8),
             Text(

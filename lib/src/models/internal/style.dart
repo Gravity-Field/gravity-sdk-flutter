@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import '../../utils/parse_utils.dart';
+import 'product_container_type.dart';
 
 part 'style.g.dart';
 
@@ -30,6 +31,8 @@ class Style {
   final GravityContentAlignment? contentAlignment;
   final GravityLayoutWidth? layoutWidth;
   final GravityPositioned? positioned;
+  final GridSettings? gridSettings;
+  final ProductContainerType? productContainerType;
 
   Style({
     this.backgroundColor,
@@ -47,6 +50,8 @@ class Style {
     this.contentAlignment,
     this.layoutWidth,
     this.positioned,
+    this.gridSettings,
+    this.productContainerType,
   });
 
   factory Style.fromJson(Map<String, dynamic> json) => _$StyleFromJson(json);
@@ -123,7 +128,6 @@ class GravityTextStyle {
 
   GravityTextStyle({required this.fontSize, required this.fontWeight, required this.color});
 
-
   factory GravityTextStyle.fromJson(Map<String, dynamic> json) => _$GravityTextStyleFromJson(json);
 }
 
@@ -131,7 +135,6 @@ enum GravityContentAlignment {
   start,
   center,
   end;
-
 
   CrossAxisAlignment toCrossAxisAlignment() {
     switch (this) {
@@ -161,4 +164,22 @@ enum GravityLayoutWidth {
         return GravityLayoutWidth.matchParent;
     }
   }
+}
+
+@JsonSerializable()
+class GridSettings {
+  @JsonKey(fromJson: ParseUtils.parseDimension)
+  final double? columns;
+  @JsonKey(fromJson: ParseUtils.parseDimension)
+  final double? horizontalSpacing;
+  @JsonKey(fromJson: ParseUtils.parseDimension)
+  final double? verticalSpacing;
+
+  GridSettings({this.columns, this.horizontalSpacing, this.verticalSpacing});
+
+  factory GridSettings.fromJson(Map<String, dynamic> json) => _$GridSettingsFromJson(json);
+
+  int get columnsCount => columns?.toInt() ?? 2;
+  double get horizontalSpacingValue => horizontalSpacing ?? 8.0;
+  double get verticalSpacingValue => verticalSpacing ?? 8.0;
 }

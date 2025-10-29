@@ -38,7 +38,7 @@ const _$DeliveryMethodEnumMap = {
   DeliveryMethod.snackBar: 'snackbar',
   DeliveryMethod.modal: 'modal',
   DeliveryMethod.bottomSheet: 'bottom_sheet',
-  DeliveryMethod.fullScreen: 'fullscreen',
+  DeliveryMethod.fullScreen: 'full_screen',
   DeliveryMethod.inline: 'inline',
   DeliveryMethod.unknown: 'unknown',
 };

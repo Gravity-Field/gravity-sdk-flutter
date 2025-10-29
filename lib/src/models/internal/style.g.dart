@@ -38,6 +38,13 @@ Style _$StyleFromJson(Map<String, dynamic> json) => Style(
   positioned: json['positioned'] == null
       ? null
       : GravityPositioned.fromJson(json['positioned'] as Map<String, dynamic>),
+  gridSettings: json['gridSettings'] == null
+      ? null
+      : GridSettings.fromJson(json['gridSettings'] as Map<String, dynamic>),
+  productContainerType: $enumDecodeNullable(
+    _$ProductContainerTypeEnumMap,
+    json['productContainerType'],
+  ),
 );
 
 const _$GravityContentAlignmentEnumMap = {
@@ -49,6 +56,11 @@ const _$GravityContentAlignmentEnumMap = {
 const _$GravityLayoutWidthEnumMap = {
   GravityLayoutWidth.matchParent: 'match_parent',
   GravityLayoutWidth.wrapContent: 'wrap_content',
+};
+
+const _$ProductContainerTypeEnumMap = {
+  ProductContainerType.row: 'row',
+  ProductContainerType.grid: 'grid',
 };
 
 GravitySize _$GravitySizeFromJson(Map<String, dynamic> json) => GravitySize(
@@ -86,3 +98,9 @@ GravityTextStyle _$GravityTextStyleFromJson(Map<String, dynamic> json) =>
       fontWeight: ParseUtils.parseNonNullableFontWeight(json['fontWeight']),
       color: ParseUtils.parseNonNullableColorBlack(json['color']),
     );
+
+GridSettings _$GridSettingsFromJson(Map<String, dynamic> json) => GridSettings(
+  columns: ParseUtils.parseDimension(json['columns']),
+  horizontalSpacing: ParseUtils.parseDimension(json['horizontalSpacing']),
+  verticalSpacing: ParseUtils.parseDimension(json['verticalSpacing']),
+);
