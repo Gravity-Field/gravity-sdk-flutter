@@ -21,6 +21,7 @@ class BottomSheetContent extends StatefulWidget {
 
 class _BottomSheetContentState extends State<BottomSheetContent> {
   late final OnClickHandler onClickHandler;
+  bool _hasBeenVisible = false;
 
   @override
   void initState() {
@@ -45,17 +46,22 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
     return VisibilityDetector(
       key: ValueKey(contentId),
       onVisibilityChanged: (info) {
+        if (_hasBeenVisible) return;
+
         var visiblePercentage = info.visibleFraction * 100;
         if (visiblePercentage >= 50) {
-          ContentEventsService.instance
-              .sendContentVisibleImpression(campaign: widget.campaign, content: widget.content);
+          _hasBeenVisible = true;
+          ContentEventsService.instance.sendContentVisibleImpression(
+            campaign: widget.campaign,
+            content: widget.content,
+          );
         }
       },
-        child: ClipRRect(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(container.style?.cornerRadius ?? 0),
-            topRight: Radius.circular(container.style?.cornerRadius ?? 0),
-          ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(container.style?.cornerRadius ?? 0),
+          topRight: Radius.circular(container.style?.cornerRadius ?? 0),
+        ),
         child: SingleChildScrollView(
           child: Stack(
             children: [

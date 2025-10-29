@@ -12,7 +12,6 @@ class FullScreenContent extends StatefulWidget {
   final CampaignContent content;
   final Campaign campaign;
 
-
   const FullScreenContent({super.key, required this.content, required this.campaign});
 
   @override
@@ -21,13 +20,13 @@ class FullScreenContent extends StatefulWidget {
 
 class _FullScreenContentState extends State<FullScreenContent> {
   late final OnClickHandler onClickHandler;
+  bool _hasBeenVisible = false;
 
   @override
   void initState() {
     super.initState();
 
     onClickHandler = OnClickHandler(campaign: widget.campaign, content: widget.content);
-
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ContentEventsService.instance.sendContentImpression(campaign: widget.campaign, content: widget.content);
@@ -46,9 +45,15 @@ class _FullScreenContentState extends State<FullScreenContent> {
     return VisibilityDetector(
       key: ValueKey(contentId),
       onVisibilityChanged: (info) {
+        if (_hasBeenVisible) return;
+
         var visiblePercentage = info.visibleFraction * 100;
         if (visiblePercentage >= 50) {
-          ContentEventsService.instance.sendContentVisibleImpression(campaign: widget.campaign, content: widget.content);
+          _hasBeenVisible = true;
+          ContentEventsService.instance.sendContentVisibleImpression(
+            campaign: widget.campaign,
+            content: widget.content,
+          );
         }
       },
       child: Scaffold(
@@ -65,21 +70,21 @@ class _FullScreenContentState extends State<FullScreenContent> {
                     bottom: container.style?.padding?.bottom ?? 0,
                   ),
                   child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment:
-                        container.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.max,
-                    children: elements
-                        .map(
-                          (e) => GravityElement(
-                            element: e,
-                            onClickCallback: (action) => onClickHandler.handeOnClick(action),
-                            campaign: widget.campaign,
-                            content: widget.content,
+                    child: Column(
+                      crossAxisAlignment:
+                          container.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.max,
+                      children: elements
+                          .map(
+                            (e) => GravityElement(
+                              element: e,
+                              onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                              campaign: widget.campaign,
+                              content: widget.content,
                               products: products,
-                          ).getWidget(),
-                        )
-                        .toList(),
+                            ).getWidget(),
+                          )
+                          .toList(),
                     ),
                   ),
                 ),

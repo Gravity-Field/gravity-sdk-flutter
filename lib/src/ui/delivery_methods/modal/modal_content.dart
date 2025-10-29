@@ -20,6 +20,7 @@ class ModalContent extends StatefulWidget {
 
 class _ModalContentState extends State<ModalContent> {
   late final OnClickHandler onClickHandler;
+  bool _hasBeenVisible = false;
 
   @override
   void initState() {
@@ -44,10 +45,15 @@ class _ModalContentState extends State<ModalContent> {
     return VisibilityDetector(
       key: ValueKey(contentId),
       onVisibilityChanged: (info) {
+        if (_hasBeenVisible) return;
+
         var visiblePercentage = info.visibleFraction * 100;
         if (visiblePercentage >= 50) {
-          ContentEventsService.instance
-              .sendContentVisibleImpression(campaign: widget.campaign, content: widget.content);
+          _hasBeenVisible = true;
+          ContentEventsService.instance.sendContentVisibleImpression(
+            campaign: widget.campaign,
+            content: widget.content,
+          );
         }
       },
       child: Dialog(
@@ -64,19 +70,19 @@ class _ModalContentState extends State<ModalContent> {
                 bottom: container.style?.padding?.bottom ?? 0,
               ),
               child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: elements
-                    .map(
-                      (e) => GravityElement(
-                        element: e,
-                        campaign: widget.campaign,
-                        content: widget.content,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: elements
+                      .map(
+                        (e) => GravityElement(
+                          element: e,
+                          campaign: widget.campaign,
+                          content: widget.content,
                           products: products,
-                        onClickCallback: (action) => onClickHandler.handeOnClick(action),
-                      ).getWidget(),
-                    )
-                    .toList(),
+                          onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                        ).getWidget(),
+                      )
+                      .toList(),
                 ),
               ),
             ),
