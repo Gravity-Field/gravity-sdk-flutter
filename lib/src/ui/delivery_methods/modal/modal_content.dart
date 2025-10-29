@@ -39,6 +39,7 @@ class _ModalContentState extends State<ModalContent> {
     final close = frameUi.close;
     final elements = widget.content.variables.elements;
     final contentId = widget.content.contentId;
+    final products = widget.content.products;
 
     return VisibilityDetector(
       key: ValueKey(contentId),
@@ -51,9 +52,8 @@ class _ModalContentState extends State<ModalContent> {
       },
       child: Dialog(
         backgroundColor: container.style?.backgroundColor ?? Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(container.style?.cornerRadius ?? 0),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(container.style?.cornerRadius ?? 0)),
+        clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
             Padding(
@@ -63,6 +63,7 @@ class _ModalContentState extends State<ModalContent> {
                 right: container.style?.padding?.right ?? 0,
                 bottom: container.style?.padding?.bottom ?? 0,
               ),
+              child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: elements
@@ -71,10 +72,12 @@ class _ModalContentState extends State<ModalContent> {
                         element: e,
                         campaign: widget.campaign,
                         content: widget.content,
+                          products: products,
                         onClickCallback: (action) => onClickHandler.handeOnClick(action),
                       ).getWidget(),
                     )
                     .toList(),
+                ),
               ),
             ),
             if (close != null)
@@ -84,7 +87,7 @@ class _ModalContentState extends State<ModalContent> {
                 // onClosePressed: () {
                 //   ContentEventsService.instance.sendContentClosed(widget.content);
                 // },
-              )
+              ),
           ],
         ),
       ),

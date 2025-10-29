@@ -41,6 +41,7 @@ class _FullScreenContentState extends State<FullScreenContent> {
     final close = frameUi.close;
     final elements = widget.content.variables.elements;
     final contentId = widget.content.contentId;
+    final products = widget.content.products;
 
     return VisibilityDetector(
       key: ValueKey(contentId),
@@ -52,6 +53,7 @@ class _FullScreenContentState extends State<FullScreenContent> {
       },
       child: Scaffold(
         body: SafeArea(
+          bottom: false,
           child: SizedBox.expand(
             child: Stack(
               children: [
@@ -62,6 +64,7 @@ class _FullScreenContentState extends State<FullScreenContent> {
                     top: container.style?.padding?.top ?? 0,
                     bottom: container.style?.padding?.bottom ?? 0,
                   ),
+                  child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment:
                         container.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
@@ -73,9 +76,11 @@ class _FullScreenContentState extends State<FullScreenContent> {
                             onClickCallback: (action) => onClickHandler.handeOnClick(action),
                             campaign: widget.campaign,
                             content: widget.content,
+                              products: products,
                           ).getWidget(),
                         )
                         .toList(),
+                    ),
                   ),
                 ),
                 if (close != null)
@@ -85,7 +90,7 @@ class _FullScreenContentState extends State<FullScreenContent> {
                     // onClosePressed: () {
                     //   ContentEventsService.instance.sendContentClosed(widget.content);
                     // },
-                  )
+                  ),
               ],
             ),
           ),

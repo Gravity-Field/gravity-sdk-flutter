@@ -40,6 +40,7 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
     final close = frameUi.close;
     final elements = widget.content.variables.elements;
     final contentId = widget.content.contentId;
+    final products = widget.content.products;
 
     return VisibilityDetector(
       key: ValueKey(contentId),
@@ -50,12 +51,12 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
               .sendContentVisibleImpression(campaign: widget.campaign, content: widget.content);
         }
       },
-      child: SafeArea(
         child: ClipRRect(
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(container.style?.cornerRadius ?? 0),
             topRight: Radius.circular(container.style?.cornerRadius ?? 0),
           ),
+        child: SingleChildScrollView(
           child: Stack(
             children: [
               Padding(
@@ -75,6 +76,7 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
                           element: e,
                           content: widget.content,
                           campaign: widget.campaign,
+                          products: products,
                           onClickCallback: (action) {
                             if (e.type == ElementType.button && action.closeOnClick) {
                               Navigator.of(context).pop();
@@ -92,7 +94,7 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
                   onClickCallback: (action) {
                     onClickHandler.handeOnClick(action);
                   },
-                )
+                ),
             ],
           ),
         ),
