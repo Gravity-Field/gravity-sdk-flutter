@@ -14,6 +14,7 @@ Future<void> main() async {
   await GravitySDK.instance.initialize(
     apiKey: 'YzYyMTk2YzFmYTMzYmI5YjE0ZGQ3NjAyZjM4MDc1Yzk3ZDRlM2I2ZDZjNjc0MzI3YjViZTcyYTZjODI5ZWQ0YQ==',
     section: '6819e7c0d7303f0f6b0ef263',
+    logLevel: LogLevel.debug,
     productWidgetBuilder: CustomProductWidgetBuilder(),
     gravityEventCallback: (event) {
       debugPrint('Gravity SDK Event: ${event.runtimeType}');

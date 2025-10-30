@@ -5,6 +5,7 @@ import 'package:gravity_sdk/src/ui/delivery_methods/snackbar/snack_bar_content.d
 import 'package:gravity_sdk/src/utils/product_events_service.dart';
 
 import 'data/api/content_response.dart';
+import 'models/external/log_level.dart';
 import 'models/external/campaign.dart';
 import 'models/external/content_engagement.dart';
 import 'models/external/content_settings.dart';
@@ -22,6 +23,7 @@ import 'ui/delivery_methods/bottom_sheet/bottom_sheet_content.dart';
 import 'ui/delivery_methods/full_screen/full_screen_content.dart';
 import 'ui/delivery_methods/modal/modal_content.dart';
 import 'utils/content_events_service.dart';
+import 'utils/logger.dart';
 
 typedef GravityEventCallback = void Function(TrackingEvent event);
 
@@ -48,11 +50,14 @@ class GravitySDK {
     required String section,
     ProductWidgetBuilder? productWidgetBuilder,
     GravityEventCallback? gravityEventCallback,
+    LogLevel logLevel = LogLevel.info,
   }) async {
     this.apiKey = apiKey;
     this.section = section;
     this.productWidgetBuilder = productWidgetBuilder;
     this.gravityEventCallback = gravityEventCallback;
+
+    LoggerManager.instance.configure(logLevel);
   }
 
   void setOptions({Options? options, ContentSettings? contentSettings, String? proxyUrl}) {
