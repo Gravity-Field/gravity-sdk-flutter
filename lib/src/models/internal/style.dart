@@ -10,6 +10,7 @@ part 'style.g.dart';
 class Style {
   @JsonKey(fromJson: ParseUtils.parseColor)
   final Color? backgroundColor;
+  final String? backgroundImage;
   @JsonKey(fromJson: ParseUtils.parseColor)
   final Color? pressColor;
   @JsonKey(fromJson: ParseUtils.parseColor)
@@ -36,6 +37,7 @@ class Style {
 
   Style({
     this.backgroundColor,
+    this.backgroundImage,
     this.pressColor,
     this.outlineColor,
     this.cornerRadius,

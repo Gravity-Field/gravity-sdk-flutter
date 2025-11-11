@@ -8,6 +8,7 @@ part of 'style.dart';
 
 Style _$StyleFromJson(Map<String, dynamic> json) => Style(
   backgroundColor: ParseUtils.parseColor(json['backgroundColor']),
+  backgroundImage: json['backgroundImage'] as String?,
   pressColor: ParseUtils.parseColor(json['pressColor']),
   outlineColor: ParseUtils.parseColor(json['outlineColor']),
   cornerRadius: ParseUtils.parseDimension(json['cornerRadius']),

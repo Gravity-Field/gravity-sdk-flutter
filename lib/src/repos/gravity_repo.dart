@@ -254,17 +254,28 @@ class GravityRepo {
     final batchResponse = await _api.chooseBatch(dataArray: dataArray, user: user, context: context, options: options);
 
     final campaignsBySelector = <String, dynamic>{};
+    final campaignsByCampaignId = <String, dynamic>{};
+
     for (final campaign in batchResponse.data) {
       if (campaign.selector != null) {
         campaignsBySelector[campaign.selector!] = campaign;
+      }
+      final campaignId = campaign.payload.firstOrNull?.campaignId;
+      if (campaignId != null) {
+        campaignsByCampaignId[campaignId] = campaign;
       }
     }
 
     final results = <ContentResponse>[];
     for (final req in requests) {
       final selector = req['selector'] as String?;
+      final campaignId = req['campaignId'] as String?;
 
-      final matchingCampaign = selector != null ? campaignsBySelector[selector] : null;
+      final matchingCampaign = selector != null
+          ? campaignsBySelector[selector]
+          : campaignId != null
+          ? campaignsByCampaignId[campaignId]
+          : null;
 
       if (matchingCampaign != null) {
         results.add(ContentResponse(user: batchResponse.user, data: [matchingCampaign]));

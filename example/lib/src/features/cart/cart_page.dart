@@ -58,16 +58,7 @@ class _CartPageState extends State<CartPage> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Column(
-            children: [
-              GravityInlineWidget(
-                selector: 'bottom_sheet_recs_grid',
-                pageContext: PageContext(
-                  type: ContextType.cart,
-                  data: [],
-                  location: 'cart',
-                ),
-              )
-            ],
+            children: [],
           ),
         ),
       ),

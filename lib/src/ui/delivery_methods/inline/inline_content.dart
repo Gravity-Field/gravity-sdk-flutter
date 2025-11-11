@@ -37,8 +37,18 @@ class _InlineContentState extends State<InlineContent> {
     final elements = widget.content.variables.elements;
     final products = widget.content.products;
 
+    final backgroundImage = container?.style?.backgroundImage;
+    final backgroundColor = container?.style?.backgroundColor;
+    final fit = container?.style?.fit ?? BoxFit.cover;
+    final cornerRadius = container?.style?.cornerRadius ?? 0;
+
     return Container(
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(container?.style?.cornerRadius ?? 0)),
+      height: container?.style?.size?.height,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(cornerRadius),
+        image: backgroundImage != null ? DecorationImage(image: NetworkImage(backgroundImage), fit: fit) : null,
+      ),
       child: Padding(
         padding: EdgeInsets.only(
           left: container?.style?.padding?.left ?? 0,
@@ -53,7 +63,6 @@ class _InlineContentState extends State<InlineContent> {
               .map(
                 (e) => GravityElement(
                   element: e,
-
                   onClickCallback: (action) => onClickHandler.handeOnClick(action),
                   campaign: widget.campaign,
                   content: widget.content,

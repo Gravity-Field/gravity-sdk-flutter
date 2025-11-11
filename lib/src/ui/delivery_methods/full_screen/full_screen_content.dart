@@ -42,6 +42,10 @@ class _FullScreenContentState extends State<FullScreenContent> {
     final contentId = widget.content.contentId;
     final products = widget.content.products;
 
+    final backgroundImage = container.style?.backgroundImage;
+    final backgroundColor = container.style?.backgroundColor;
+    final fit = container.style?.fit ?? BoxFit.cover;
+
     return VisibilityDetector(
       key: ValueKey(contentId),
       onVisibilityChanged: (info) {
@@ -57,11 +61,19 @@ class _FullScreenContentState extends State<FullScreenContent> {
         }
       },
       child: Scaffold(
+        backgroundColor: backgroundColor,
         body: SafeArea(
           bottom: false,
           child: SizedBox.expand(
             child: Stack(
               children: [
+                if (backgroundImage != null)
+                  Positioned.fill(
+                    child: Image.network(
+                      backgroundImage,
+                      fit: fit,
+                    ),
+                  ),
                 Padding(
                   padding: EdgeInsets.only(
                     left: container.style?.padding?.left ?? 0,

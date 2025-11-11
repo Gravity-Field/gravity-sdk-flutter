@@ -43,6 +43,11 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
     final contentId = widget.content.contentId;
     final products = widget.content.products;
 
+    final backgroundImage = container.style?.backgroundImage;
+    final backgroundColor = container.style?.backgroundColor;
+    final fit = container.style?.fit ?? BoxFit.cover;
+    final cornerRadius = container.style?.cornerRadius ?? 0;
+
     return VisibilityDetector(
       key: ValueKey(contentId),
       onVisibilityChanged: (info) {
@@ -59,12 +64,23 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
       },
       child: ClipRRect(
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(container.style?.cornerRadius ?? 0),
-          topRight: Radius.circular(container.style?.cornerRadius ?? 0),
+          topLeft: Radius.circular(cornerRadius),
+          topRight: Radius.circular(cornerRadius),
         ),
         child: SingleChildScrollView(
           child: Stack(
             children: [
+              if (backgroundImage != null)
+                Positioned.fill(
+                  child: Image.network(
+                    backgroundImage,
+                    fit: fit,
+                  ),
+                ),
+              if (backgroundColor != null && backgroundImage == null)
+                Positioned.fill(
+                  child: Container(color: backgroundColor),
+                ),
               Padding(
                 padding: EdgeInsets.only(
                   left: container.style?.padding?.left ?? 0,

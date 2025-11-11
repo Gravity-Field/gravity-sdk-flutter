@@ -42,6 +42,11 @@ class _ModalContentState extends State<ModalContent> {
     final contentId = widget.content.contentId;
     final products = widget.content.products;
 
+    final backgroundImage = container.style?.backgroundImage;
+    final backgroundColor = container.style?.backgroundColor ?? Colors.white;
+    final fit = container.style?.fit ?? BoxFit.cover;
+    final cornerRadius = container.style?.cornerRadius ?? 0;
+
     return VisibilityDetector(
       key: ValueKey(contentId),
       onVisibilityChanged: (info) {
@@ -57,11 +62,18 @@ class _ModalContentState extends State<ModalContent> {
         }
       },
       child: Dialog(
-        backgroundColor: container.style?.backgroundColor ?? Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(container.style?.cornerRadius ?? 0)),
+        backgroundColor: backgroundImage != null ? Colors.transparent : backgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cornerRadius)),
         clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
+            if (backgroundImage != null)
+              Positioned.fill(
+                child: Image.network(
+                  backgroundImage,
+                  fit: fit,
+                ),
+              ),
             Padding(
               padding: EdgeInsets.only(
                 left: container.style?.padding?.left ?? 0,
