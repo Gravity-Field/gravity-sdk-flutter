@@ -9,6 +9,7 @@ import 'gravity_button.dart';
 import 'gravity_image.dart';
 import 'gravity_products_container.dart';
 import 'gravity_text.dart';
+import 'gravity_webview.dart';
 
 class GravityElement {
   final CampaignContent content;
@@ -28,17 +29,11 @@ class GravityElement {
   Widget getWidget() {
     switch (element.type) {
       case ElementType.image:
-        return GravityImageWidget(
-          element: element,
-          onClickCallback: onClickCallback,
-        );
+        return GravityImageWidget(element: element, onClickCallback: onClickCallback);
       case ElementType.text:
         return GravityText(element: element);
       case ElementType.button:
-        return GravityButton(
-          element: element,
-          onClickCallback: onClickCallback,
-        );
+        return GravityButton(element: element, onClickCallback: onClickCallback);
       case ElementType.spacer:
         return Spacer();
 
@@ -46,12 +41,9 @@ class GravityElement {
         if (products == null) {
           return SizedBox.shrink();
         }
-        return GravityProductsContainer(
-          element: element,
-          products: products!,
-          campaign: campaign,
-          content: content,
-        );
+        return GravityProductsContainer(element: element, products: products!, campaign: campaign, content: content);
+      case ElementType.webview:
+        return GravityWebView(element: element);
       case ElementType.unknown:
         return SizedBox.shrink();
     }

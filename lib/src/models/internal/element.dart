@@ -17,7 +17,9 @@ enum ElementType {
   spacer,
   @JsonValue('products-container')
   productsContainer,
-  unknown;
+  @JsonValue('webview')
+  webview,
+  unknown,
 }
 
 @JsonSerializable()
@@ -28,13 +30,7 @@ class Element {
   final Style? style;
   final OnClick? onClick;
 
-  Element({
-    required this.type,
-    this.text,
-    this.src,
-    required this.style,
-    this.onClick,
-  });
+  Element({required this.type, this.text, this.src, required this.style, this.onClick});
 
   factory Element.fromJson(Map<String, dynamic> json) => _$ElementFromJson(json);
 }

@@ -24,5 +24,6 @@ const _$ElementTypeEnumMap = {
   ElementType.button: 'button',
   ElementType.spacer: 'spacer',
   ElementType.productsContainer: 'products-container',
+  ElementType.webview: 'webview',
   ElementType.unknown: 'unknown',
 };
