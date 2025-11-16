@@ -62,55 +62,60 @@ class _FullScreenContentState extends State<FullScreenContent> {
       },
       child: Scaffold(
         backgroundColor: backgroundColor,
-        body: SafeArea(
-          bottom: false,
-          child: SizedBox.expand(
-            child: Stack(
-              children: [
-                if (backgroundImage != null)
-                  Positioned.fill(
-                    child: Image.network(
-                      backgroundImage,
-                      fit: fit,
+        body: Stack(
+          children: [
+            if (backgroundImage != null) Positioned.fill(child: Image.network(backgroundImage, fit: fit)),
+            SafeArea(
+              bottom: false,
+              child: SizedBox.expand(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      left: container.style?.padding?.left ?? 0,
+                      right: container.style?.padding?.right ?? 0,
+                      top: container.style?.padding?.top ?? 0,
+                      bottom: container.style?.padding?.bottom ?? 0,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                              child: Column(
+                                crossAxisAlignment:
+                                    container.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
+                                mainAxisAlignment:
+                                    container.style?.verticalAlignment?.toMainAxisAlignment() ?? MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: elements
+                                    .map(
+                                      (e) => GravityElement(
+                                        element: e,
+                                        onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                                        campaign: widget.campaign,
+                                        content: widget.content,
+                                        products: products,
+                                      ).getWidget(),
+                                    )
+                                    .toList(),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                Padding(
-                  padding: EdgeInsets.only(
-                    left: container.style?.padding?.left ?? 0,
-                    right: container.style?.padding?.right ?? 0,
-                    top: container.style?.padding?.top ?? 0,
-                    bottom: container.style?.padding?.bottom ?? 0,
-                  ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment:
-                          container.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.max,
-                      children: elements
-                          .map(
-                            (e) => GravityElement(
-                              element: e,
-                              onClickCallback: (action) => onClickHandler.handeOnClick(action),
-                              campaign: widget.campaign,
-                              content: widget.content,
-                              products: products,
-                            ).getWidget(),
-                          )
-                          .toList(),
-                    ),
-                  ),
+                    if (close != null)
+                      GravityCloseButtonWidget(
+                        close: close,
+                        onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                        // onClosePressed: () {
+                        //   ContentEventsService.instance.sendContentClosed(widget.content);
+                        // },
+                      ),
+                  ],
                 ),
-                if (close != null)
-                  GravityCloseButtonWidget(
-                    close: close,
-                    onClickCallback: (action) => onClickHandler.handeOnClick(action),
-                    // onClosePressed: () {
-                    //   ContentEventsService.instance.sendContentClosed(widget.content);
-                    // },
-                  ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

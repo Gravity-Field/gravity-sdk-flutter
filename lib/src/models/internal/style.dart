@@ -30,6 +30,7 @@ class Style {
   @JsonKey(fromJson: ParseUtils.parseBoxFit)
   final BoxFit? fit;
   final GravityContentAlignment? contentAlignment;
+  final GravityVerticalAlignment? verticalAlignment;
   final GravityLayoutWidth? layoutWidth;
   final GravityPositioned? positioned;
   final GridSettings? gridSettings;
@@ -50,6 +51,7 @@ class Style {
     this.textStyle,
     this.fit,
     this.contentAlignment,
+    this.verticalAlignment,
     this.layoutWidth,
     this.positioned,
     this.gridSettings,
@@ -146,6 +148,23 @@ enum GravityContentAlignment {
         return CrossAxisAlignment.center;
       case GravityContentAlignment.end:
         return CrossAxisAlignment.end;
+    }
+  }
+}
+
+enum GravityVerticalAlignment {
+  start,
+  center,
+  end;
+
+  MainAxisAlignment toMainAxisAlignment() {
+    switch (this) {
+      case GravityVerticalAlignment.start:
+        return MainAxisAlignment.start;
+      case GravityVerticalAlignment.center:
+        return MainAxisAlignment.center;
+      case GravityVerticalAlignment.end:
+        return MainAxisAlignment.end;
     }
   }
 }
