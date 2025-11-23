@@ -1,4 +1,5 @@
 import 'package:example/gen/assets.gen.dart';
+import 'package:example/src/core/widgets/product_shimmer_loader.dart';
 import 'package:flutter/material.dart';
 
 import 'package:gravity_sdk/gravity_sdk.dart';
@@ -84,6 +85,7 @@ class _HomePageState extends State<HomePage> {
                   data: [],
                   location: 'homepage',
                 ),
+                loadingWidget: const ProductsShimmerLoader(),
               ),
               GravityInlineWidget(
                 key: Key('inline_banner_2'),
@@ -103,6 +105,7 @@ class _HomePageState extends State<HomePage> {
                   data: [],
                   location: 'homepage',
                 ),
+                loadingWidget: const ProductsShimmerLoader(),
               ),
               GravityInlineWidget(
                 key: Key('inline_multi_widget_qa_placeholder_3'),
@@ -113,6 +116,7 @@ class _HomePageState extends State<HomePage> {
                   data: [],
                   location: 'homepage',
                 ),
+                loadingWidget: const ProductsShimmerLoader(),
               ),
             ],
           ),

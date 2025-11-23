@@ -12,6 +12,7 @@ class GravityInlineWidget extends StatefulWidget {
   final double? height;
   final PageContext pageContext;
   final bool showLoading;
+  final Widget? loadingWidget;
 
   const GravityInlineWidget({
     super.key,
@@ -21,6 +22,7 @@ class GravityInlineWidget extends StatefulWidget {
     this.height,
     required this.pageContext,
     this.showLoading = true,
+    this.loadingWidget,
   });
 
   @override
@@ -114,9 +116,7 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
     Widget? child;
 
     if (isLoading && widget.showLoading) {
-      child = Center(
-        child: CircularProgressIndicator(),
-      );
+      child = widget.loadingWidget ?? Center(child: CircularProgressIndicator());
     } else if (content != null && campaign != null) {
       child = InlineContent(
         content: content!,
