@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:gravity_sdk/src/data/batching/request_batcher.dart';
 import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/data/session/session_manager.dart';
+import 'package:gravity_sdk/src/models/external/gravity_data_response.dart';
 import 'package:gravity_sdk/src/models/external/page_context.dart';
 import 'package:gravity_sdk/src/models/external/trigger_event.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -285,5 +286,51 @@ class GravityRepo {
     }
 
     return results;
+  }
+
+  Future<GravityDataResponse<ContentResponse>> getContentBySelectorWithDetails({
+    required String selector,
+    User? customUser,
+    required PageContext pageContext,
+    required Options options,
+    required ContentSettings contentSetting,
+  }) async {
+    final finalUser = await _ensureUser(customUser);
+    final finalPageContext = await _mixPageContextAttributes(pageContext);
+
+    final (content, json) = await _api.chooseBySelectorWithDetails(
+      selector: selector,
+      user: finalUser,
+      context: finalPageContext,
+      options: options,
+      contentSettings: contentSetting,
+    );
+
+    await _sessionManager.saveUser(customUser, content.user);
+
+    return GravityDataResponse(data: content, json: json);
+  }
+
+  Future<GravityDataResponse<ContentResponse>> getContentByCampaignIdWithDetails({
+    required String campaignId,
+    User? customUser,
+    required PageContext pageContext,
+    required Options options,
+    required ContentSettings contentSetting,
+  }) async {
+    final finalUser = await _ensureUser(customUser);
+    final finalPageContext = await _mixPageContextAttributes(pageContext);
+
+    final (content, json) = await _api.chooseByCampaignIdWithDetails(
+      campaignId: campaignId,
+      user: finalUser,
+      context: finalPageContext,
+      options: options,
+      contentSettings: contentSetting,
+    );
+
+    await _sessionManager.saveUser(customUser, content.user);
+
+    return GravityDataResponse(data: content, json: json);
   }
 }

@@ -155,4 +155,54 @@ class Api {
   Future<void> triggerEventUrl(String url) async {
     await _dio.get(url);
   }
+
+  Future<(ContentResponse, Map<String, dynamic>)> chooseByCampaignIdWithDetails({
+    required String campaignId,
+    User? user,
+    required PageContext context,
+    required Options options,
+    required ContentSettings contentSettings,
+  }) async {
+    final device = await DeviceUtils.instance.getDevice();
+
+    final data = {
+      'sec': GravitySDK.instance.section,
+      'data': [
+        {'campaignId': campaignId, 'option': contentSettings.toJson()},
+      ],
+      'device': device.toJson(),
+      'user': user?.toJson(),
+      'ctx': context.toJson(),
+      'options': options.toJson(),
+    };
+
+    final response = await _dio.post('$baseUrl/choose', data: data);
+    final json = response.data as Map<String, dynamic>;
+    return (ContentResponse.fromJson(json), json);
+  }
+
+  Future<(ContentResponse, Map<String, dynamic>)> chooseBySelectorWithDetails({
+    required String selector,
+    User? user,
+    required PageContext context,
+    required Options options,
+    required ContentSettings contentSettings,
+  }) async {
+    final device = await DeviceUtils.instance.getDevice();
+
+    final data = {
+      'sec': GravitySDK.instance.section,
+      'data': [
+        {'selector': selector, 'option': contentSettings.toJson()},
+      ],
+      'device': device.toJson(),
+      'user': user?.toJson(),
+      'ctx': context.toJson(),
+      'options': options.toJson(),
+    };
+
+    final response = await _dio.post('$baseUrl/choose', data: data);
+    final json = response.data as Map<String, dynamic>;
+    return (ContentResponse.fromJson(json), json);
+  }
 }

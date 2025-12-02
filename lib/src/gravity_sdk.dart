@@ -5,6 +5,7 @@ import 'package:gravity_sdk/src/ui/delivery_methods/snackbar/snack_bar_content.d
 import 'package:gravity_sdk/src/utils/product_events_service.dart';
 
 import 'data/api/content_response.dart';
+import 'models/external/gravity_data_response.dart';
 import 'models/external/log_level.dart';
 import 'models/external/campaign.dart';
 import 'models/external/content_engagement.dart';
@@ -27,12 +28,17 @@ import 'utils/logger.dart';
 
 typedef GravityEventCallback = void Function(TrackingEvent event);
 
+/// Колбек, который вызывается с GravityDataResponse контента кампании.
+/// Предназначен для использования в ручном (headless) режиме.
+typedef GravityContentCallback = void Function(GravityDataResponse<ContentResponse> response);
+
 class GravitySDK {
   //init fields
   String apiKey = '';
   String section = '';
   ProductWidgetBuilder? productWidgetBuilder;
   GravityEventCallback? gravityEventCallback;
+  GravityContentCallback? gravityContentCallback;
 
   //other fields
   User? user;
@@ -50,12 +56,14 @@ class GravitySDK {
     required String section,
     ProductWidgetBuilder? productWidgetBuilder,
     GravityEventCallback? gravityEventCallback,
+    GravityContentCallback? gravityContentCallback,
     LogLevel logLevel = LogLevel.info,
   }) async {
     this.apiKey = apiKey;
     this.section = section;
     this.productWidgetBuilder = productWidgetBuilder;
     this.gravityEventCallback = gravityEventCallback;
+    this.gravityContentCallback = gravityContentCallback;
 
     LoggerManager.instance.configure(logLevel);
   }
@@ -205,6 +213,107 @@ class GravitySDK {
     }
 
     return content;
+  }
+
+  /// Запрашивает контент по селектору и возвращает объект с моделью и исходным JSON.
+  Future<GravityDataResponse<ContentResponse>> getContentBySelectorWithDetails({
+    required String selector,
+    required PageContext pageContext,
+  }) async {
+    _checkIsInitialized();
+
+    final response = await GravityRepo.instance.getContentBySelectorWithDetails(
+      selector: selector,
+      pageContext: pageContext,
+      options: options,
+      contentSetting: contentSettings,
+    );
+
+    for (final campaign in response.data.data) {
+      for (final payload in campaign.payload) {
+        for (final content in payload.contents) {
+          ContentEventsService.instance.sendContentLoaded(content: content, campaign: campaign);
+        }
+      }
+    }
+
+    gravityContentCallback?.call(response);
+
+    return response;
+  }
+
+  Future<GravityDataResponse<ContentResponse>> getContentByCampaignIdWithDetails({
+    required String campaignId,
+    required PageContext pageContext,
+  }) async {
+    _checkIsInitialized();
+
+    final response = await GravityRepo.instance.getContentByCampaignIdWithDetails(
+      campaignId: campaignId,
+      pageContext: pageContext,
+      options: options,
+      contentSetting: contentSettings,
+    );
+
+    for (final campaign in response.data.data) {
+      for (final payload in campaign.payload) {
+        for (final content in payload.contents) {
+          ContentEventsService.instance.sendContentLoaded(content: content, campaign: campaign);
+        }
+      }
+    }
+
+    gravityContentCallback?.call(response);
+
+    return response;
+  }
+
+  /// Отслеживает просмотр экрана и, если кампания активирована,
+  /// получает и возвращает ее контент в виде сырого JSON.
+  ///
+  /// Возвращает GravityDataResponse или `null`, если кампания не сработала.
+  /// Также вызывает [gravityContentCallback] в случае успеха.
+  Future<GravityDataResponse<ContentResponse>?> trackViewNoShow({required PageContext pageContext}) async {
+    _checkIsInitialized();
+
+    final response = await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
+
+    final campaignId = response.campaigns.firstOrNull;
+    if (campaignId == null) {
+      return null;
+    }
+
+    final result = await getContentByCampaignIdWithDetails(campaignId: campaignId.campaignId, pageContext: pageContext);
+
+    return result;
+  }
+
+  /// Отправляет событие и, если кампания активирована,
+  /// получает и возвращает ее контент в виде сырого JSON.
+  ///
+  /// Возвращает GravityDataResponse или `null`, если кампания не сработала.
+  /// Также вызывает [gravityContentCallback] в случае успеха.
+  Future<GravityDataResponse<ContentResponse>?> triggerEventNoShow({
+    required List<TriggerEvent> events,
+    required PageContext pageContext,
+  }) async {
+    _checkIsInitialized();
+
+    final response = await GravityRepo.instance.event(
+      events: events,
+      customUser: user,
+      pageContext: pageContext,
+      options: options,
+    );
+
+    final campaignId = response.campaigns.firstOrNull;
+    if (campaignId == null) {
+      return null;
+    }
+
+    final result = await getContentByCampaignIdWithDetails(campaignId: campaignId.campaignId, pageContext: pageContext);
+
+    return result;
   }
 
   void _showBackendContent(BuildContext context, CampaignContent content, Campaign campaign) {
