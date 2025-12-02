@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
-import 'package:gravity_sdk/src/models/external/campaign.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_content.dart';
-
-import '../../models/internal/campaign_content.dart';
 
 class GravityInlineWidget extends StatefulWidget {
   final String selector;

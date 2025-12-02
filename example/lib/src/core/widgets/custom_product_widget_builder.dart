@@ -3,10 +3,7 @@ import 'package:example/gen/assets.gen.dart';
 import 'package:example/src/features/webview/webview_page.dart';
 import 'package:flutter/material.dart';
 
-import 'package:gravity_sdk/gravity_sdk.dart';
-import 'package:gravity_sdk/src/models/external/campaign.dart';
-import 'package:gravity_sdk/src/models/external/product_engagement.dart';
-import 'package:gravity_sdk/src/models/internal/campaign_content.dart';
+import 'package:gravity_sdk/gravity_sdk.dart' hide Container;
 
 class CustomProductWidgetBuilder extends ProductWidgetBuilder {
   @override

@@ -3,11 +3,7 @@ import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/utils/product_events_service.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../../models/external/campaign.dart';
-import '../../models/internal/campaign_content.dart';
-import '../../models/internal/element.dart';
 import '../../models/internal/product_container_type.dart';
-import '../../models/internal/products.dart';
 
 class GravityProductsContainer extends StatefulWidget {
   final Element element;

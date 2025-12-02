@@ -2,8 +2,6 @@ import 'package:collection/collection.dart';
 
 import '../../gravity_sdk.dart';
 import '../models/actions/product_action.dart';
-import '../models/external/campaign.dart';
-import '../models/internal/campaign_content.dart';
 import '../repos/gravity_repo.dart';
 
 class ProductEventsService {

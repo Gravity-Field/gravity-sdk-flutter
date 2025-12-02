@@ -6,9 +6,7 @@ import 'package:gravity_sdk/src/utils/device_utils.dart';
 import 'package:gravity_sdk/src/utils/logger.dart';
 import 'package:talker_dio_logger/talker_dio_logger.dart';
 
-import '../../models/external/user.dart';
 import 'content_ids_response.dart';
-import 'content_response.dart';
 
 class Api {
   final _dio = Dio();

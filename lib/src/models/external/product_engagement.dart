@@ -1,6 +1,4 @@
 import '../../../gravity_sdk.dart';
-import '../internal/campaign_content.dart';
-import 'campaign.dart';
 
 sealed class ProductEngagement {
   final Slot slot;
