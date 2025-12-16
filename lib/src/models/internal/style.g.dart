@@ -32,6 +32,10 @@ Style _$StyleFromJson(Map<String, dynamic> json) => Style(
     _$GravityContentAlignmentEnumMap,
     json['contentAlignment'],
   ),
+  verticalAlignment: $enumDecodeNullable(
+    _$GravityVerticalAlignmentEnumMap,
+    json['verticalAlignment'],
+  ),
   layoutWidth: $enumDecodeNullable(
     _$GravityLayoutWidthEnumMap,
     json['layoutWidth'],
@@ -52,6 +56,12 @@ const _$GravityContentAlignmentEnumMap = {
   GravityContentAlignment.start: 'start',
   GravityContentAlignment.center: 'center',
   GravityContentAlignment.end: 'end',
+};
+
+const _$GravityVerticalAlignmentEnumMap = {
+  GravityVerticalAlignment.start: 'start',
+  GravityVerticalAlignment.center: 'center',
+  GravityVerticalAlignment.end: 'end',
 };
 
 const _$GravityLayoutWidthEnumMap = {

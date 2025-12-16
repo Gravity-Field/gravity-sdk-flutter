@@ -21,7 +21,7 @@ export 'src/models/internal/variables.dart';
 export 'src/models/internal/element.dart';
 export 'src/models/internal/products.dart';
 export 'src/models/internal/frame_ui.dart';
-export 'src/models/internal/container.dart';
+export 'src/models/internal/frame_container.dart';
 export 'src/models/internal/style.dart';
 export 'src/models/actions/on_click.dart';
 export 'src/models/actions/content_action.dart';
