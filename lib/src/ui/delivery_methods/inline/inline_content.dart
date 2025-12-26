@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../../../models/external/campaign.dart';
-import '../../../models/internal/campaign_content.dart';
 import '../../../utils/content_events_service.dart';
 import '../../elements/gravity_element.dart';
 
@@ -61,33 +60,38 @@ class _InlineContentState extends State<InlineContent> {
       },
       child: Container(
         height: container?.style?.size?.height,
+        width: container?.style?.layoutWidth == GravityLayoutWidth.matchParent ? double.infinity : null,
+        margin: EdgeInsets.only(
+          left: container?.style?.margin?.left ?? 0,
+          right: container?.style?.margin?.right ?? 0,
+          top: container?.style?.margin?.top ?? 0,
+          bottom: container?.style?.margin?.bottom ?? 0,
+        ),
+        padding: EdgeInsets.only(
+          left: container?.style?.padding?.left ?? 0,
+          right: container?.style?.padding?.right ?? 0,
+          top: container?.style?.padding?.top ?? 0,
+          bottom: container?.style?.padding?.bottom ?? 0,
+        ),
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(cornerRadius),
           image: backgroundImage != null ? DecorationImage(image: NetworkImage(backgroundImage), fit: fit) : null,
         ),
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: container?.style?.padding?.left ?? 0,
-            right: container?.style?.padding?.right ?? 0,
-            top: container?.style?.padding?.top ?? 0,
-            bottom: container?.style?.padding?.bottom ?? 0,
-          ),
-          child: Column(
-            crossAxisAlignment: container?.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: elements
-                .map(
-                  (e) => GravityElement(
-                    element: e,
-                    onClickCallback: (action) => onClickHandler.handeOnClick(action),
-                    campaign: widget.campaign,
-                    content: widget.content,
-                    products: products,
-                  ).getWidget(),
-                )
-                .toList(),
-          ),
+        child: Column(
+          crossAxisAlignment: container?.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: elements
+              .map(
+                (e) => GravityElement(
+                  element: e,
+                  onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                  campaign: widget.campaign,
+                  content: widget.content,
+                  products: products,
+                ).getWidget(),
+              )
+              .toList(),
         ),
       ),
     );

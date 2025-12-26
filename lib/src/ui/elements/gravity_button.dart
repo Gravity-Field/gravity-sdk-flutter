@@ -62,10 +62,10 @@ class GravityButton extends StatelessWidget {
     if (style.margin != null) {
       outputWidget = Padding(
         padding: EdgeInsets.only(
-          left: style.margin!.left,
-          right: style.margin!.right,
-          top: style.margin!.top,
-          bottom: style.margin!.bottom,
+          left: style.padding?.left ?? 0,
+          right: style.padding?.right ?? 0,
+          top: style.padding?.top ?? 0,
+          bottom: style.padding?.bottom ?? 0,
         ),
         child: outputWidget,
       );

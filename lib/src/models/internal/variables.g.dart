@@ -27,4 +27,5 @@ Variables _$VariablesFromJson(Map<String, dynamic> json) => Variables(
   onClose: json['onClose'] == null
       ? null
       : ContentAction.fromJson(json['onClose'] as Map<String, dynamic>),
+  index: (json['index'] as num?)?.toInt() ?? 0,
 );
