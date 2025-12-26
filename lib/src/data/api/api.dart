@@ -93,6 +93,33 @@ class Api {
     return ContentResponse.fromJson(response.data);
   }
 
+  Future<ContentResponse> chooseByGroup({
+    required String group,
+    User? user,
+    required PageContext context,
+    required Options options,
+    required ContentSettings contentSettings,
+  }) async {
+    final device = await DeviceUtils.instance.getDevice();
+
+    final data = {
+      'sec': GravitySDK.instance.section,
+      'data': [
+        {
+          'group': group,
+          'option': contentSettings.toJson(),
+        }
+      ],
+      'device': device.toJson(),
+      'user': user?.toJson(),
+      'ctx': context.toJson(),
+      'options': options.toJson(),
+    };
+
+    final response = await _dio.post('$baseUrl/choose', data: data);
+    return ContentResponse.fromJson(response.data);
+  }
+
   Future<ContentResponse> chooseBatch({
     required List<Map<String, dynamic>> dataArray,
     User? user,

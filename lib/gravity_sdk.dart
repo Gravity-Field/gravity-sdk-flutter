@@ -10,6 +10,7 @@ export 'src/models/external/trigger_event.dart';
 export 'src/models/internal/slot.dart';
 export 'src/settings/product_widget_builder.dart';
 export 'src/ui/widgets/inline.dart';
+export 'src/ui/widgets/inline_list.dart';
 export 'src/models/external/gravity_data_response.dart';
 export 'src/data/api/content_response.dart';
 export 'src/models/external/campaign.dart';

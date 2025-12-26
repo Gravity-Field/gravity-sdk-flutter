@@ -14,6 +14,7 @@ class Variables {
   final ContentAction? onImpression;
   final ContentAction? onVisibleImpression;
   final ContentAction? onClose;
+  final int? index;
 
   Variables({
     required this.frameUI,
@@ -22,6 +23,7 @@ class Variables {
     this.onImpression,
     this.onVisibleImpression,
     this.onClose,
+    this.index = 0,
   });
 
   factory Variables.fromJson(Map<String, dynamic> json) => _$VariablesFromJson(json);

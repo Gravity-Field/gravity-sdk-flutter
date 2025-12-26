@@ -23,6 +23,16 @@ class GravityImageWidget extends StatelessWidget {
     final imageWidget = Image.network(
       element.src ?? '',
       fit: style.fit,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Center(
+          child: CircularProgressIndicator(
+            value: loadingProgress.expectedTotalBytes != null
+                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                : null,
+          ),
+        );
+      },
     );
 
     Widget outputWidget = imageWidget;

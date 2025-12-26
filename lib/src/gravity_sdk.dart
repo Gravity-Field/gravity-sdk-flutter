@@ -215,6 +215,27 @@ class GravitySDK {
     return content;
   }
 
+  Future<ContentResponse> getContentByGroup({required String group, required PageContext pageContext}) async {
+    _checkIsInitialized();
+
+    final content = await GravityRepo.instance.getContentByGroup(
+      group: group,
+      pageContext: pageContext,
+      options: options,
+      contentSetting: contentSettings,
+    );
+
+    for (final campaign in content.data) {
+      for (final payload in campaign.payload) {
+        for (final content in payload.contents) {
+          ContentEventsService.instance.sendContentLoaded(content: content, campaign: campaign);
+        }
+      }
+    }
+
+    return content;
+  }
+
   /// Запрашивает контент по селектору и возвращает объект с моделью и исходным JSON.
   Future<GravityDataResponse<ContentResponse>> getContentBySelectorWithDetails({
     required String selector,

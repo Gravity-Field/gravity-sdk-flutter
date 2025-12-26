@@ -116,6 +116,28 @@ class GravityRepo {
     return response;
   }
 
+  Future<ContentResponse> getContentByGroup({
+    required String group,
+    User? customUser,
+    required PageContext pageContext,
+    required Options options,
+    required ContentSettings contentSetting,
+  }) async {
+    final finalUser = await _ensureUser(customUser);
+    final finalPageContext = await _mixPageContextAttributes(pageContext);
+
+    final response = await _api.chooseByGroup(
+      group: group,
+      user: finalUser,
+      context: finalPageContext,
+      options: options,
+      contentSettings: contentSetting,
+    );
+
+    await _sessionManager.saveUser(customUser, response.user);
+    return response;
+  }
+
   Future<void> triggerEventUrls(List<String> urls) async {
     for (final url in urls) {
       try {
