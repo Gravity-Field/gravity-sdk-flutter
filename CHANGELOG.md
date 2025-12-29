@@ -1,3 +1,10 @@
+## 0.12.1
+* Добавлен виджет GravityInlineListWidget
+* Класс Container переименован в FrameContainer
+* Скорректированы настройки width, margin и padding у InlineContent 
+* Скорректированы настройки padding у GravityButton
+* Обновлена версия gradle у example
+
 ## 0.12.0
 * Добавлена поддержка headless api
 
