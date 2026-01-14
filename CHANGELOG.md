@@ -1,3 +1,6 @@
+## 0.12.2
+* Правки по батчингу
+
 ## 0.12.1
 * Добавлен виджет GravityInlineListWidget
 * Класс Container переименован в FrameContainer
