@@ -162,6 +162,19 @@ class GravityRepo {
     return pageContext.copyWith(attributes: attributes);
   }
 
+  PageContext _mergeContextsAttributes(List<Map<String, dynamic>> requests) {
+    final mergedAttributes = <String, Object>{};
+    PageContext? baseContext;
+
+    for (final req in requests) {
+      final ctx = req['context'] as PageContext;
+      baseContext ??= ctx;
+      mergedAttributes.addAll(ctx.attributes);
+    }
+
+    return baseContext!.copyWith(attributes: mergedAttributes);
+  }
+
   Completer<void>? _startSessionInitializationIfFirst(User? customUser) {
     final isFirstRequest = customUser == null && !_sessionManager.hasSession && !_sessionManager.isInitializing;
     if (isFirstRequest) {
@@ -259,8 +272,8 @@ class GravityRepo {
   Future<List<ContentResponse>> _executeBatchedChoose(List<Map<String, dynamic>> requests) async {
     final firstReq = requests.first;
     final user = firstReq['user'] as User?;
-    final context = firstReq['context'] as PageContext;
     final options = firstReq['options'] as Options;
+    final mergedContext = _mergeContextsAttributes(requests);
 
     final dataArray = requests.map((req) {
       final data = <String, dynamic>{'option': (req['contentSettings'] as ContentSettings).toJson()};
@@ -274,7 +287,12 @@ class GravityRepo {
       return data;
     }).toList();
 
-    final batchResponse = await _api.chooseBatch(dataArray: dataArray, user: user, context: context, options: options);
+    final batchResponse = await _api.chooseBatch(
+      dataArray: dataArray,
+      user: user,
+      context: mergedContext,
+      options: options,
+    );
 
     final campaignsBySelector = <String, dynamic>{};
     final campaignsByCampaignId = <String, dynamic>{};
