@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class ParseUtils {
-
   static Color parseNonNullableColorBlack(Object? color) {
     return parseColor(color) ?? Colors.black;
   }
@@ -12,7 +11,18 @@ class ParseUtils {
     }
 
     if (color is String && color.startsWith('#')) {
-      final hexColor = int.tryParse(color.substring(1), radix: 16);
+      final hex = color.substring(1);
+
+      int? hexColor;
+
+      if (hex.length == 6) {
+        hexColor = int.tryParse('FF$hex', radix: 16);
+      } else if (hex.length == 8) {
+        final rrggbb = hex.substring(0, 6);
+        final aa = hex.substring(6, 8);
+        hexColor = int.tryParse('$aa$rrggbb', radix: 16);
+      }
+
       return hexColor != null ? Color(hexColor) : null;
     }
 
