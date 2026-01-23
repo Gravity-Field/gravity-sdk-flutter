@@ -1,16 +1,23 @@
 import 'dart:async';
 
+typedef BatchGroupKeyGenerator = String Function(Map<String, dynamic> data);
+
 /// Combines multiple requests into one batch call.
 /// Requests are grouped together within [batchDelay] and deduplicated.
+/// When [groupKeyGenerator] is provided, requests are grouped by compatibility -
+/// requests with different group keys are executed in parallel batches.
 class RequestBatcher<T> {
   final Future<List<T>> Function(List<Map<String, dynamic>>) _batchExecutor;
   final Duration _batchDelay;
+  final BatchGroupKeyGenerator? _groupKeyGenerator;
 
   RequestBatcher({
     required Future<List<T>> Function(List<Map<String, dynamic>>) batchExecutor,
     Duration batchDelay = const Duration(milliseconds: 10),
-  })  : _batchExecutor = batchExecutor,
-        _batchDelay = batchDelay;
+    BatchGroupKeyGenerator? groupKeyGenerator,
+  }) : _batchExecutor = batchExecutor,
+       _batchDelay = batchDelay,
+       _groupKeyGenerator = groupKeyGenerator;
 
   final List<BatchRequest<T>> _pendingRequests = [];
   final Map<String, BatchRequest<T>> _pendingRequestsMap = {};
@@ -45,6 +52,11 @@ class RequestBatcher<T> {
   }
 
   String _generateRequestKey(Map<String, dynamic> data) {
+    final keyGenerator = _groupKeyGenerator;
+    if (keyGenerator != null) {
+      return keyGenerator(data);
+    }
+
     final sortedKeys = data.keys.toList()..sort();
     final buffer = StringBuffer();
     for (final key in sortedKeys) {
@@ -72,6 +84,63 @@ class RequestBatcher<T> {
     _pendingRequestsMap.clear();
 
     try {
+      if (_groupKeyGenerator != null) {
+        await _executeGroupedBatch(batch);
+      } else {
+        await _executeFlatBatch(batch);
+      }
+    } finally {
+      _isExecuting = false;
+
+      if (_pendingRequests.isNotEmpty) {
+        _scheduleBatchExecution();
+      }
+    }
+  }
+
+  Future<void> _executeGroupedBatch(List<BatchRequest<T>> batch) async {
+    final groups = <String, List<BatchRequest<T>>>{};
+
+    for (final request in batch) {
+      final groupKey = _groupKeyGenerator!(request.data);
+      groups.putIfAbsent(groupKey, () => []).add(request);
+    }
+
+    await Future.wait(groups.values.map(_executeGroup));
+  }
+
+  Future<void> _executeGroup(List<BatchRequest<T>> groupRequests) async {
+    try {
+      final requestsData = groupRequests.map((r) => r.data).toList();
+      final results = await _batchExecutor(requestsData);
+
+      if (results.length == groupRequests.length) {
+        for (var i = 0; i < groupRequests.length; i++) {
+          if (!groupRequests[i].completer.isCompleted) {
+            groupRequests[i].completer.complete(results[i]);
+          }
+        }
+      } else {
+        final error = Exception(
+          'Batch response mismatch: sent ${groupRequests.length} requests, got ${results.length} responses',
+        );
+        for (final request in groupRequests) {
+          if (!request.completer.isCompleted) {
+            request.completer.completeError(error);
+          }
+        }
+      }
+    } catch (error, stackTrace) {
+      for (final request in groupRequests) {
+        if (!request.completer.isCompleted) {
+          request.completer.completeError(error, stackTrace);
+        }
+      }
+    }
+  }
+
+  Future<void> _executeFlatBatch(List<BatchRequest<T>> batch) async {
+    try {
       final requestsData = batch.map((r) => r.data).toList();
       final results = await _batchExecutor(requestsData);
 
@@ -96,12 +165,6 @@ class RequestBatcher<T> {
         if (!request.completer.isCompleted) {
           request.completer.completeError(error, stackTrace);
         }
-      }
-    } finally {
-      _isExecuting = false;
-
-      if (_pendingRequests.isNotEmpty) {
-        _scheduleBatchExecution();
       }
     }
   }

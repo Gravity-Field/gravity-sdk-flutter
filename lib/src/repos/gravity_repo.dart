@@ -25,7 +25,25 @@ class GravityRepo {
   final _api = Api();
   final _sessionManager = SessionManager.instance;
 
-  late final _chooseBatcher = RequestBatcher<ContentResponse>(batchExecutor: _executeChooseBatch);
+  late final _chooseBatcher = RequestBatcher<ContentResponse>(
+    batchExecutor: _executeChooseBatch,
+    groupKeyGenerator: _generateBatchGroupKey,
+  );
+
+  String _generateBatchGroupKey(Map<String, dynamic> data) {
+    final selector = data['selector'] as String?;
+    final campaignId = data['campaignId'] as String?;
+    final context = data['context'] as PageContext;
+
+    final identifier = selector ?? campaignId ?? '';
+
+    final contextKey = '${context.type.name}:${context.location}';
+    final attrs = context.attributes;
+    final sortedKeys = attrs.keys.toList()..sort();
+    final attrsHash = sortedKeys.map((k) => '$k=${attrs[k]}').join('&');
+
+    return '$identifier|$contextKey|$attrsHash';
+  }
 
   Future<CampaignIdsResponse> event({
     required List<TriggerEvent> events,
@@ -162,19 +180,6 @@ class GravityRepo {
     return pageContext.copyWith(attributes: attributes);
   }
 
-  PageContext _mergeContextsAttributes(List<Map<String, dynamic>> requests) {
-    final mergedAttributes = <String, Object>{};
-    PageContext? baseContext;
-
-    for (final req in requests) {
-      final ctx = req['context'] as PageContext;
-      baseContext ??= ctx;
-      mergedAttributes.addAll(ctx.attributes);
-    }
-
-    return baseContext!.copyWith(attributes: mergedAttributes);
-  }
-
   Completer<void>? _startSessionInitializationIfFirst(User? customUser) {
     final isFirstRequest = customUser == null && !_sessionManager.hasSession && !_sessionManager.isInitializing;
     if (isFirstRequest) {
@@ -273,7 +278,7 @@ class GravityRepo {
     final firstReq = requests.first;
     final user = firstReq['user'] as User?;
     final options = firstReq['options'] as Options;
-    final mergedContext = _mergeContextsAttributes(requests);
+    final context = firstReq['context'] as PageContext;
 
     final dataArray = requests.map((req) {
       final data = <String, dynamic>{'option': (req['contentSettings'] as ContentSettings).toJson()};
@@ -290,7 +295,7 @@ class GravityRepo {
     final batchResponse = await _api.chooseBatch(
       dataArray: dataArray,
       user: user,
-      context: mergedContext,
+      context: context,
       options: options,
     );
 
