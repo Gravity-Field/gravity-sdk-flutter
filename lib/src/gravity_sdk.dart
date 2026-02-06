@@ -151,6 +151,10 @@ class GravitySDK {
     }
   }
 
+  Future<void> triggerTrackingUrl(String url) async {
+    await GravityRepo.instance.triggerEventUrls([url]);
+  }
+
   void sendProductEngagement(ProductEngagement engagement) {
     _checkIsInitialized();
 
