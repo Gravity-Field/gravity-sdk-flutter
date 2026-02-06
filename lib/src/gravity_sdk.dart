@@ -45,6 +45,7 @@ class GravitySDK {
   ContentSettings contentSettings = ContentSettings();
   Options options = Options();
   String? proxyUrl;
+  bool isFetchContentOnTrack = true;
   NotificationPermissionStatus notificationPermissionStatus = NotificationPermissionStatus.unknown;
 
   GravitySDK._();
@@ -68,12 +69,15 @@ class GravitySDK {
     LoggerManager.instance.configure(logLevel);
   }
 
-  void setOptions({Options? options, ContentSettings? contentSettings, String? proxyUrl}) {
+  void setOptions({Options? options, ContentSettings? contentSettings, String? proxyUrl, bool? isFetchContentOnTrack}) {
     if (options != null) {
       this.options = options;
     }
     if (contentSettings != null) {
       this.contentSettings = contentSettings;
+    }
+    if (isFetchContentOnTrack != null) {
+      this.isFetchContentOnTrack = isFetchContentOnTrack;
     }
     this.proxyUrl = proxyUrl;
   }
@@ -304,7 +308,7 @@ class GravitySDK {
     final response = await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
 
     final campaignId = response.campaigns.firstOrNull;
-    if (campaignId == null) {
+    if (campaignId == null || !isFetchContentOnTrack) {
       return null;
     }
 
@@ -332,7 +336,7 @@ class GravitySDK {
     );
 
     final campaignId = response.campaigns.firstOrNull;
-    if (campaignId == null) {
+    if (campaignId == null || !isFetchContentOnTrack) {
       return null;
     }
 
