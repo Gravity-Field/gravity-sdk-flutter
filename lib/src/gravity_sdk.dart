@@ -143,7 +143,7 @@ class GravitySDK {
           callbackTrackingEvent: false,
         );
       case ContentCloseEngagement():
-        ContentEventsService.instance.sendContentVisibleImpression(
+        ContentEventsService.instance.sendContentClosed(
           content: engagement.content,
           campaign: engagement.campaign,
           callbackTrackingEvent: false,
