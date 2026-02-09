@@ -10,6 +10,8 @@ import 'package:gravity_sdk/src/models/external/trigger_event.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../data/api/api.dart';
+import '../data/error_reporting/error_helpers.dart';
+import '../data/error_reporting/error_reporter.dart';
 import '../data/api/content_ids_response.dart';
 import '../data/api/content_response.dart';
 import '../models/external/content_settings.dart';
@@ -62,6 +64,13 @@ class GravityRepo {
       return response;
     } catch (error, stackTrace) {
       _handleSessionFailure(sessionCompleter, error, stackTrace);
+      ErrorReporter.instance.report(
+        message: error.toString(),
+        level: errorLevel(error),
+        section: 'GravityRepo.event',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': categorizeError(error), 'endpoint': 'event'},
+      );
       rethrow;
     }
   }
@@ -82,6 +91,13 @@ class GravityRepo {
       return response;
     } catch (error, stackTrace) {
       _handleSessionFailure(sessionCompleter, error, stackTrace);
+      ErrorReporter.instance.report(
+        message: error.toString(),
+        level: errorLevel(error),
+        section: 'GravityRepo.visit',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': categorizeError(error), 'endpoint': 'visit'},
+      );
       rethrow;
     }
   }
@@ -159,9 +175,16 @@ class GravityRepo {
   Future<void> triggerEventUrls(List<String> urls) async {
     for (final url in urls) {
       try {
-        _api.triggerEventUrl(url);
-      } catch (e) {
-        //TODO: add logger
+        await _api.triggerEventUrl(url);
+      } catch (e, stackTrace) {
+        ErrorReporter.instance.report(
+          message: e.toString(),
+          level: 'warning',
+          section: 'GravityRepo.triggerEventUrls',
+          stacktrace: stackTrace.toString(),
+          extra: {'url': url},
+          tags: {'category': 'tracking'},
+        );
       }
     }
   }
@@ -245,6 +268,13 @@ class GravityRepo {
       return responses;
     } catch (error, stackTrace) {
       _sessionManager.failSessionInitialization(completer, error, stackTrace);
+      ErrorReporter.instance.report(
+        message: error.toString(),
+        level: errorLevel(error),
+        section: 'GravityRepo._executeChooseBatch',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': categorizeError(error), 'endpoint': 'choose'},
+      );
       rethrow;
     }
   }

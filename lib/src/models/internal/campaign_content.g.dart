@@ -13,10 +13,12 @@ CampaignContent _$CampaignContentFromJson(Map<String, dynamic> json) =>
       templateSystemName: $enumDecodeNullable(
         _$TemplateSystemNameEnumMap,
         json['templateSystemName'],
+        unknownValue: TemplateSystemName.unknown,
       ),
       deliveryMethod: $enumDecode(
         _$DeliveryMethodEnumMap,
         json['deliveryMethod'],
+        unknownValue: DeliveryMethod.unknown,
       ),
       contentType: json['contentType'] as String,
       variables: Variables.fromJson(json['variables'] as Map<String, dynamic>),

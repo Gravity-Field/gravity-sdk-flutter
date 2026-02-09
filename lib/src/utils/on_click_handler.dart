@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
+import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/gravity_sdk.dart';
 import 'package:gravity_sdk/src/models/actions/action.dart';
 import 'package:gravity_sdk/src/models/actions/on_click.dart';
@@ -23,25 +24,36 @@ class OnClickHandler {
   }
 
   void handeOnClick(OnClick onClick) {
-    final event = content.events?.firstWhereOrNull((element) => element.type == onClick.action);
-    if (event != null) {
-      GravityRepo.instance.triggerEventUrls(event.urls);
-    }
+    try {
+      final event = content.events?.firstWhereOrNull((element) => element.type == onClick.action);
+      if (event != null) {
+        GravityRepo.instance.triggerEventUrls(event.urls);
+      }
 
-    switch (onClick.action) {
-      case Action.copy:
-        _handleCopyAction(onClick);
-      case Action.close:
-        _handleCloseAction(onClick);
-      case Action.cancel:
-        _handleCancelAction(onClick);
-      case Action.followUrl:
-        _handleFollowUrlAction(onClick);
-      case Action.followDeeplink:
-        _handleFollowDeeplinkAction(onClick);
-      case Action.requestPush:
-        _handleRequestPushAction(onClick);
-      default:
+      switch (onClick.action) {
+        case Action.copy:
+          _handleCopyAction(onClick);
+        case Action.close:
+          _handleCloseAction(onClick);
+        case Action.cancel:
+          _handleCancelAction(onClick);
+        case Action.followUrl:
+          _handleFollowUrlAction(onClick);
+        case Action.followDeeplink:
+          _handleFollowDeeplinkAction(onClick);
+        case Action.requestPush:
+          _handleRequestPushAction(onClick);
+        default:
+      }
+    } catch (e, stackTrace) {
+      ErrorReporter.instance.report(
+        message: e.toString(),
+        level: 'warning',
+        section: 'OnClickHandler.handeOnClick',
+        stacktrace: stackTrace.toString(),
+        extra: {'action': onClick.action.name},
+        tags: {'category': 'ui'},
+      );
     }
   }
 

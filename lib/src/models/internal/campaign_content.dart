@@ -1,5 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import '../../data/error_reporting/error_reporter.dart';
 import '../actions/event.dart';
 import 'delivery_type.dart';
 import 'products.dart';
@@ -12,7 +13,9 @@ part 'campaign_content.g.dart';
 class CampaignContent {
   final String contentId;
   final String? placeholderId;
+  @JsonKey(unknownEnumValue: TemplateSystemName.unknown)
   final TemplateSystemName? templateSystemName;
+  @JsonKey(unknownEnumValue: DeliveryMethod.unknown)
   final DeliveryMethod deliveryMethod;
   final String contentType;
   final Variables variables;
@@ -30,5 +33,24 @@ class CampaignContent {
     required this.events,
   });
 
-  factory CampaignContent.fromJson(Map<String, dynamic> json) => _$CampaignContentFromJson(json);
+  factory CampaignContent.fromJson(Map<String, dynamic> json) {
+    final result = _$CampaignContentFromJson(json);
+    if (result.deliveryMethod == DeliveryMethod.unknown) {
+      ErrorReporter.instance.report(
+        message: 'Unknown deliveryMethod: ${json['deliveryMethod']}',
+        level: 'warning',
+        section: 'CampaignContent.fromJson',
+        tags: {'category': 'parsing'},
+      );
+    }
+    if (result.templateSystemName == TemplateSystemName.unknown) {
+      ErrorReporter.instance.report(
+        message: 'Unknown templateSystemName: ${json['templateSystemName']}',
+        level: 'warning',
+        section: 'CampaignContent.fromJson',
+        tags: {'category': 'parsing'},
+      );
+    }
+    return result;
+  }
 }

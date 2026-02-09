@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
+import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/repos/gravity_repo.dart';
 
 class ContentEventsService {
@@ -69,28 +70,38 @@ class ContentEventsService {
     required Campaign campaign,
     bool callbackTrackingEvent = true,
   }) {
-    if (action == null) return;
+    try {
+      if (action == null) return;
 
-    final event = content.events?.firstWhereOrNull((event) => event.type == action.action);
+      final event = content.events?.firstWhereOrNull((event) => event.type == action.action);
 
-    if (event == null) return;
+      if (event == null) return;
 
-    final urls = event.urls;
+      final urls = event.urls;
 
-    GravityRepo.instance.triggerEventUrls(urls);
+      GravityRepo.instance.triggerEventUrls(urls);
 
-    if (callbackTrackingEvent) {
-      final event = switch (action.action) {
-        Action.load => ContentLoadEvent(content, campaign),
-        Action.impression => ContentImpressionEvent(content, campaign),
-        Action.visibleImpression => ContentVisibleImpressionEvent(content, campaign),
-        Action.close => ContentCloseEvent(content, campaign),
-        _ => null,
-      };
+      if (callbackTrackingEvent) {
+        final event = switch (action.action) {
+          Action.load => ContentLoadEvent(content, campaign),
+          Action.impression => ContentImpressionEvent(content, campaign),
+          Action.visibleImpression => ContentVisibleImpressionEvent(content, campaign),
+          Action.close => ContentCloseEvent(content, campaign),
+          _ => null,
+        };
 
-      if (event != null) {
-        GravitySDK.instance.gravityEventCallback?.call(event);
+        if (event != null) {
+          GravitySDK.instance.gravityEventCallback?.call(event);
+        }
       }
+    } catch (e, stackTrace) {
+      ErrorReporter.instance.report(
+        message: e.toString(),
+        level: 'warning',
+        section: 'ContentEventsService._trackEvent',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': 'tracking'},
+      );
     }
   }
 }

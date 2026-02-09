@@ -7,7 +7,11 @@ part of 'on_click.dart';
 // **************************************************************************
 
 OnClick _$OnClickFromJson(Map<String, dynamic> json) => OnClick(
-  action: $enumDecode(_$ActionEnumMap, json['action']),
+  action: $enumDecode(
+    _$ActionEnumMap,
+    json['action'],
+    unknownValue: Action.unknown,
+  ),
   copyData: json['copyData'] as String?,
   step: (json['step'] as num?)?.toInt(),
   url: json['url'] as String?,

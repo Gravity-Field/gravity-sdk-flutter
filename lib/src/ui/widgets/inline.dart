@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
+import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_content.dart';
 
 class GravityInlineWidget extends StatefulWidget {
@@ -65,12 +66,21 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
         return;
       }
 
+      if (!mounted) return;
       setState(() {
         content = selectedContent;
         this.campaign = campaign;
         isLoading = false;
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      ErrorReporter.instance.report(
+        message: e.toString(),
+        level: 'error',
+        section: 'GravityInlineWidget._loadContent',
+        stacktrace: stackTrace.toString(),
+        extra: {'selector': widget.selector},
+        tags: {'category': 'ui'},
+      );
       _setFailureState();
     }
   }
@@ -98,6 +108,7 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
   }
 
   void _setFailureState() {
+    if (!mounted) return;
     setState(() {
       isLoading = false;
       isFailure = true;

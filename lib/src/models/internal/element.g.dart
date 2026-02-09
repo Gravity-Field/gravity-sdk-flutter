@@ -7,7 +7,11 @@ part of 'element.dart';
 // **************************************************************************
 
 Element _$ElementFromJson(Map<String, dynamic> json) => Element(
-  type: $enumDecode(_$ElementTypeEnumMap, json['type']),
+  type: $enumDecode(
+    _$ElementTypeEnumMap,
+    json['type'],
+    unknownValue: ElementType.unknown,
+  ),
   text: json['text'] as String?,
   src: json['src'] as String?,
   style: json['style'] == null

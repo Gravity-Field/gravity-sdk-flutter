@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
+import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_content.dart';
 
 class GravityInlineListWidget extends StatefulWidget {
@@ -79,11 +80,20 @@ class _GravityInlineListWidgetState extends State<GravityInlineListWidget> {
         return indexA.compareTo(indexB);
       });
 
+      if (!mounted) return;
       setState(() {
         items = loadedItems;
         isLoading = false;
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      ErrorReporter.instance.report(
+        message: e.toString(),
+        level: 'error',
+        section: 'GravityInlineListWidget._loadContent',
+        stacktrace: stackTrace.toString(),
+        extra: {'group': widget.group},
+        tags: {'category': 'ui'},
+      );
       _setFailureState();
     }
   }
@@ -96,6 +106,7 @@ class _GravityInlineListWidgetState extends State<GravityInlineListWidget> {
   }
 
   void _setFailureState() {
+    if (!mounted) return;
     setState(() {
       isLoading = false;
       isFailure = true;

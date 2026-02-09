@@ -61,6 +61,7 @@ class _HomePageState extends State<HomePage> {
               GravityInlineWidget(
                 key: Key('inline_banner'),
                 selector: 'inline_banner',
+                height: 172,
                 pageContext: PageContext(
                   type: ContextType.homepage,
                   data: [],

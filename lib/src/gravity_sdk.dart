@@ -24,6 +24,8 @@ import 'ui/delivery_methods/bottom_sheet/bottom_sheet_content.dart';
 import 'ui/delivery_methods/full_screen/full_screen_content.dart';
 import 'ui/delivery_methods/modal/modal_content.dart';
 import 'utils/content_events_service.dart';
+import 'data/error_reporting/error_helpers.dart';
+import 'data/error_reporting/error_reporter.dart';
 import 'utils/logger.dart';
 
 typedef GravityEventCallback = void Function(TrackingEvent event);
@@ -69,7 +71,12 @@ class GravitySDK {
     LoggerManager.instance.configure(logLevel);
   }
 
-  void setOptions({Options? options, ContentSettings? contentSettings, String? proxyUrl, bool? isFetchContentOnTrack}) {
+  void setOptions({
+    Options? options,
+    ContentSettings? contentSettings,
+    String? proxyUrl,
+    bool? isFetchContentOnTrack,
+  }) {
     if (options != null) {
       this.options = options;
     }
@@ -79,7 +86,9 @@ class GravitySDK {
     if (isFetchContentOnTrack != null) {
       this.isFetchContentOnTrack = isFetchContentOnTrack;
     }
-    this.proxyUrl = proxyUrl;
+    if (proxyUrl != null) {
+      this.proxyUrl = proxyUrl;
+    }
   }
 
   void setUser(String userId, String sessionId) {
@@ -92,17 +101,27 @@ class GravitySDK {
 
   Future<void> trackView({required BuildContext context, required PageContext pageContext}) async {
     _checkIsInitialized();
-    final response = await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
-    final campaignId = response.campaigns.firstOrNull;
-    if (campaignId != null) {
-      final result = await getContentByCampaignId(campaignId: campaignId.campaignId, pageContext: pageContext);
-      final campaign = result.data.firstOrNull;
-      if (campaign != null) {
-        final content = campaign.payload.firstOrNull?.contents.firstOrNull;
-        if (content != null) {
-          _showBackendContent(context, content, campaign);
+    try {
+      final response = await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
+      final campaignId = response.campaigns.firstOrNull;
+      if (campaignId != null) {
+        final result = await getContentByCampaignId(campaignId: campaignId.campaignId, pageContext: pageContext);
+        final campaign = result.data.firstOrNull;
+        if (campaign != null) {
+          final content = campaign.payload.firstOrNull?.contents.firstOrNull;
+          if (content != null) {
+            _showBackendContent(context, content, campaign);
+          }
         }
       }
+    } catch (e, stackTrace) {
+      ErrorReporter.instance.report(
+        message: e.toString(),
+        level: errorLevel(e),
+        section: 'GravitySDK.trackView',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': categorizeError(e)},
+      );
     }
   }
 
@@ -112,22 +131,32 @@ class GravitySDK {
     required PageContext pageContext,
   }) async {
     _checkIsInitialized();
-    final response = await GravityRepo.instance.event(
-      events: events,
-      customUser: user,
-      pageContext: pageContext,
-      options: options,
-    );
-    final campaignId = response.campaigns.firstOrNull;
-    if (campaignId != null) {
-      final result = await getContentByCampaignId(campaignId: campaignId.campaignId, pageContext: pageContext);
-      final campaign = result.data.firstOrNull;
-      if (campaign != null) {
-        final content = campaign.payload.firstOrNull?.contents.firstOrNull;
-        if (content != null) {
-          _showBackendContent(context, content, campaign);
+    try {
+      final response = await GravityRepo.instance.event(
+        events: events,
+        customUser: user,
+        pageContext: pageContext,
+        options: options,
+      );
+      final campaignId = response.campaigns.firstOrNull;
+      if (campaignId != null) {
+        final result = await getContentByCampaignId(campaignId: campaignId.campaignId, pageContext: pageContext);
+        final campaign = result.data.firstOrNull;
+        if (campaign != null) {
+          final content = campaign.payload.firstOrNull?.contents.firstOrNull;
+          if (content != null) {
+            _showBackendContent(context, content, campaign);
+          }
         }
       }
+    } catch (e, stackTrace) {
+      ErrorReporter.instance.report(
+        message: e.toString(),
+        level: errorLevel(e),
+        section: 'GravitySDK.triggerEvent',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': categorizeError(e)},
+      );
     }
   }
 
@@ -304,17 +333,27 @@ class GravitySDK {
   /// Также вызывает [gravityContentCallback] в случае успеха.
   Future<GravityDataResponse<ContentResponse>?> trackViewNoShow({required PageContext pageContext}) async {
     _checkIsInitialized();
+    try {
+      final response = await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
 
-    final response = await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
+      final campaignId = response.campaigns.firstOrNull;
+      if (campaignId == null || !isFetchContentOnTrack) {
+        return null;
+      }
 
-    final campaignId = response.campaigns.firstOrNull;
-    if (campaignId == null || !isFetchContentOnTrack) {
+      final result = await getContentByCampaignIdWithDetails(campaignId: campaignId.campaignId, pageContext: pageContext);
+
+      return result;
+    } catch (e, stackTrace) {
+      ErrorReporter.instance.report(
+        message: e.toString(),
+        level: errorLevel(e),
+        section: 'GravitySDK.trackViewNoShow',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': categorizeError(e)},
+      );
       return null;
     }
-
-    final result = await getContentByCampaignIdWithDetails(campaignId: campaignId.campaignId, pageContext: pageContext);
-
-    return result;
   }
 
   /// Отправляет событие и, если кампания активирована,
@@ -327,35 +366,56 @@ class GravitySDK {
     required PageContext pageContext,
   }) async {
     _checkIsInitialized();
+    try {
+      final response = await GravityRepo.instance.event(
+        events: events,
+        customUser: user,
+        pageContext: pageContext,
+        options: options,
+      );
 
-    final response = await GravityRepo.instance.event(
-      events: events,
-      customUser: user,
-      pageContext: pageContext,
-      options: options,
-    );
+      final campaignId = response.campaigns.firstOrNull;
+      if (campaignId == null || !isFetchContentOnTrack) {
+        return null;
+      }
 
-    final campaignId = response.campaigns.firstOrNull;
-    if (campaignId == null || !isFetchContentOnTrack) {
+      final result = await getContentByCampaignIdWithDetails(campaignId: campaignId.campaignId, pageContext: pageContext);
+
+      return result;
+    } catch (e, stackTrace) {
+      ErrorReporter.instance.report(
+        message: e.toString(),
+        level: errorLevel(e),
+        section: 'GravitySDK.triggerEventNoShow',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': categorizeError(e)},
+      );
       return null;
     }
-
-    final result = await getContentByCampaignIdWithDetails(campaignId: campaignId.campaignId, pageContext: pageContext);
-
-    return result;
   }
 
   void _showBackendContent(BuildContext context, CampaignContent content, Campaign campaign) {
-    switch (content.deliveryMethod) {
-      case DeliveryMethod.modal:
-        _showModalContent(context, content, campaign);
-      case DeliveryMethod.bottomSheet:
-        _showBottomSheetContent(context, content, campaign);
-      case DeliveryMethod.fullScreen:
-        _showFullScreenContent(context, content, campaign);
-      case DeliveryMethod.snackBar:
-        _showSnackBar(context, content, campaign);
-      default:
+    try {
+      switch (content.deliveryMethod) {
+        case DeliveryMethod.modal:
+          _showModalContent(context, content, campaign);
+        case DeliveryMethod.bottomSheet:
+          _showBottomSheetContent(context, content, campaign);
+        case DeliveryMethod.fullScreen:
+          _showFullScreenContent(context, content, campaign);
+        case DeliveryMethod.snackBar:
+          _showSnackBar(context, content, campaign);
+        default:
+      }
+    } catch (e, stackTrace) {
+      ErrorReporter.instance.report(
+        message: e.toString(),
+        level: 'error',
+        section: 'GravitySDK._showBackendContent',
+        stacktrace: stackTrace.toString(),
+        extra: {'deliveryMethod': content.deliveryMethod.name},
+        tags: {'category': 'ui'},
+      );
     }
   }
 

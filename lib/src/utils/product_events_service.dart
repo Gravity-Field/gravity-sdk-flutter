@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 
 import '../../gravity_sdk.dart';
+import '../data/error_reporting/error_reporter.dart';
 import '../models/actions/product_action.dart';
 import '../repos/gravity_repo.dart';
 
@@ -46,22 +47,32 @@ class ProductEventsService {
     required Campaign campaign,
     bool callbackTrackingEvent = true,
   }) {
-    final event = slot.events?.firstWhereOrNull((event) => event.type == action);
+    try {
+      final event = slot.events?.firstWhereOrNull((event) => event.type == action);
 
-    if (event == null) return;
+      if (event == null) return;
 
-    final urls = event.urls;
+      final urls = event.urls;
 
-    GravityRepo.instance.triggerEventUrls(urls);
+      GravityRepo.instance.triggerEventUrls(urls);
 
-    if (callbackTrackingEvent) {
-      final event = switch (action) {
-        ProductAction.visibleImpression => ProductImpressionEvent(slot, content, campaign),
-        _ => null,
-      };
-      if (event != null) {
-        GravitySDK.instance.gravityEventCallback?.call(event);
+      if (callbackTrackingEvent) {
+        final event = switch (action) {
+          ProductAction.visibleImpression => ProductImpressionEvent(slot, content, campaign),
+          _ => null,
+        };
+        if (event != null) {
+          GravitySDK.instance.gravityEventCallback?.call(event);
+        }
       }
+    } catch (e, stackTrace) {
+      ErrorReporter.instance.report(
+        message: e.toString(),
+        level: 'warning',
+        section: 'ProductEventsService._trackEvent',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': 'tracking'},
+      );
     }
   }
 }

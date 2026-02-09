@@ -7,7 +7,13 @@ part of 'content_action.dart';
 // **************************************************************************
 
 ContentAction _$ContentActionFromJson(Map<String, dynamic> json) =>
-    ContentAction(action: $enumDecode(_$ActionEnumMap, json['action']));
+    ContentAction(
+      action: $enumDecode(
+        _$ActionEnumMap,
+        json['action'],
+        unknownValue: Action.unknown,
+      ),
+    );
 
 const _$ActionEnumMap = {
   Action.load: 'load',
