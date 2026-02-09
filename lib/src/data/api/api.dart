@@ -11,7 +11,7 @@ import 'content_ids_response.dart';
 class Api {
   final _dio = Dio();
 
-  String get baseUrl => GravitySDK.instance.proxyUrl ?? 'http://evs-01.gravityfield.ai/v2';
+  String get baseUrl => GravitySDK.instance.proxyUrl ?? 'https://evs-01.gravityfield.ai/v2';
 
   Api() {
     _dio.options
