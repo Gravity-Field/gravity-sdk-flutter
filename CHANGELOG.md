@@ -1,3 +1,9 @@
+## 0.14.0
+* Добавлен флаг isFetchContentOnTrack в setOptions для управления загрузкой контента в trackViewNoShow/triggerEventNoShow
+* Добавлен метод triggerTrackingUrl
+* Исправлен метод sendContentEngagement
+* Оптимизация взаимодействия с бэкендом
+
 ## 0.13.1
 * Правки по батчингу
 
