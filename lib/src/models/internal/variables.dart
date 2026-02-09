@@ -9,7 +9,8 @@ part 'variables.g.dart';
 @JsonSerializable()
 class Variables {
   final FrameUI? frameUI;
-  final List<Element> elements;
+  final List<Element>? elements;
+  final String? title;
   final ContentAction? onLoad;
   final ContentAction? onImpression;
   final ContentAction? onVisibleImpression;
@@ -17,8 +18,9 @@ class Variables {
   final int? index;
 
   Variables({
-    required this.frameUI,
-    required this.elements,
+    this.frameUI,
+    this.elements,
+    this.title,
     this.onLoad,
     this.onImpression,
     this.onVisibleImpression,

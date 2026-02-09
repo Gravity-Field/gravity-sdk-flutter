@@ -29,7 +29,7 @@ class SnackBarContent2 extends SnackBarContent {
     final container = frameUi.container;
     final style = container.style;
     final padding = style?.padding;
-    final elements = content.variables.elements;
+    final elements = content.variables.elements ?? [];
     final texts = elements.where((element) => element.type == ElementType.text);
     final image = elements.firstWhereOrNull((element) => element.type == ElementType.image);
     final button = elements.firstWhereOrNull((element) => element.type == ElementType.button);

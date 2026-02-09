@@ -35,7 +35,7 @@ class _InlineContentState extends State<InlineContent> {
   Widget build(BuildContext context) {
     final frameUi = widget.content.variables.frameUI;
     final container = frameUi?.container;
-    final elements = widget.content.variables.elements;
+    final elements = widget.content.variables.elements ?? [];
     final products = widget.content.products;
     final contentId = widget.content.contentId;
 

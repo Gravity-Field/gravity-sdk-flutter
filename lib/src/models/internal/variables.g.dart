@@ -10,9 +10,10 @@ Variables _$VariablesFromJson(Map<String, dynamic> json) => Variables(
   frameUI: json['frameUI'] == null
       ? null
       : FrameUI.fromJson(json['frameUI'] as Map<String, dynamic>),
-  elements: (json['elements'] as List<dynamic>)
-      .map((e) => Element.fromJson(e as Map<String, dynamic>))
+  elements: (json['elements'] as List<dynamic>?)
+      ?.map((e) => Element.fromJson(e as Map<String, dynamic>))
       .toList(),
+  title: json['title'] as String?,
   onLoad: json['onLoad'] == null
       ? null
       : ContentAction.fromJson(json['onLoad'] as Map<String, dynamic>),

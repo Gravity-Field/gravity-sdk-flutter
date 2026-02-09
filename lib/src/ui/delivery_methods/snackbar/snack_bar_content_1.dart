@@ -27,7 +27,7 @@ class SnackBarContent1 extends SnackBarContent {
     final container = frameUi.container;
     final style = container.style;
     final padding = style?.padding;
-    final elements = content.variables.elements;
+    final elements = content.variables.elements ?? [];
     final texts = elements.where((element) => element.type == ElementType.text);
     final images = elements.where((element) => element.type == ElementType.image);
 

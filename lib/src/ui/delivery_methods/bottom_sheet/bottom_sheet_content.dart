@@ -39,7 +39,7 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
     final frameUi = widget.content.variables.frameUI!;
     final container = frameUi.container;
     final close = frameUi.close;
-    final elements = widget.content.variables.elements;
+    final elements = widget.content.variables.elements ?? [];
     final contentId = widget.content.contentId;
     final products = widget.content.products;
 
