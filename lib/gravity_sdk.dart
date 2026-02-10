@@ -17,6 +17,8 @@ export 'src/models/external/campaign.dart';
 export 'src/models/external/product_engagement.dart';
 export 'src/models/external/content_engagement.dart';
 export 'src/models/internal/campaign_content.dart';
+export 'src/models/internal/content_custom.dart';
+export 'src/models/internal/delivery_type.dart';
 export 'src/models/internal/campaign_variation.dart';
 export 'src/models/internal/variables.dart';
 export 'src/models/internal/element.dart';

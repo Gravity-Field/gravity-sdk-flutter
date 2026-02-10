@@ -341,7 +341,10 @@ class GravitySDK {
         return null;
       }
 
-      final result = await getContentByCampaignIdWithDetails(campaignId: campaignId.campaignId, pageContext: pageContext);
+      final result = await getContentByCampaignIdWithDetails(
+        campaignId: campaignId.campaignId,
+        pageContext: pageContext,
+      );
 
       return result;
     } catch (e, stackTrace) {
@@ -379,7 +382,10 @@ class GravitySDK {
         return null;
       }
 
-      final result = await getContentByCampaignIdWithDetails(campaignId: campaignId.campaignId, pageContext: pageContext);
+      final result = await getContentByCampaignIdWithDetails(
+        campaignId: campaignId.campaignId,
+        pageContext: pageContext,
+      );
 
       return result;
     } catch (e, stackTrace) {
@@ -405,6 +411,8 @@ class GravitySDK {
           _showFullScreenContent(context, content, campaign);
         case DeliveryMethod.snackBar:
           _showSnackBar(context, content, campaign);
+        case DeliveryMethod.json:
+          break;
         default:
       }
     } catch (e, stackTrace) {

@@ -22,6 +22,9 @@ CampaignContent _$CampaignContentFromJson(Map<String, dynamic> json) =>
       ),
       contentType: json['contentType'] as String,
       variables: Variables.fromJson(json['variables'] as Map<String, dynamic>),
+      custom: json['custom'] == null
+          ? null
+          : ContentCustom.fromJson(json['custom'] as Map<String, dynamic>),
       products: json['products'] == null
           ? null
           : Products.fromJson(json['products'] as Map<String, dynamic>),
@@ -42,5 +45,6 @@ const _$DeliveryMethodEnumMap = {
   DeliveryMethod.bottomSheet: 'bottom_sheet',
   DeliveryMethod.fullScreen: 'full_screen',
   DeliveryMethod.inline: 'inline',
+  DeliveryMethod.json: 'json',
   DeliveryMethod.unknown: 'unknown',
 };

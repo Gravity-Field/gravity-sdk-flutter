@@ -2,6 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 import '../../data/error_reporting/error_reporter.dart';
 import '../actions/event.dart';
+import 'content_custom.dart';
 import 'delivery_type.dart';
 import 'products.dart';
 import 'template_system_name.dart';
@@ -19,6 +20,7 @@ class CampaignContent {
   final DeliveryMethod deliveryMethod;
   final String contentType;
   final Variables variables;
+  final ContentCustom? custom;
   final Products? products;
   final List<Event>? events;
 
@@ -29,6 +31,7 @@ class CampaignContent {
     required this.deliveryMethod,
     required this.contentType,
     required this.variables,
+    this.custom,
     required this.products,
     required this.events,
   });

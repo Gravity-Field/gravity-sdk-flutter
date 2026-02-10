@@ -26,5 +26,6 @@ const _$ActionEnumMap = {
   Action.followDeeplink: 'follow_deeplink',
   Action.requestPush: 'request_push',
   Action.requestTracking: 'request_tracking',
+  Action.openStep: 'open_step',
   Action.unknown: 'unknown',
 };

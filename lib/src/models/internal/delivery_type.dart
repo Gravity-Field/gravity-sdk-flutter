@@ -12,6 +12,8 @@ enum DeliveryMethod {
   fullScreen,
   @JsonValue('inline')
   inline,
+  @JsonValue('json')
+  json,
   @JsonValue('unknown')
   unknown,
 }
