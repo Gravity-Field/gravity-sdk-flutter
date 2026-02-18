@@ -9,7 +9,7 @@ class CampaignIdsResponse {
   final User user;
   final List<CampaignId> campaigns;
 
-  CampaignIdsResponse({
+  const CampaignIdsResponse({
     required this.user,
     this.campaigns = const [],
   });
@@ -21,10 +21,14 @@ class CampaignIdsResponse {
 class CampaignId {
   final String campaignId;
   final String trigger;
+  final int priority;
+  final int delayTime;
 
-  CampaignId({
+  const CampaignId({
     required this.campaignId,
     this.trigger = '',
+    this.priority = 0,
+    this.delayTime = 0,
   });
 
   factory CampaignId.fromJson(Map<String, dynamic> json) => _$CampaignIdFromJson(json);

@@ -4,6 +4,7 @@ import 'package:gravity_sdk/src/models/internal/template_system_name.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/snackbar/snack_bar_content.dart';
 import 'package:gravity_sdk/src/utils/product_events_service.dart';
 
+import 'data/api/content_ids_response.dart';
 import 'data/api/content_response.dart';
 import 'models/external/gravity_data_response.dart';
 import 'models/external/log_level.dart';
@@ -103,25 +104,30 @@ class GravitySDK {
     _checkIsInitialized();
     try {
       final response = await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
-      final campaignId = response.campaigns.firstOrNull;
-      if (campaignId != null) {
-        final result = await getContentByCampaignId(campaignId: campaignId.campaignId, pageContext: pageContext);
-        final campaign = result.data.firstOrNull;
-        if (campaign != null) {
-          final content = campaign.payload.firstOrNull?.contents.firstOrNull;
-          if (content != null) {
-            _showBackendContent(context, content, campaign);
-          }
-        }
-      }
-    } catch (e, stackTrace) {
-      ErrorReporter.instance.report(
-        message: e.toString(),
-        level: errorLevel(e),
+
+      if (response.campaigns.isEmpty || !context.mounted) return;
+
+      final resolved = await _resolveHighestPriority<ContentResponse>(
+        campaigns: response.campaigns,
+        pageContext: pageContext,
+        fetchContent: (id, ctx) => getContentByCampaignId(campaignId: id, pageContext: ctx),
+        extractCampaigns: (result) => result.data,
         section: 'GravitySDK.trackView',
-        stacktrace: stackTrace.toString(),
-        tags: {'category': categorizeError(e)},
       );
+      if (resolved == null) return;
+
+      final (result, campaignIdObj) = resolved;
+
+      if (campaignIdObj.delayTime > 0) {
+        await Future.delayed(Duration(milliseconds: campaignIdObj.delayTime));
+      }
+
+      if (!context.mounted) return;
+
+      final campaign = result.data.first;
+      _showBackendContent(context, campaign.payload.first.contents.first, campaign);
+    } catch (e, stackTrace) {
+      _reportError(e, stackTrace, section: 'GravitySDK.trackView');
     }
   }
 
@@ -138,25 +144,30 @@ class GravitySDK {
         pageContext: pageContext,
         options: options,
       );
-      final campaignId = response.campaigns.firstOrNull;
-      if (campaignId != null) {
-        final result = await getContentByCampaignId(campaignId: campaignId.campaignId, pageContext: pageContext);
-        final campaign = result.data.firstOrNull;
-        if (campaign != null) {
-          final content = campaign.payload.firstOrNull?.contents.firstOrNull;
-          if (content != null) {
-            _showBackendContent(context, content, campaign);
-          }
-        }
-      }
-    } catch (e, stackTrace) {
-      ErrorReporter.instance.report(
-        message: e.toString(),
-        level: errorLevel(e),
+
+      if (response.campaigns.isEmpty || !context.mounted) return;
+
+      final resolved = await _resolveHighestPriority<ContentResponse>(
+        campaigns: response.campaigns,
+        pageContext: pageContext,
+        fetchContent: (id, ctx) => getContentByCampaignId(campaignId: id, pageContext: ctx),
+        extractCampaigns: (result) => result.data,
         section: 'GravitySDK.triggerEvent',
-        stacktrace: stackTrace.toString(),
-        tags: {'category': categorizeError(e)},
       );
+      if (resolved == null) return;
+
+      final (result, campaignIdObj) = resolved;
+
+      if (campaignIdObj.delayTime > 0) {
+        await Future.delayed(Duration(milliseconds: campaignIdObj.delayTime));
+      }
+
+      if (!context.mounted) return;
+
+      final campaign = result.data.first;
+      _showBackendContent(context, campaign.payload.first.contents.first, campaign);
+    } catch (e, stackTrace) {
+      _reportError(e, stackTrace, section: 'GravitySDK.triggerEvent');
     }
   }
 
@@ -336,25 +347,14 @@ class GravitySDK {
     try {
       final response = await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
 
-      final campaignId = response.campaigns.firstOrNull;
-      if (campaignId == null || !isFetchContentOnTrack) {
-        return null;
-      }
+      if (response.campaigns.isEmpty || !isFetchContentOnTrack) return null;
 
-      final result = await getContentByCampaignIdWithDetails(
-        campaignId: campaignId.campaignId,
+      return await _resolveHighestPriorityNoShow(
+        campaigns: response.campaigns,
         pageContext: pageContext,
       );
-
-      return result;
     } catch (e, stackTrace) {
-      ErrorReporter.instance.report(
-        message: e.toString(),
-        level: errorLevel(e),
-        section: 'GravitySDK.trackViewNoShow',
-        stacktrace: stackTrace.toString(),
-        tags: {'category': categorizeError(e)},
-      );
+      _reportError(e, stackTrace, section: 'GravitySDK.trackViewNoShow');
       return null;
     }
   }
@@ -377,27 +377,85 @@ class GravitySDK {
         options: options,
       );
 
-      final campaignId = response.campaigns.firstOrNull;
-      if (campaignId == null || !isFetchContentOnTrack) {
-        return null;
-      }
+      if (response.campaigns.isEmpty || !isFetchContentOnTrack) return null;
 
-      final result = await getContentByCampaignIdWithDetails(
-        campaignId: campaignId.campaignId,
+      return await _resolveHighestPriorityNoShow(
+        campaigns: response.campaigns,
         pageContext: pageContext,
       );
-
-      return result;
     } catch (e, stackTrace) {
-      ErrorReporter.instance.report(
-        message: e.toString(),
-        level: errorLevel(e),
-        section: 'GravitySDK.triggerEventNoShow',
-        stacktrace: stackTrace.toString(),
-        tags: {'category': categorizeError(e)},
-      );
+      _reportError(e, stackTrace, section: 'GravitySDK.triggerEventNoShow');
       return null;
     }
+  }
+
+  /// Sorts [campaigns] by priority (descending) and iterates through them,
+  /// calling [fetchContent] for each until one returns a campaign with
+  /// non-empty content. Returns the fetch result paired with the matching
+  /// [CampaignId], or `null` if no campaign yielded content.
+  Future<(T, CampaignId)?> _resolveHighestPriority<T>({
+    required List<CampaignId> campaigns,
+    required PageContext pageContext,
+    required Future<T> Function(String campaignId, PageContext pageContext) fetchContent,
+    required List<Campaign> Function(T result) extractCampaigns,
+    required String section,
+  }) async {
+    final sorted = List.of(campaigns)
+      ..sort((a, b) => b.priority.compareTo(a.priority));
+
+    for (final campaignId in sorted) {
+      try {
+        final result = await fetchContent(campaignId.campaignId, pageContext);
+        final campaign = extractCampaigns(result).firstOrNull;
+        if (campaign == null) continue;
+
+        final content = campaign.payload.firstOrNull?.contents.firstOrNull;
+        if (content == null) continue;
+
+        return (result, campaignId);
+      } catch (e, stackTrace) {
+        _reportError(
+          e,
+          stackTrace,
+          section: section,
+          extra: {'campaignId': campaignId.campaignId, 'priority': campaignId.priority},
+        );
+      }
+    }
+    return null;
+  }
+
+  /// Resolves the highest-priority campaign in headless (NoShow) mode,
+  /// returning the detailed response or `null` if no campaign yielded content.
+  Future<GravityDataResponse<ContentResponse>?> _resolveHighestPriorityNoShow({
+    required List<CampaignId> campaigns,
+    required PageContext pageContext,
+  }) async {
+    final resolved = await _resolveHighestPriority<GravityDataResponse<ContentResponse>>(
+      campaigns: campaigns,
+      pageContext: pageContext,
+      fetchContent: (campaignId, ctx) => getContentByCampaignIdWithDetails(campaignId: campaignId, pageContext: ctx),
+      extractCampaigns: (result) => result.data.data,
+      section: 'GravitySDK._resolveHighestPriorityNoShow',
+    );
+
+    return resolved?.$1;
+  }
+
+  void _reportError(
+    Object error,
+    StackTrace stackTrace, {
+    required String section,
+    Map<String, Object>? extra,
+  }) {
+    ErrorReporter.instance.report(
+      message: error.toString(),
+      level: errorLevel(error),
+      section: section,
+      stacktrace: stackTrace.toString(),
+      extra: extra,
+      tags: {'category': categorizeError(error)},
+    );
   }
 
   void _showBackendContent(BuildContext context, CampaignContent content, Campaign campaign) {
