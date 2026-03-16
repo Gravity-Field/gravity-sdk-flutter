@@ -11,6 +11,7 @@ class GravityInlineWidget extends StatefulWidget {
   final PageContext pageContext;
   final bool showLoading;
   final Widget? loadingWidget;
+  final Color? backgroundColor;
 
   const GravityInlineWidget({
     super.key,
@@ -21,6 +22,7 @@ class GravityInlineWidget extends StatefulWidget {
     required this.pageContext,
     this.showLoading = true,
     this.loadingWidget,
+    this.backgroundColor,
   });
 
   @override
@@ -123,8 +125,16 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
 
     Widget? child;
 
-    if (isLoading && widget.showLoading) {
-      child = widget.loadingWidget ?? Center(child: CircularProgressIndicator());
+    if (isLoading) {
+      if (widget.showLoading) {
+        child = widget.loadingWidget ?? Center(child: CircularProgressIndicator());
+      }
+      if (widget.backgroundColor != null) {
+        child = Container(
+          color: widget.backgroundColor,
+          child: child,
+        );
+      }
     } else if (content != null && campaign != null) {
       child = InlineContent(
         content: content!,
