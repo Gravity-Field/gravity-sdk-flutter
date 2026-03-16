@@ -79,10 +79,17 @@ class SnackBarContent1 extends SnackBarContent {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (texts.elementAtOrNull(0) != null) GravityText(element: texts.elementAt(0)),
+                    if (texts.elementAtOrNull(0) != null)
+                      GravityText(
+                        element: texts.elementAt(0),
+                        onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                      ),
                     if (texts.elementAtOrNull(1) != null) ...[
                       SizedBox(height: 4),
-                      GravityText(element: texts.elementAt(1)),
+                      GravityText(
+                        element: texts.elementAt(1),
+                        onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                      ),
                     ],
                   ],
                 ),

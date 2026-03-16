@@ -31,7 +31,7 @@ class GravityElement {
       case ElementType.image:
         return GravityImageWidget(element: element, onClickCallback: onClickCallback);
       case ElementType.text:
-        return GravityText(element: element);
+        return GravityText(element: element, onClickCallback: onClickCallback);
       case ElementType.button:
         return GravityButton(element: element, onClickCallback: onClickCallback);
       case ElementType.spacer:

@@ -400,8 +400,7 @@ class GravitySDK {
     required List<Campaign> Function(T result) extractCampaigns,
     required String section,
   }) async {
-    final sorted = List.of(campaigns)
-      ..sort((a, b) => b.priority.compareTo(a.priority));
+    final sorted = List.of(campaigns)..sort((a, b) => b.priority.compareTo(a.priority));
 
     for (final campaignId in sorted) {
       try {
@@ -509,6 +508,7 @@ class GravitySDK {
         backgroundColor: container.style?.backgroundColor,
         isScrollControlled: true,
         useSafeArea: true,
+        clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(container.style?.cornerRadius ?? 0),
