@@ -23,9 +23,19 @@ class GravityButton extends StatelessWidget {
 
     final buttonWidget = FilledButton(
       style: ButtonStyle(
+        padding: WidgetStateProperty.all(
+          style.padding != null
+              ? EdgeInsets.only(
+                  left: style.padding?.left ?? 0,
+                  right: style.padding?.right ?? 0,
+                  top: style.padding?.top ?? 0,
+                  bottom: style.padding?.bottom ?? 0,
+                )
+              : EdgeInsets.zero,
+        ),
         backgroundColor: WidgetStateProperty.all(style.backgroundColor),
         overlayColor: WidgetStateProperty.all(style.pressColor),
-        fixedSize: WidgetStateProperty.all(Size.fromHeight(style.size?.height ?? 48)),
+        minimumSize: style.size?.height != null ? WidgetStateProperty.all(Size(0, style.size!.height!)) : null,
         shape: WidgetStateProperty.all<RoundedRectangleBorder>(
           RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(style.cornerRadius ?? 8),
@@ -52,9 +62,7 @@ class GravityButton extends StatelessWidget {
     if (layoutWidth == GravityLayoutWidth.matchParent) {
       outputWidget = Row(
         children: [
-          Expanded(
-            child: outputWidget,
-          ),
+          Expanded(child: outputWidget),
         ],
       );
     }
@@ -62,10 +70,10 @@ class GravityButton extends StatelessWidget {
     if (style.margin != null) {
       outputWidget = Padding(
         padding: EdgeInsets.only(
-          left: style.padding?.left ?? 0,
-          right: style.padding?.right ?? 0,
-          top: style.padding?.top ?? 0,
-          bottom: style.padding?.bottom ?? 0,
+          left: style.margin?.left ?? 0,
+          right: style.margin?.right ?? 0,
+          top: style.margin?.top ?? 0,
+          bottom: style.margin?.bottom ?? 0,
         ),
         child: outputWidget,
       );
