@@ -6,12 +6,12 @@ import '../../models/internal/style.dart';
 
 class GravityImageWidget extends StatelessWidget {
   final Element element;
-  final Function(OnClick onClick) onClickCallback;
+  final Function(OnClick onClick)? onClickCallback;
 
   const GravityImageWidget({
     super.key,
     required this.element,
-    required this.onClickCallback,
+    this.onClickCallback,
   });
 
   @override
@@ -61,9 +61,9 @@ class GravityImageWidget extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: onClick != null
+      onTap: onClick != null && onClickCallback != null
           ? () {
-              onClickCallback(onClick);
+              onClickCallback!(onClick);
             }
           : null,
       child: outputWidget,

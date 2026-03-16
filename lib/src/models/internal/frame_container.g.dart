@@ -11,4 +11,7 @@ FrameContainer _$FrameContainerFromJson(Map<String, dynamic> json) =>
       style: json['style'] == null
           ? null
           : Style.fromJson(json['style'] as Map<String, dynamic>),
+      onClick: json['onClick'] == null
+          ? null
+          : OnClick.fromJson(json['onClick'] as Map<String, dynamic>),
     );

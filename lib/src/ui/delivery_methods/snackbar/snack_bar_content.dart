@@ -9,7 +9,7 @@ import 'snack_bar_content_2.dart';
 abstract class SnackBarContent {
   SnackBarContent();
 
-  SnackBar toMaterialSnackBar();
+  SnackBar toMaterialSnackBar(BuildContext context);
 
   factory SnackBarContent.getSnackBar({
     required TemplateSystemName template,
