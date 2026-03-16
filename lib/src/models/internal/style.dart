@@ -29,6 +29,8 @@ class Style {
   final GravityTextStyle? textStyle;
   @JsonKey(fromJson: ParseUtils.parseBoxFit)
   final BoxFit? fit;
+  @JsonKey(fromJson: ParseUtils.parseBoxFit)
+  final BoxFit? backgroundFit;
   final GravityContentAlignment? contentAlignment;
   final GravityVerticalAlignment? verticalAlignment;
   final GravityLayoutWidth? layoutWidth;
@@ -50,6 +52,7 @@ class Style {
     this.textColor,
     this.textStyle,
     this.fit,
+    this.backgroundFit,
     this.contentAlignment,
     this.verticalAlignment,
     this.layoutWidth,

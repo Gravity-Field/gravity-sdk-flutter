@@ -42,11 +42,8 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
     final elements = widget.content.variables.elements ?? [];
     final contentId = widget.content.contentId;
     final products = widget.content.products;
-
     final backgroundImage = container.style?.backgroundImage;
-    final backgroundColor = container.style?.backgroundColor;
-    final fit = container.style?.fit ?? BoxFit.cover;
-    final cornerRadius = container.style?.cornerRadius ?? 0;
+    final fit = container.style?.backgroundFit ?? BoxFit.cover;
 
     return VisibilityDetector(
       key: ValueKey(contentId),
@@ -62,63 +59,54 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
           );
         }
       },
-      child: ClipRRect(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(cornerRadius),
-          topRight: Radius.circular(cornerRadius),
-        ),
-        child: SingleChildScrollView(
-          child: Stack(
-            children: [
-              if (backgroundImage != null)
-                Positioned.fill(
-                  child: Image.network(
-                    backgroundImage,
-                    fit: fit,
-                  ),
-                ),
-              if (backgroundColor != null && backgroundImage == null)
-                Positioned.fill(
-                  child: Container(color: backgroundColor),
-                ),
-              Padding(
-                padding: EdgeInsets.only(
-                  left: container.style?.padding?.left ?? 0,
-                  right: container.style?.padding?.right ?? 0,
-                  top: container.style?.padding?.top ?? 0,
-                  bottom: container.style?.padding?.bottom ?? 0,
-                ),
-                child: Column(
-                  crossAxisAlignment:
-                      container.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: elements
-                      .map(
-                        (e) => GravityElement(
-                          element: e,
-                          content: widget.content,
-                          campaign: widget.campaign,
-                          products: products,
-                          onClickCallback: (action) {
-                            if (e.type == ElementType.button && action.closeOnClick) {
-                              Navigator.of(context).pop();
-                            }
-                            onClickHandler.handeOnClick(action);
-                          },
-                        ).getWidget(),
-                      )
-                      .toList(),
+      child: SingleChildScrollView(
+        child: Stack(
+          children: [
+            if (backgroundImage != null)
+              Positioned.fill(
+                child: Image.network(
+                  backgroundImage,
+                  fit: fit,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               ),
-              if (close != null)
-                GravityCloseButtonWidget(
-                  close: close,
-                  onClickCallback: (action) {
-                    onClickHandler.handeOnClick(action);
-                  },
-                ),
-            ],
-          ),
+            Padding(
+              padding: EdgeInsets.only(
+                left: container.style?.padding?.left ?? 0,
+                right: container.style?.padding?.right ?? 0,
+                top: container.style?.padding?.top ?? 0,
+                bottom: container.style?.padding?.bottom ?? 0,
+              ),
+              child: Column(
+                crossAxisAlignment:
+                    container.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: elements
+                    .map(
+                      (e) => GravityElement(
+                        element: e,
+                        content: widget.content,
+                        campaign: widget.campaign,
+                        products: products,
+                        onClickCallback: (action) {
+                          if (e.type == ElementType.button && action.closeOnClick) {
+                            Navigator.of(context).pop();
+                          }
+                          onClickHandler.handeOnClick(action);
+                        },
+                      ).getWidget(),
+                    )
+                    .toList(),
+              ),
+            ),
+            if (close != null)
+              GravityCloseButtonWidget(
+                close: close,
+                onClickCallback: (action) {
+                  onClickHandler.handeOnClick(action);
+                },
+              ),
+          ],
         ),
       ),
     );
