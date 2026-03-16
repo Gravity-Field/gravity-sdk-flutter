@@ -20,9 +20,9 @@ class GravityImageWidget extends StatelessWidget {
     final layoutWidth = style.layoutWidth;
     final onClick = element.onClick;
 
-    final imageWidget = Image.network(
+    Widget outputWidget = Image.network(
       element.src ?? '',
-      fit: style.fit,
+      fit: style.fit ?? BoxFit.cover,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) return child;
         return Center(
@@ -35,18 +35,25 @@ class GravityImageWidget extends StatelessWidget {
       },
     );
 
-    Widget outputWidget = imageWidget;
-
-    if (style.size != null) {
+    if (style.cornerRadius != null && style.cornerRadius! > 0) {
       outputWidget = ClipRRect(
-        borderRadius: BorderRadius.circular(style.cornerRadius ?? 0),
-        child: SizedBox(
-          width: layoutWidth == GravityLayoutWidth.matchParent ? double.infinity : style.size!.width,
-          height: style.size!.height,
-          child: imageWidget,
-        ),
+        borderRadius: BorderRadius.circular(style.cornerRadius!),
+        child: outputWidget,
       );
     }
+
+    if (layoutWidth == GravityLayoutWidth.matchParent) {
+      outputWidget = SizedBox(
+        width: double.infinity,
+        child: outputWidget,
+      );
+    }
+
+    outputWidget = SizedBox(
+      height: style.size?.height,
+      width: style.size?.width,
+      child: outputWidget,
+    );
 
     if (style.margin != null) {
       outputWidget = Padding(
