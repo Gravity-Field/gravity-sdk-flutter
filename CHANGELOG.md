@@ -1,3 +1,7 @@
+## 0.15.0
+* Скорректирована работа SnackBar, GravityButton, BottomSheetContent, GravityCloseButtonWidget, GravityImageWidget, GravityText
+* Добавлен backgroundColor для GravityInlineWidget
+
 ## 0.14.0
 * Добавлен флаг isFetchContentOnTrack в setOptions для управления загрузкой контента в trackViewNoShow/triggerEventNoShow
 * Добавлен метод triggerTrackingUrl
