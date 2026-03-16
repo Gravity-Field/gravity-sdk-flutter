@@ -44,7 +44,7 @@ class _ModalContentState extends State<ModalContent> {
 
     final backgroundImage = container.style?.backgroundImage;
     final backgroundColor = container.style?.backgroundColor ?? Colors.white;
-    final fit = container.style?.fit ?? BoxFit.cover;
+    final fit = container.style?.backgroundFit ?? BoxFit.cover;
     final cornerRadius = container.style?.cornerRadius ?? 0;
 
     return VisibilityDetector(
@@ -62,7 +62,7 @@ class _ModalContentState extends State<ModalContent> {
         }
       },
       child: Dialog(
-        backgroundColor: backgroundImage != null ? Colors.transparent : backgroundColor,
+        backgroundColor: backgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cornerRadius)),
         clipBehavior: Clip.antiAlias,
         child: Stack(
@@ -72,6 +72,7 @@ class _ModalContentState extends State<ModalContent> {
                 child: Image.network(
                   backgroundImage,
                   fit: fit,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
                 ),
               ),
             Padding(
@@ -84,6 +85,8 @@ class _ModalContentState extends State<ModalContent> {
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment:
+                      container.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
                   children: elements
                       .map(
                         (e) => GravityElement(

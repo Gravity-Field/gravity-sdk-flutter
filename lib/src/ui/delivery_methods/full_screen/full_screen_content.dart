@@ -44,7 +44,7 @@ class _FullScreenContentState extends State<FullScreenContent> {
 
     final backgroundImage = container.style?.backgroundImage;
     final backgroundColor = container.style?.backgroundColor;
-    final fit = container.style?.fit ?? BoxFit.cover;
+    final fit = container.style?.backgroundFit ?? BoxFit.cover;
 
     return VisibilityDetector(
       key: ValueKey(contentId),
@@ -82,9 +82,11 @@ class _FullScreenContentState extends State<FullScreenContent> {
                               constraints: BoxConstraints(minHeight: constraints.maxHeight),
                               child: Column(
                                 crossAxisAlignment:
-                                    container.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
+                                    container.style?.contentAlignment?.toCrossAxisAlignment() ??
+                                    CrossAxisAlignment.center,
                                 mainAxisAlignment:
-                                    container.style?.verticalAlignment?.toMainAxisAlignment() ?? MainAxisAlignment.center,
+                                    container.style?.verticalAlignment?.toMainAxisAlignment() ??
+                                    MainAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.min,
                                 children: elements
                                     .map(

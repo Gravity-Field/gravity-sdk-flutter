@@ -41,7 +41,7 @@ class _InlineContentState extends State<InlineContent> {
 
     final backgroundImage = container?.style?.backgroundImage;
     final backgroundColor = container?.style?.backgroundColor;
-    final fit = container?.style?.fit ?? BoxFit.cover;
+    final fit = container?.style?.backgroundFit ?? BoxFit.cover;
     final cornerRadius = container?.style?.cornerRadius ?? 0;
 
     return VisibilityDetector(
@@ -78,20 +78,24 @@ class _InlineContentState extends State<InlineContent> {
           borderRadius: BorderRadius.circular(cornerRadius),
           image: backgroundImage != null ? DecorationImage(image: NetworkImage(backgroundImage), fit: fit) : null,
         ),
-        child: Column(
-          crossAxisAlignment: container?.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: elements
-              .map(
-                (e) => GravityElement(
-                  element: e,
-                  onClickCallback: (action) => onClickHandler.handeOnClick(action),
-                  campaign: widget.campaign,
-                  content: widget.content,
-                  products: products,
-                ).getWidget(),
-              )
-              .toList(),
+        clipBehavior: Clip.hardEdge,
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: container?.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: elements
+                .map(
+                  (e) => GravityElement(
+                    element: e,
+                    onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                    campaign: widget.campaign,
+                    content: widget.content,
+                    products: products,
+                  ).getWidget(),
+                )
+                .toList(),
+          ),
         ),
       ),
     );

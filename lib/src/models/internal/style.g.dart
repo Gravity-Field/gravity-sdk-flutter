@@ -28,6 +28,7 @@ Style _$StyleFromJson(Map<String, dynamic> json) => Style(
       ? null
       : GravityTextStyle.fromJson(json['textStyle'] as Map<String, dynamic>),
   fit: ParseUtils.parseBoxFit(json['fit']),
+  backgroundFit: ParseUtils.parseBoxFit(json['backgroundFit']),
   contentAlignment: $enumDecodeNullable(
     _$GravityContentAlignmentEnumMap,
     json['contentAlignment'],
