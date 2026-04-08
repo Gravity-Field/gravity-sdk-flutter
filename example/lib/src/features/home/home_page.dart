@@ -1,6 +1,6 @@
 import 'package:example/gen/assets.gen.dart';
 import 'package:example/src/core/widgets/product_shimmer_loader.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Element, Container;
 
 import 'package:gravity_sdk/gravity_sdk.dart';
 
@@ -61,20 +61,32 @@ class _HomePageState extends State<HomePage> {
               GravityInlineWidget(
                 key: Key('inline_banner'),
                 selector: 'inline_banner',
+                height: 174,
                 pageContext: PageContext(
                   type: ContextType.homepage,
                   data: [],
                   location: 'homepage',
                 ),
               ),
-              GravityInlineWidget(
-                key: Key('inline_widget_qa'),
-                selector: 'inline_widget_qa',
+              GravityAnchor(
+                selector: 'anchor_test',
                 pageContext: PageContext(
                   type: ContextType.homepage,
                   data: [],
                   location: 'homepage',
                 ),
+                builder: (context, onReady) {
+                  return GravityInlineWidget(
+                    key: Key('inline_widget_qa'),
+                    selector: 'inline_widget_qa',
+                    pageContext: PageContext(
+                      type: ContextType.homepage,
+                      data: [],
+                      location: 'homepage',
+                    ),
+                    onLoaded: onReady,
+                  );
+                },
               ),
               GravityInlineWidget(
                 key: Key('inline_multi_widget_qa_placeholder_1'),

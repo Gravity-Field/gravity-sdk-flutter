@@ -29,4 +29,12 @@ Variables _$VariablesFromJson(Map<String, dynamic> json) => Variables(
       ? null
       : ContentAction.fromJson(json['onClose'] as Map<String, dynamic>),
   index: (json['index'] as num?)?.toInt() ?? 0,
+  tooltipConfig: json['tooltipConfig'] == null
+      ? null
+      : TooltipConfig.fromJson(json['tooltipConfig'] as Map<String, dynamic>),
+  positioning: json['positioning'] == null
+      ? null
+      : TooltipPositioning.fromJson(
+          json['positioning'] as Map<String, dynamic>,
+        ),
 );

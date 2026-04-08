@@ -12,6 +12,7 @@ class GravityInlineWidget extends StatefulWidget {
   final bool showLoading;
   final Widget? loadingWidget;
   final Color? backgroundColor;
+  final VoidCallback? onLoaded;
 
   const GravityInlineWidget({
     super.key,
@@ -23,6 +24,7 @@ class GravityInlineWidget extends StatefulWidget {
     this.showLoading = true,
     this.loadingWidget,
     this.backgroundColor,
+    this.onLoaded,
   });
 
   @override
@@ -74,6 +76,7 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
         this.campaign = campaign;
         isLoading = false;
       });
+      widget.onLoaded?.call();
     } catch (e, stackTrace) {
       ErrorReporter.instance.report(
         message: e.toString(),

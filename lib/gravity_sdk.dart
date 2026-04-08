@@ -29,3 +29,5 @@ export 'src/models/internal/style.dart';
 export 'src/models/actions/on_click.dart';
 export 'src/models/actions/content_action.dart';
 export 'src/models/external/user.dart';
+export 'src/models/internal/tooltip_config.dart';
+export 'src/ui/anchor/gravity_anchor.dart';

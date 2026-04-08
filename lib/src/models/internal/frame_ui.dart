@@ -1,6 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
 import '../actions/close.dart';
+import 'arrow.dart';
 import 'frame_container.dart';
 import 'frame_params.dart';
 
@@ -11,8 +12,9 @@ class FrameUI {
   final FrameContainer container;
   final Close? close;
   final FrameParams? params;
+  final Arrow? arrow;
 
-  const FrameUI({required this.container, required this.close, this.params});
+  const FrameUI({required this.container, this.close, this.params, this.arrow});
 
   factory FrameUI.fromJson(Map<String, dynamic> json) => _$FrameUIFromJson(json);
 }

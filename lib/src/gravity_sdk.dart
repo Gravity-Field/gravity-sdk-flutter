@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Action;
 import 'package:gravity_sdk/src/models/internal/delivery_type.dart';
 import 'package:gravity_sdk/src/models/internal/template_system_name.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/snackbar/snack_bar_content.dart';
+import 'package:gravity_sdk/src/ui/delivery_methods/tooltip/tooltip_overlay.dart';
 import 'package:gravity_sdk/src/utils/product_events_service.dart';
 
 import 'data/api/content_ids_response.dart';
@@ -19,8 +20,10 @@ import 'models/external/tracking_event.dart';
 import 'models/external/trigger_event.dart';
 import 'models/external/user.dart';
 import 'models/internal/campaign_content.dart';
+import 'models/internal/tooltip_config.dart';
 import 'repos/gravity_repo.dart';
 import 'settings/product_widget_builder.dart';
+import 'ui/anchor/anchor_registry.dart';
 import 'ui/delivery_methods/bottom_sheet/bottom_sheet_content.dart';
 import 'ui/delivery_methods/full_screen/full_screen_content.dart';
 import 'ui/delivery_methods/modal/modal_content.dart';
@@ -31,8 +34,8 @@ import 'utils/logger.dart';
 
 typedef GravityEventCallback = void Function(TrackingEvent event);
 
-/// Колбек, который вызывается с GravityDataResponse контента кампании.
-/// Предназначен для использования в ручном (headless) режиме.
+/// Callback invoked with the campaign content GravityDataResponse.
+/// Intended for use in headless mode.
 typedef GravityContentCallback = void Function(GravityDataResponse<ContentResponse> response);
 
 class GravitySDK {
@@ -128,6 +131,36 @@ class GravitySDK {
       _showBackendContent(context, campaign.payload.first.contents.first, campaign);
     } catch (e, stackTrace) {
       _reportError(e, stackTrace, section: 'GravitySDK.trackView');
+    }
+  }
+
+  Future<void> fetchAnchorContent({
+    required BuildContext context,
+    required String selector,
+    PageContext? pageContext,
+  }) async {
+    _checkIsInitialized();
+    try {
+      final effectivePageContext = pageContext ?? PageContext(type: ContextType.other, data: [], location: '');
+
+      final response = await GravityRepo.instance.getContentBySelector(
+        selector: selector,
+        pageContext: effectivePageContext,
+        options: options,
+        contentSetting: contentSettings,
+      );
+
+      if (!context.mounted) return;
+
+      final campaign = response.data.firstOrNull;
+      if (campaign == null) return;
+
+      final content = campaign.payload.firstOrNull?.contents.firstOrNull;
+      if (content == null) return;
+
+      _showBackendContent(context, content, campaign, selector: selector);
+    } catch (e, stackTrace) {
+      _reportError(e, stackTrace, section: 'GravitySDK.fetchAnchorContent');
     }
   }
 
@@ -284,7 +317,7 @@ class GravitySDK {
     return content;
   }
 
-  /// Запрашивает контент по селектору и возвращает объект с моделью и исходным JSON.
+  /// Fetches content by selector and returns an object with the model and raw JSON.
   Future<GravityDataResponse<ContentResponse>> getContentBySelectorWithDetails({
     required String selector,
     required PageContext pageContext,
@@ -337,11 +370,11 @@ class GravitySDK {
     return response;
   }
 
-  /// Отслеживает просмотр экрана и, если кампания активирована,
-  /// получает и возвращает ее контент в виде сырого JSON.
+  /// Tracks a screen view and, if a campaign is triggered,
+  /// fetches and returns its content as raw JSON.
   ///
-  /// Возвращает GravityDataResponse или `null`, если кампания не сработала.
-  /// Также вызывает [gravityContentCallback] в случае успеха.
+  /// Returns GravityDataResponse or `null` if no campaign was triggered.
+  /// Also invokes [gravityContentCallback] on success.
   Future<GravityDataResponse<ContentResponse>?> trackViewNoShow({required PageContext pageContext}) async {
     _checkIsInitialized();
     try {
@@ -359,11 +392,11 @@ class GravitySDK {
     }
   }
 
-  /// Отправляет событие и, если кампания активирована,
-  /// получает и возвращает ее контент в виде сырого JSON.
+  /// Sends an event and, if a campaign is triggered,
+  /// fetches and returns its content as raw JSON.
   ///
-  /// Возвращает GravityDataResponse или `null`, если кампания не сработала.
-  /// Также вызывает [gravityContentCallback] в случае успеха.
+  /// Returns GravityDataResponse or `null` if no campaign was triggered.
+  /// Also invokes [gravityContentCallback] on success.
   Future<GravityDataResponse<ContentResponse>?> triggerEventNoShow({
     required List<TriggerEvent> events,
     required PageContext pageContext,
@@ -457,7 +490,7 @@ class GravitySDK {
     );
   }
 
-  void _showBackendContent(BuildContext context, CampaignContent content, Campaign campaign) {
+  void _showBackendContent(BuildContext context, CampaignContent content, Campaign campaign, {String? selector}) {
     try {
       switch (content.deliveryMethod) {
         case DeliveryMethod.modal:
@@ -468,6 +501,10 @@ class GravitySDK {
           _showFullScreenContent(context, content, campaign);
         case DeliveryMethod.snackBar:
           _showSnackBar(context, content, campaign);
+        case DeliveryMethod.tooltip:
+          if (selector != null) {
+            _showTooltipContent(context, content, campaign, selector);
+          }
         case DeliveryMethod.json:
           break;
         default:
@@ -481,6 +518,19 @@ class GravitySDK {
         extra: {'deliveryMethod': content.deliveryMethod.name},
         tags: {'category': 'ui'},
       );
+    }
+  }
+
+  void _showTooltipContent(BuildContext context, CampaignContent content, Campaign campaign, String selector) {
+    if (!AnchorRegistry.instance.hasAnchor(selector)) {
+      talker.warning('Tooltip: anchor with selector "$selector" not found');
+      return;
+    }
+
+    final config = content.variables.tooltipConfig ?? TooltipConfig();
+
+    if (context.mounted) {
+      TooltipOverlay.show(context: context, content: content, campaign: campaign, config: config, selector: selector);
     }
   }
 

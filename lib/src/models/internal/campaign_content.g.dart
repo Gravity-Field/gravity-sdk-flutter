@@ -46,5 +46,6 @@ const _$DeliveryMethodEnumMap = {
   DeliveryMethod.fullScreen: 'full_screen',
   DeliveryMethod.inline: 'inline',
   DeliveryMethod.json: 'json',
+  DeliveryMethod.tooltip: 'tooltip',
   DeliveryMethod.unknown: 'unknown',
 };

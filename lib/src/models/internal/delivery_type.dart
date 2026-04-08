@@ -14,6 +14,8 @@ enum DeliveryMethod {
   inline,
   @JsonValue('json')
   json,
+  @JsonValue('tooltip')
+  tooltip,
   @JsonValue('unknown')
   unknown,
 }
