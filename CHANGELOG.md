@@ -1,3 +1,8 @@
+## 0.16.0
+* Исправлено отображение SnackBar
+* Скорректирована работа closeOnClick у BottomSheetContent, FullScreenContent, ModalContent и SnackBar
+* Добавлена возможность отображать Tooltip
+
 ## 0.15.0
 * Скорректирована работа SnackBar, GravityButton, BottomSheetContent, GravityCloseButtonWidget, GravityImageWidget, GravityText
 * Добавлен backgroundColor для GravityInlineWidget
@@ -67,10 +72,10 @@
 * Соответствие nullable и required полей API.
 
 ## 0.9.8
-* Закрытие bottom sheet при нажатии на кнопку. Отключатеся через closeOnClick = false в классе OnClick.
-* В поле attributes объекта PageContenxt подмешиваются app_version, sdk_version, app_platform
+* Закрытие bottom sheet при нажатии на кнопку. Отключается через closeOnClick = false в классе OnClick.
+* В поле attributes объекта PageContext подмешиваются app_version, sdk_version, app_platform
 * ContentSettings перемещены в data.options
-* InlineWidget не рендериться в случае ошибки получения данных.
+* InlineWidget не рендерится в случае ошибки получения данных.
 
 ## 0.9.6
 
@@ -89,7 +94,7 @@
 
 ## 0.9.3
 
-* В объекте device предаются tracking и permission.
+* В объекте device передаются tracking и permission.
 
 ## 0.9.2
 
@@ -116,11 +121,11 @@
 
 ## 0.8.9
 
-* Отображение sneckbar.
+* Отображение snackbar.
 
 ## 0.8.8
 
-* Получение и отображение компаний в ответ на trackView и triggerEvent
+* Получение и отображение кампаний в ответ на trackView и triggerEvent
 
 ## 0.8.7
 
