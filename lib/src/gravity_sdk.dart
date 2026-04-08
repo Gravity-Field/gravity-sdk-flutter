@@ -543,14 +543,18 @@ class GravitySDK {
       return;
     }
 
-    final snackBar = SnackBarContent.getSnackBar(
+    final snackBarContent = SnackBarContent.getSnackBar(
       template: template,
       content: content,
       campaign: campaign,
     );
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(snackBar.toMaterialSnackBar(context));
+      SnackBarContent.show(
+        context: context,
+        snackBarContent: snackBarContent,
+        durationSeconds: content.variables.frameUI?.params?.duration ?? 4,
+      );
     }
   }
 

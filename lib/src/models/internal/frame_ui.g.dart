@@ -11,4 +11,7 @@ FrameUI _$FrameUIFromJson(Map<String, dynamic> json) => FrameUI(
   close: json['close'] == null
       ? null
       : Close.fromJson(json['close'] as Map<String, dynamic>),
+  params: json['params'] == null
+      ? null
+      : FrameParams.fromJson(json['params'] as Map<String, dynamic>),
 );
