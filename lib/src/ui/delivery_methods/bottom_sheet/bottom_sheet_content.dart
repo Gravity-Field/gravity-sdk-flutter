@@ -89,10 +89,10 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
                         campaign: widget.campaign,
                         products: products,
                         onClickCallback: (action) {
+                          onClickHandler.handeOnClick(action);
                           if (e.type == ElementType.button && action.closeOnClick) {
                             Navigator.of(context).pop();
                           }
-                          onClickHandler.handeOnClick(action);
                         },
                       ).getWidget(),
                     )

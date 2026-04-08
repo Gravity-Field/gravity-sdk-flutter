@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gravity_sdk/src/models/internal/element.dart';
 import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -92,7 +93,12 @@ class _FullScreenContentState extends State<FullScreenContent> {
                                     .map(
                                       (e) => GravityElement(
                                         element: e,
-                                        onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                                        onClickCallback: (action) {
+                                          onClickHandler.handeOnClick(action);
+                                          if (e.type == ElementType.button && action.closeOnClick) {
+                                            Navigator.of(context).pop();
+                                          }
+                                        },
                                         campaign: widget.campaign,
                                         content: widget.content,
                                         products: products,
