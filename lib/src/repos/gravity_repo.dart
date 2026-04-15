@@ -43,8 +43,9 @@ class GravityRepo {
     final attrs = context.attributes;
     final sortedKeys = attrs.keys.toList()..sort();
     final attrsHash = sortedKeys.map((k) => '$k=${attrs[k]}').join('&');
+    final dataHash = context.data.join(',');
 
-    return '$identifier|$contextKey|$attrsHash';
+    return '$identifier|$contextKey|$attrsHash|$dataHash';
   }
 
   Future<CampaignIdsResponse> event({
