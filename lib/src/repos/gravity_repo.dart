@@ -58,10 +58,11 @@ class GravityRepo {
 
     try {
       final user = await _getUserForRequest(customUser, sessionCompleter);
+      final capturedGen = _sessionManager.generation;
       final context = await _mixPageContextAttributes(pageContext);
       final response = await _api.event(events, user, context, options);
 
-      await _finalizeSession(customUser, response.user, sessionCompleter);
+      await _finalizeSession(customUser, response.user, sessionCompleter, capturedGen);
       return response;
     } catch (error, stackTrace) {
       _handleSessionFailure(sessionCompleter, error, stackTrace);
@@ -85,10 +86,11 @@ class GravityRepo {
 
     try {
       final user = await _getUserForRequest(customUser, sessionCompleter);
+      final capturedGen = _sessionManager.generation;
       final context = await _mixPageContextAttributes(pageContext);
       final response = await _api.visit(user, context, options);
 
-      await _finalizeSession(customUser, response.user, sessionCompleter);
+      await _finalizeSession(customUser, response.user, sessionCompleter, capturedGen);
       return response;
     } catch (error, stackTrace) {
       _handleSessionFailure(sessionCompleter, error, stackTrace);
@@ -111,6 +113,7 @@ class GravityRepo {
     required ContentSettings contentSetting,
   }) async {
     final finalUser = await _ensureUser(customUser);
+    final capturedGen = _sessionManager.generation;
     final finalPageContext = await _mixPageContextAttributes(pageContext);
 
     final requestData = {
@@ -123,7 +126,7 @@ class GravityRepo {
 
     final response = await _chooseBatcher.schedule(requestData);
 
-    await _sessionManager.saveUser(customUser, response.user);
+    await _sessionManager.saveUser(customUser, response.user, capturedGen);
     return response;
   }
 
@@ -135,6 +138,7 @@ class GravityRepo {
     required ContentSettings contentSetting,
   }) async {
     final finalUser = await _ensureUser(customUser);
+    final capturedGen = _sessionManager.generation;
     final finalPageContext = await _mixPageContextAttributes(pageContext);
 
     final requestData = {
@@ -147,7 +151,7 @@ class GravityRepo {
 
     final response = await _chooseBatcher.schedule(requestData);
 
-    await _sessionManager.saveUser(customUser, response.user);
+    await _sessionManager.saveUser(customUser, response.user, capturedGen);
     return response;
   }
 
@@ -159,6 +163,7 @@ class GravityRepo {
     required ContentSettings contentSetting,
   }) async {
     final finalUser = await _ensureUser(customUser);
+    final capturedGen = _sessionManager.generation;
     final finalPageContext = await _mixPageContextAttributes(pageContext);
 
     final response = await _api.chooseByGroup(
@@ -169,7 +174,7 @@ class GravityRepo {
       contentSettings: contentSetting,
     );
 
-    await _sessionManager.saveUser(customUser, response.user);
+    await _sessionManager.saveUser(customUser, response.user, capturedGen);
     return response;
   }
 
@@ -231,8 +236,13 @@ class GravityRepo {
     }
   }
 
-  Future<void> _finalizeSession(User? customUser, User? serverUser, Completer<void>? sessionCompleter) async {
-    await _sessionManager.saveUser(customUser, serverUser);
+  Future<void> _finalizeSession(
+    User? customUser,
+    User? serverUser,
+    Completer<void>? sessionCompleter,
+    int capturedGeneration,
+  ) async {
+    await _sessionManager.saveUser(customUser, serverUser, capturedGeneration);
 
     if (sessionCompleter != null) {
       _sessionManager.completeSessionInitialization(sessionCompleter);
@@ -372,6 +382,7 @@ class GravityRepo {
     required ContentSettings contentSetting,
   }) async {
     final finalUser = await _ensureUser(customUser);
+    final capturedGen = _sessionManager.generation;
     final finalPageContext = await _mixPageContextAttributes(pageContext);
 
     final (content, json) = await _api.chooseBySelectorWithDetails(
@@ -382,7 +393,7 @@ class GravityRepo {
       contentSettings: contentSetting,
     );
 
-    await _sessionManager.saveUser(customUser, content.user);
+    await _sessionManager.saveUser(customUser, content.user, capturedGen);
 
     return GravityDataResponse(data: content, json: json);
   }
@@ -395,6 +406,7 @@ class GravityRepo {
     required ContentSettings contentSetting,
   }) async {
     final finalUser = await _ensureUser(customUser);
+    final capturedGen = _sessionManager.generation;
     final finalPageContext = await _mixPageContextAttributes(pageContext);
 
     final (content, json) = await _api.chooseByCampaignIdWithDetails(
@@ -405,7 +417,7 @@ class GravityRepo {
       contentSettings: contentSetting,
     );
 
-    await _sessionManager.saveUser(customUser, content.user);
+    await _sessionManager.saveUser(customUser, content.user, capturedGen);
 
     return GravityDataResponse(data: content, json: json);
   }

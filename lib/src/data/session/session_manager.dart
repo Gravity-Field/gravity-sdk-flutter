@@ -14,6 +14,9 @@ class SessionManager {
 
   Future<void>? _sessionInitializationFuture;
 
+  int _generation = 0;
+  int get generation => _generation;
+
   Future<User?> getUser(User? customUser) async {
     if (customUser != null) {
       return customUser;
@@ -38,7 +41,10 @@ class SessionManager {
     return null;
   }
 
-  Future<void> saveUser(User? customUser, User? serverUser) async {
+  Future<void> saveUser(User? customUser, User? serverUser, int capturedGeneration) async {
+    if (capturedGeneration != _generation) {
+      return;
+    }
     if (customUser != null) {
       return;
     }
@@ -48,11 +54,31 @@ class SessionManager {
 
     if (uid != null && uid != _userIdCache) {
       await Prefs.instance.setUserId(uid);
+      if (capturedGeneration != _generation) {
+        await Prefs.instance.removeUserId();
+        return;
+      }
       _userIdCache = uid;
     }
 
     if (ses != null) {
       _sessionIdCache = ses;
+    }
+  }
+
+  Future<void> resetSession() async {
+    _generation++;
+    _userIdCache = null;
+    _sessionIdCache = null;
+    final resetCompleter = Completer<void>();
+    _sessionInitializationFuture = resetCompleter.future;
+    try {
+      await Prefs.instance.removeUserId();
+    } finally {
+      if (identical(_sessionInitializationFuture, resetCompleter.future)) {
+        _sessionInitializationFuture = null;
+      }
+      resetCompleter.complete();
     }
   }
 
@@ -66,14 +92,18 @@ class SessionManager {
     if (!completer.isCompleted) {
       completer.complete();
     }
-    _sessionInitializationFuture = null;
+    if (identical(_sessionInitializationFuture, completer.future)) {
+      _sessionInitializationFuture = null;
+    }
   }
 
   void failSessionInitialization(Completer<void> completer, Object error, StackTrace stackTrace) {
     if (!completer.isCompleted) {
       completer.completeError(error, stackTrace);
     }
-    _sessionInitializationFuture = null;
+    if (identical(_sessionInitializationFuture, completer.future)) {
+      _sessionInitializationFuture = null;
+    }
   }
 
   bool get isInitializing => _sessionInitializationFuture != null;

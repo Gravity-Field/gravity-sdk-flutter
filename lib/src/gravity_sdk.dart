@@ -7,6 +7,7 @@ import 'package:gravity_sdk/src/utils/product_events_service.dart';
 
 import 'data/api/content_ids_response.dart';
 import 'data/api/content_response.dart';
+import 'data/session/session_manager.dart';
 import 'models/external/gravity_data_response.dart';
 import 'models/external/log_level.dart';
 import 'models/external/campaign.dart';
@@ -97,6 +98,11 @@ class GravitySDK {
 
   void setUser(String userId, String sessionId) {
     user = User(custom: userId, ses: sessionId);
+  }
+
+  Future<void> resetUser() async {
+    user = null;
+    await SessionManager.instance.resetSession();
   }
 
   void setNotificationPermissionStatus(NotificationPermissionStatus status) {
