@@ -1,3 +1,7 @@
+## 0.17.0
+* Добавлен метод resetUser() для сброса идентификации пользователя
+* Правки по батчингу
+
 ## 0.16.0
 * Исправлено отображение SnackBar
 * Скорректирована работа closeOnClick у BottomSheetContent, FullScreenContent, ModalContent и SnackBar
