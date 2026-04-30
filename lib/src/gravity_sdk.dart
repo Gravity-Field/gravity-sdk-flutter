@@ -10,6 +10,7 @@ import 'data/api/content_response.dart';
 import 'data/session/session_manager.dart';
 import 'models/external/gravity_data_response.dart';
 import 'models/external/log_level.dart';
+import 'models/external/rt_rule.dart';
 import 'models/external/campaign.dart';
 import 'models/external/content_engagement.dart';
 import 'models/external/content_settings.dart';
@@ -260,7 +261,11 @@ class GravitySDK {
     }
   }
 
-  Future<ContentResponse> getContentBySelector({required String selector, required PageContext pageContext}) async {
+  Future<ContentResponse> getContentBySelector({
+    required String selector,
+    required PageContext pageContext,
+    List<RtRule>? rules,
+  }) async {
     _checkIsInitialized();
 
     final content = await GravityRepo.instance.getContentBySelector(
@@ -268,6 +273,7 @@ class GravitySDK {
       pageContext: pageContext,
       options: options,
       contentSetting: contentSettings,
+      rules: rules,
     );
 
     for (final campaign in content.data) {
@@ -281,7 +287,11 @@ class GravitySDK {
     return content;
   }
 
-  Future<ContentResponse> getContentByCampaignId({required String campaignId, required PageContext pageContext}) async {
+  Future<ContentResponse> getContentByCampaignId({
+    required String campaignId,
+    required PageContext pageContext,
+    List<RtRule>? rules,
+  }) async {
     _checkIsInitialized();
 
     final content = await GravityRepo.instance.getContentByCampaignId(
@@ -289,6 +299,7 @@ class GravitySDK {
       pageContext: pageContext,
       options: options,
       contentSetting: contentSettings,
+      rules: rules,
     );
 
     for (final campaign in content.data) {
@@ -302,7 +313,11 @@ class GravitySDK {
     return content;
   }
 
-  Future<ContentResponse> getContentByGroup({required String group, required PageContext pageContext}) async {
+  Future<ContentResponse> getContentByGroup({
+    required String group,
+    required PageContext pageContext,
+    List<RtRule>? rules,
+  }) async {
     _checkIsInitialized();
 
     final content = await GravityRepo.instance.getContentByGroup(
@@ -310,6 +325,7 @@ class GravitySDK {
       pageContext: pageContext,
       options: options,
       contentSetting: contentSettings,
+      rules: rules,
     );
 
     for (final campaign in content.data) {
@@ -327,6 +343,7 @@ class GravitySDK {
   Future<GravityDataResponse<ContentResponse>> getContentBySelectorWithDetails({
     required String selector,
     required PageContext pageContext,
+    List<RtRule>? rules,
   }) async {
     _checkIsInitialized();
 
@@ -335,6 +352,7 @@ class GravitySDK {
       pageContext: pageContext,
       options: options,
       contentSetting: contentSettings,
+      rules: rules,
     );
 
     for (final campaign in response.data.data) {
@@ -353,6 +371,7 @@ class GravitySDK {
   Future<GravityDataResponse<ContentResponse>> getContentByCampaignIdWithDetails({
     required String campaignId,
     required PageContext pageContext,
+    List<RtRule>? rules,
   }) async {
     _checkIsInitialized();
 
@@ -361,6 +380,7 @@ class GravitySDK {
       pageContext: pageContext,
       options: options,
       contentSetting: contentSettings,
+      rules: rules,
     );
 
     for (final campaign in response.data.data) {

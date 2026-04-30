@@ -13,6 +13,7 @@ class GravityInlineWidget extends StatefulWidget {
   final Widget? loadingWidget;
   final Color? backgroundColor;
   final VoidCallback? onLoaded;
+  final List<RtRule>? rules;
 
   const GravityInlineWidget({
     super.key,
@@ -25,6 +26,7 @@ class GravityInlineWidget extends StatefulWidget {
     this.loadingWidget,
     this.backgroundColor,
     this.onLoaded,
+    this.rules,
   });
 
   @override
@@ -49,6 +51,7 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
       final response = await GravitySDK.instance.getContentBySelector(
         selector: widget.selector,
         pageContext: widget.pageContext,
+        rules: widget.rules,
       );
       final campaign = response.data.first;
 

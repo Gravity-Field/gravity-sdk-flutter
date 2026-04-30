@@ -44,6 +44,7 @@ class Api {
     required PageContext context,
     required Options options,
     required ContentSettings contentSettings,
+    List<RtRule>? rules,
   }) async {
     final device = await DeviceUtils.instance.getDevice();
 
@@ -53,6 +54,7 @@ class Api {
         {
           'campaignId': campaignId,
           'option': contentSettings.toJson(),
+          if (rules != null) 'rules': rules.map((r) => r.toJson()).toList(),
         },
       ],
       'device': device.toJson(),
@@ -72,6 +74,7 @@ class Api {
     required PageContext context,
     required Options options,
     required ContentSettings contentSettings,
+    List<RtRule>? rules,
   }) async {
     final device = await DeviceUtils.instance.getDevice();
 
@@ -81,6 +84,7 @@ class Api {
         {
           'selector': selector,
           'option': contentSettings.toJson(),
+          if (rules != null) 'rules': rules.map((r) => r.toJson()).toList(),
         },
       ],
       'device': device.toJson(),
@@ -99,6 +103,7 @@ class Api {
     required PageContext context,
     required Options options,
     required ContentSettings contentSettings,
+    List<RtRule>? rules,
   }) async {
     final device = await DeviceUtils.instance.getDevice();
 
@@ -108,6 +113,7 @@ class Api {
         {
           'group': group,
           'option': contentSettings.toJson(),
+          if (rules != null) 'rules': rules.map((r) => r.toJson()).toList(),
         },
       ],
       'device': device.toJson(),
@@ -187,13 +193,18 @@ class Api {
     required PageContext context,
     required Options options,
     required ContentSettings contentSettings,
+    List<RtRule>? rules,
   }) async {
     final device = await DeviceUtils.instance.getDevice();
 
     final data = {
       'sec': GravitySDK.instance.section,
       'data': [
-        {'campaignId': campaignId, 'option': contentSettings.toJson()},
+        {
+          'campaignId': campaignId,
+          'option': contentSettings.toJson(),
+          if (rules != null) 'rules': rules.map((r) => r.toJson()).toList(),
+        },
       ],
       'device': device.toJson(),
       'user': user?.toJson(),
@@ -212,13 +223,18 @@ class Api {
     required PageContext context,
     required Options options,
     required ContentSettings contentSettings,
+    List<RtRule>? rules,
   }) async {
     final device = await DeviceUtils.instance.getDevice();
 
     final data = {
       'sec': GravitySDK.instance.section,
       'data': [
-        {'selector': selector, 'option': contentSettings.toJson()},
+        {
+          'selector': selector,
+          'option': contentSettings.toJson(),
+          if (rules != null) 'rules': rules.map((r) => r.toJson()).toList(),
+        },
       ],
       'device': device.toJson(),
       'user': user?.toJson(),

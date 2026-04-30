@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:gravity_sdk/src/data/batching/request_batcher.dart';
@@ -6,6 +7,7 @@ import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/data/session/session_manager.dart';
 import 'package:gravity_sdk/src/models/external/gravity_data_response.dart';
 import 'package:gravity_sdk/src/models/external/page_context.dart';
+import 'package:gravity_sdk/src/models/external/rt_rule.dart';
 import 'package:gravity_sdk/src/models/external/trigger_event.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -45,7 +47,10 @@ class GravityRepo {
     final attrsHash = sortedKeys.map((k) => '$k=${attrs[k]}').join('&');
     final dataHash = context.data.join(',');
 
-    return '$identifier|$contextKey|$attrsHash|$dataHash';
+    final rules = data['rules'] as List<RtRule>?;
+    final rulesKey = rules != null ? jsonEncode(rules.map((r) => r.toJson()).toList()) : '';
+
+    return '$identifier|$contextKey|$attrsHash|$dataHash|$rulesKey';
   }
 
   Future<CampaignIdsResponse> event({
@@ -111,6 +116,7 @@ class GravityRepo {
     required PageContext pageContext,
     required Options options,
     required ContentSettings contentSetting,
+    List<RtRule>? rules,
   }) async {
     final finalUser = await _ensureUser(customUser);
     final capturedGen = _sessionManager.generation;
@@ -122,6 +128,7 @@ class GravityRepo {
       'context': finalPageContext,
       'options': options,
       'contentSettings': contentSetting,
+      if (rules != null) 'rules': rules,
     };
 
     final response = await _chooseBatcher.schedule(requestData);
@@ -136,6 +143,7 @@ class GravityRepo {
     required PageContext pageContext,
     required Options options,
     required ContentSettings contentSetting,
+    List<RtRule>? rules,
   }) async {
     final finalUser = await _ensureUser(customUser);
     final capturedGen = _sessionManager.generation;
@@ -147,6 +155,7 @@ class GravityRepo {
       'context': finalPageContext,
       'options': options,
       'contentSettings': contentSetting,
+      if (rules != null) 'rules': rules,
     };
 
     final response = await _chooseBatcher.schedule(requestData);
@@ -161,6 +170,7 @@ class GravityRepo {
     required PageContext pageContext,
     required Options options,
     required ContentSettings contentSetting,
+    List<RtRule>? rules,
   }) async {
     final finalUser = await _ensureUser(customUser);
     final capturedGen = _sessionManager.generation;
@@ -172,6 +182,7 @@ class GravityRepo {
       context: finalPageContext,
       options: options,
       contentSettings: contentSetting,
+      rules: rules,
     );
 
     await _sessionManager.saveUser(customUser, response.user, capturedGen);
@@ -295,6 +306,7 @@ class GravityRepo {
     final context = req['context'] as PageContext;
     final options = req['options'] as Options;
     final contentSettings = req['contentSettings'] as ContentSettings;
+    final rules = req['rules'] as List<RtRule>?;
 
     if (req.containsKey('selector')) {
       return await _api.chooseBySelector(
@@ -303,6 +315,7 @@ class GravityRepo {
         context: context,
         options: options,
         contentSettings: contentSettings,
+        rules: rules,
       );
     } else {
       return await _api.chooseByCampaignId(
@@ -311,6 +324,7 @@ class GravityRepo {
         context: context,
         options: options,
         contentSettings: contentSettings,
+        rules: rules,
       );
     }
   }
@@ -328,6 +342,11 @@ class GravityRepo {
         data['selector'] = req['selector'];
       } else {
         data['campaignId'] = req['campaignId'];
+      }
+
+      final rules = req['rules'] as List<RtRule>?;
+      if (rules != null) {
+        data['rules'] = rules.map((r) => r.toJson()).toList();
       }
 
       return data;
@@ -380,6 +399,7 @@ class GravityRepo {
     required PageContext pageContext,
     required Options options,
     required ContentSettings contentSetting,
+    List<RtRule>? rules,
   }) async {
     final finalUser = await _ensureUser(customUser);
     final capturedGen = _sessionManager.generation;
@@ -391,6 +411,7 @@ class GravityRepo {
       context: finalPageContext,
       options: options,
       contentSettings: contentSetting,
+      rules: rules,
     );
 
     await _sessionManager.saveUser(customUser, content.user, capturedGen);
@@ -404,6 +425,7 @@ class GravityRepo {
     required PageContext pageContext,
     required Options options,
     required ContentSettings contentSetting,
+    List<RtRule>? rules,
   }) async {
     final finalUser = await _ensureUser(customUser);
     final capturedGen = _sessionManager.generation;
@@ -415,6 +437,7 @@ class GravityRepo {
       context: finalPageContext,
       options: options,
       contentSettings: contentSetting,
+      rules: rules,
     );
 
     await _sessionManager.saveUser(customUser, content.user, capturedGen);
