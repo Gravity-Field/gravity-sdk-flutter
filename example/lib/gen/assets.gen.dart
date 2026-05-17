@@ -34,8 +34,14 @@ class $AssetsIconsGen {
       const AssetGenImage('assets/icons/shopping_basket.png');
 
   /// List of all assets
-  List<AssetGenImage> get values =>
-      [gift, history, home, person, search, shoppingBasket];
+  List<AssetGenImage> get values => [
+    gift,
+    history,
+    home,
+    person,
+    search,
+    shoppingBasket,
+  ];
 }
 
 class $AssetsImagesGen {
@@ -123,15 +129,8 @@ class AssetGenImage {
     );
   }
 
-  ImageProvider provider({
-    AssetBundle? bundle,
-    String? package,
-  }) {
-    return AssetImage(
-      _assetName,
-      bundle: bundle,
-      package: package,
-    );
+  ImageProvider provider({AssetBundle? bundle, String? package}) {
+    return AssetImage(_assetName, bundle: bundle, package: package);
   }
 
   String get path => _assetName;
