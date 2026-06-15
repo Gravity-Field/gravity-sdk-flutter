@@ -57,9 +57,7 @@ class _CartPageState extends State<CartPage> {
       body: const SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            children: [],
-          ),
+          child: Column(),
         ),
       ),
     );

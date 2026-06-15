@@ -18,7 +18,7 @@ class _HomePageState extends State<HomePage> {
 
     GravitySDK.instance.trackView(
       context: context,
-      pageContext: PageContext(
+      pageContext: const PageContext(
         type: ContextType.homepage,
         data: [],
         location: 'homepage',
@@ -58,7 +58,7 @@ class _HomePageState extends State<HomePage> {
           padding: const EdgeInsets.only(bottom: 16),
           child: Column(
             children: [
-              GravityInlineWidget(
+              const GravityInlineWidget(
                 key: Key('inline_banner'),
                 selector: 'inline_banner',
                 height: 174,
@@ -70,16 +70,16 @@ class _HomePageState extends State<HomePage> {
               ),
               GravityAnchor(
                 selector: 'anchor_test',
-                pageContext: PageContext(
+                pageContext: const PageContext(
                   type: ContextType.homepage,
                   data: [],
                   location: 'homepage',
                 ),
                 builder: (context, onReady) {
                   return GravityInlineWidget(
-                    key: Key('inline_widget_qa'),
+                    key: const Key('inline_widget_qa'),
                     selector: 'inline_widget_qa',
-                    pageContext: PageContext(
+                    pageContext: const PageContext(
                       type: ContextType.homepage,
                       data: [],
                       location: 'homepage',
@@ -88,7 +88,7 @@ class _HomePageState extends State<HomePage> {
                   );
                 },
               ),
-              GravityInlineWidget(
+              const GravityInlineWidget(
                 key: Key('inline_multi_widget_qa_placeholder_1'),
                 selector: 'inline_multi_widget_qa',
                 placeholderId: 'placeholder_1',
@@ -97,9 +97,9 @@ class _HomePageState extends State<HomePage> {
                   data: [],
                   location: 'homepage',
                 ),
-                loadingWidget: const ProductsShimmerLoader(),
+                loadingWidget: ProductsShimmerLoader(),
               ),
-              GravityInlineWidget(
+              const GravityInlineWidget(
                 key: Key('inline_banner_2'),
                 selector: 'inline_banner_2',
                 pageContext: PageContext(
@@ -108,7 +108,7 @@ class _HomePageState extends State<HomePage> {
                   location: 'homepage',
                 ),
               ),
-              GravityInlineWidget(
+              const GravityInlineWidget(
                 key: Key('inline_multi_widget_qa_placeholder_2'),
                 selector: 'inline_multi_widget_qa',
                 placeholderId: 'placeholder_2',
@@ -117,9 +117,9 @@ class _HomePageState extends State<HomePage> {
                   data: [],
                   location: 'homepage',
                 ),
-                loadingWidget: const ProductsShimmerLoader(),
+                loadingWidget: ProductsShimmerLoader(),
               ),
-              GravityInlineWidget(
+              const GravityInlineWidget(
                 key: Key('inline_multi_widget_qa_placeholder_3'),
                 selector: 'inline_multi_widget_qa',
                 placeholderId: 'placeholder_3',
@@ -128,7 +128,7 @@ class _HomePageState extends State<HomePage> {
                   data: [],
                   location: 'homepage',
                 ),
-                loadingWidget: const ProductsShimmerLoader(),
+                loadingWidget: ProductsShimmerLoader(),
               ),
             ],
           ),

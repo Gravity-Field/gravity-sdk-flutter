@@ -32,7 +32,7 @@ linter:
     prefer_single_quotes: true
     require_trailing_commas: true
     directives_ordering: true
-    sort_pub_dependencies: true
+    sort_pub_dependencies: false
     use_super_parameters: true
     always_declare_return_types: true
 
