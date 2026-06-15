@@ -35,7 +35,7 @@ class SnackBarContent1 extends SnackBarContent {
       behavior: HitTestBehavior.opaque,
       onTap: container.onClick != null
           ? () {
-              onClickHandler.handeOnClick(container.onClick!);
+              onClickHandler.handeOnClick(container.onClick!, context);
             }
           : null,
       child: Container(
@@ -62,7 +62,7 @@ class SnackBarContent1 extends SnackBarContent {
               GravityImageWidget(
                 element: images.first,
                 onClickCallback: (action) {
-                  onClickHandler.handeOnClick(action);
+                  onClickHandler.handeOnClick(action, context);
                   if (action.closeOnClick) {
                     onDismiss?.call();
                   }
@@ -77,13 +77,13 @@ class SnackBarContent1 extends SnackBarContent {
                   if (texts.elementAtOrNull(0) != null)
                     GravityText(
                       element: texts.elementAt(0),
-                      onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                      onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
                     ),
                   if (texts.elementAtOrNull(1) != null) ...[
                     SizedBox(height: 4),
                     GravityText(
                       element: texts.elementAt(1),
-                      onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                      onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
                     ),
                   ],
                 ],
@@ -94,7 +94,7 @@ class SnackBarContent1 extends SnackBarContent {
               GravityImageWidget(
                 element: images.elementAt(1),
                 onClickCallback: (action) {
-                  onClickHandler.handeOnClick(action);
+                  onClickHandler.handeOnClick(action, context);
                   if (action.closeOnClick) {
                     onDismiss?.call();
                   }

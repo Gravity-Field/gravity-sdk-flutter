@@ -20,7 +20,7 @@ class AppBottomNavigationBar extends StatelessWidget {
       events: [
         CustomEvent(type: 'Tapbar — clicked', name: destinationNames[index]),
       ],
-      pageContext: PageContext(
+      pageContext: const PageContext(
         type: ContextType.homepage,
         data: [],
         location: 'homepage',

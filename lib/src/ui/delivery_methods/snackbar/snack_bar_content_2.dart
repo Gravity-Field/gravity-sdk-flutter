@@ -38,7 +38,7 @@ class SnackBarContent2 extends SnackBarContent {
       behavior: HitTestBehavior.opaque,
       onTap: container.onClick != null
           ? () {
-              onClickHandler.handeOnClick(container.onClick!);
+              onClickHandler.handeOnClick(container.onClick!, context);
             }
           : null,
       child: Container(
@@ -64,7 +64,7 @@ class SnackBarContent2 extends SnackBarContent {
             if (image != null) ...[
               GravityImageWidget(
                 element: image,
-                onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
               ),
               SizedBox(width: 12),
             ],
@@ -75,13 +75,13 @@ class SnackBarContent2 extends SnackBarContent {
                   if (texts.elementAtOrNull(0) != null)
                     GravityText(
                       element: texts.elementAt(0),
-                      onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                      onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
                     ),
                   if (texts.elementAtOrNull(1) != null) ...[
                     SizedBox(height: 4),
                     GravityText(
                       element: texts.elementAt(1),
-                      onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                      onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
                     ),
                   ],
                   if (button != null) ...[
@@ -89,7 +89,7 @@ class SnackBarContent2 extends SnackBarContent {
                     GravityButton(
                       element: button,
                       onClickCallback: (action) {
-                        onClickHandler.handeOnClick(action);
+                        onClickHandler.handeOnClick(action, context);
                         if (action.closeOnClick) {
                           onDismiss?.call();
                         }

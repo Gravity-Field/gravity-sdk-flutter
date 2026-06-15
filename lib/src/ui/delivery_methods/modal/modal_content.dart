@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Action;
+import 'package:gravity_sdk/src/models/actions/action.dart';
 import 'package:gravity_sdk/src/models/internal/element.dart';
 import 'package:gravity_sdk/src/ui/elements/gravity_element.dart';
 import 'package:gravity_sdk/src/utils/on_click_handler.dart';
@@ -96,8 +97,10 @@ class _ModalContentState extends State<ModalContent> {
                           content: widget.content,
                           products: products,
                           onClickCallback: (action) {
-                            onClickHandler.handeOnClick(action);
-                            if (e.type == ElementType.button && action.closeOnClick) {
+                            onClickHandler.handeOnClick(action, context);
+                            if (e.type == ElementType.button &&
+                                action.closeOnClick &&
+                                action.action != Action.openStep) {
                               Navigator.of(context).pop();
                             }
                           },
@@ -110,7 +113,7 @@ class _ModalContentState extends State<ModalContent> {
             if (close != null)
               GravityCloseButtonWidget(
                 close: close,
-                onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
                 // onClosePressed: () {
                 //   ContentEventsService.instance.sendContentClosed(widget.content);
                 // },

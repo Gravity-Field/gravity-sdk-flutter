@@ -39,7 +39,7 @@ class _CartPageState extends State<CartPage> {
 
     GravitySDK.instance.trackView(
       context: context,
-      pageContext: PageContext(
+      pageContext: const PageContext(
         type: ContextType.cart,
         data: [],
         location: 'cart',
@@ -51,12 +51,12 @@ class _CartPageState extends State<CartPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Заказ'),
+        title: const Text('Заказ'),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
+      body: const SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Column(
             children: [],
           ),

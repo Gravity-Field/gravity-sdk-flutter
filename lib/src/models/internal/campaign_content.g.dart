@@ -31,6 +31,7 @@ CampaignContent _$CampaignContentFromJson(Map<String, dynamic> json) =>
       events: (json['events'] as List<dynamic>?)
           ?.map((e) => Event.fromJson(e as Map<String, dynamic>))
           .toList(),
+      step: (json['step'] as num?)?.toInt(),
     );
 
 const _$TemplateSystemNameEnumMap = {

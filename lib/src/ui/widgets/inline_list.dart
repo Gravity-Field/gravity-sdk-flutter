@@ -60,7 +60,8 @@ class _GravityInlineListWidgetState extends State<GravityInlineListWidget> {
       final loadedItems = <_CampaignItem>[];
 
       for (final campaign in response.data) {
-        final allContents = campaign.payload.expand((payload) => payload.contents).toList();
+        final allContents =
+            campaign.payload.expand((payload) => payload.contents).where((c) => c.step == null).toList();
 
         for (final content in allContents) {
           if (_isContentValid(content)) {

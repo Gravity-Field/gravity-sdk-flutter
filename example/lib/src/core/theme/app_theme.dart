@@ -16,10 +16,7 @@ class AppTheme {
           fontWeight: FontWeight.w600,
         ),
       ),
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.blue,
-        brightness: Brightness.light,
-      ),
+      colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       useMaterial3: true,
     );
   }

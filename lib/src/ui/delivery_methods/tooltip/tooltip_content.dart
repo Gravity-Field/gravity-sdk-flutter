@@ -1,8 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Action;
 import 'package:visibility_detector/visibility_detector.dart';
 
+import '../../../models/actions/action.dart';
 import '../../../models/external/campaign.dart';
 import '../../../models/internal/arrow.dart';
 import '../../../models/internal/campaign_content.dart';
@@ -368,8 +369,8 @@ class _TooltipContentState extends State<TooltipContent> {
                     content: widget.content,
                     products: products,
                     onClickCallback: (action) {
-                      onClickHandler.handeOnClick(action);
-                      if (action.closeOnClick == true) {
+                      onClickHandler.handeOnClick(action, context);
+                      if (action.closeOnClick == true && action.action != Action.openStep) {
                         widget.onDismiss();
                       }
                     },

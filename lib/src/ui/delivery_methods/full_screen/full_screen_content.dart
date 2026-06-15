@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Action;
+import 'package:gravity_sdk/src/models/actions/action.dart';
 import 'package:gravity_sdk/src/models/internal/element.dart';
 import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -94,8 +95,10 @@ class _FullScreenContentState extends State<FullScreenContent> {
                                       (e) => GravityElement(
                                         element: e,
                                         onClickCallback: (action) {
-                                          onClickHandler.handeOnClick(action);
-                                          if (e.type == ElementType.button && action.closeOnClick) {
+                                          onClickHandler.handeOnClick(action, context);
+                                          if (e.type == ElementType.button &&
+                                              action.closeOnClick &&
+                                              action.action != Action.openStep) {
                                             Navigator.of(context).pop();
                                           }
                                         },
@@ -114,7 +117,7 @@ class _FullScreenContentState extends State<FullScreenContent> {
                     if (close != null)
                       GravityCloseButtonWidget(
                         close: close,
-                        onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                        onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
                         // onClosePressed: () {
                         //   ContentEventsService.instance.sendContentClosed(widget.content);
                         // },

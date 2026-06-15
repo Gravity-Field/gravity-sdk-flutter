@@ -43,7 +43,7 @@ class CustomProductWidgetBuilder extends ProductWidgetBuilder {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey[300]!, width: 1),
+                  border: Border.all(color: Colors.grey[300]!),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),

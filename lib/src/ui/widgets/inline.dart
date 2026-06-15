@@ -99,10 +99,12 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
   /// If placeholderId is not provided, returns content without placeholderId.
   CampaignContent? _selectContent(List<CampaignContent> contents) {
     if (widget.placeholderId != null) {
-      return contents.where((content) => content.placeholderId == widget.placeholderId).firstOrNull;
+      return contents
+          .where((content) => content.placeholderId == widget.placeholderId && content.step == null)
+          .firstOrNull;
     }
 
-    return contents.where((content) => content.placeholderId == null).firstOrNull;
+    return contents.where((content) => content.placeholderId == null && content.step == null).firstOrNull;
   }
 
   /// Validate if content should be rendered.

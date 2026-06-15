@@ -88,7 +88,7 @@ class _InlineContentState extends State<InlineContent> {
                 .map(
                   (e) => GravityElement(
                     element: e,
-                    onClickCallback: (action) => onClickHandler.handeOnClick(action),
+                    onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
                     campaign: widget.campaign,
                     content: widget.content,
                     products: products,

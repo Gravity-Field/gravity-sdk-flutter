@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' hide Action;
 import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/gravity_sdk.dart';
 import 'package:gravity_sdk/src/models/actions/action.dart';
@@ -23,7 +24,7 @@ class OnClickHandler {
     GravitySDK.instance.gravityEventCallback?.call(event);
   }
 
-  void handeOnClick(OnClick onClick) {
+  void handeOnClick(OnClick onClick, BuildContext context) {
     try {
       final event = content.events?.firstWhereOrNull((element) => element.type == onClick.action);
       if (event != null) {
@@ -43,6 +44,13 @@ class OnClickHandler {
           _handleFollowDeeplinkAction(onClick);
         case Action.requestPush:
           _handleRequestPushAction(onClick);
+        case Action.openStep:
+          GravitySDK.instance.openStep(
+            context: context,
+            onClick: onClick,
+            currentContent: content,
+            campaign: campaign,
+          );
         default:
       }
     } catch (e, stackTrace) {

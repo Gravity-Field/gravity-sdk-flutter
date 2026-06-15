@@ -23,6 +23,7 @@ class CampaignContent {
   final ContentCustom? custom;
   final Products? products;
   final List<Event>? events;
+  final int? step;
 
   CampaignContent({
     required this.contentId,
@@ -34,6 +35,7 @@ class CampaignContent {
     this.custom,
     required this.products,
     required this.events,
+    this.step,
   });
 
   factory CampaignContent.fromJson(Map<String, dynamic> json) {

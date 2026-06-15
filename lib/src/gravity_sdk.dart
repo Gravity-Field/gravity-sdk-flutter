@@ -11,6 +11,7 @@ import 'data/session/session_manager.dart';
 import 'models/external/gravity_data_response.dart';
 import 'models/external/log_level.dart';
 import 'models/external/rt_rule.dart';
+import 'models/actions/on_click.dart';
 import 'models/external/campaign.dart';
 import 'models/external/content_engagement.dart';
 import 'models/external/content_settings.dart';
@@ -33,6 +34,7 @@ import 'utils/content_events_service.dart';
 import 'data/error_reporting/error_helpers.dart';
 import 'data/error_reporting/error_reporter.dart';
 import 'utils/logger.dart';
+import 'utils/step_resolver.dart';
 
 typedef GravityEventCallback = void Function(TrackingEvent event);
 
@@ -135,7 +137,9 @@ class GravitySDK {
       if (!context.mounted) return;
 
       final campaign = result.data.first;
-      _showBackendContent(context, campaign.payload.first.contents.first, campaign);
+      final root = resolveRootContent(campaign.payload.firstOrNull?.contents ?? const []);
+      if (root == null) return;
+      _showBackendContent(context, root, campaign);
     } catch (e, stackTrace) {
       _reportError(e, stackTrace, section: 'GravitySDK.trackView');
     }
@@ -162,7 +166,7 @@ class GravitySDK {
       final campaign = response.data.firstOrNull;
       if (campaign == null) return;
 
-      final content = campaign.payload.firstOrNull?.contents.firstOrNull;
+      final content = resolveRootContent(campaign.payload.firstOrNull?.contents ?? const []);
       if (content == null) return;
 
       _showBackendContent(context, content, campaign, selector: selector);
@@ -205,7 +209,9 @@ class GravitySDK {
       if (!context.mounted) return;
 
       final campaign = result.data.first;
-      _showBackendContent(context, campaign.payload.first.contents.first, campaign);
+      final root = resolveRootContent(campaign.payload.firstOrNull?.contents ?? const []);
+      if (root == null) return;
+      _showBackendContent(context, root, campaign);
     } catch (e, stackTrace) {
       _reportError(e, stackTrace, section: 'GravitySDK.triggerEvent');
     }
@@ -467,7 +473,7 @@ class GravitySDK {
         final campaign = extractCampaigns(result).firstOrNull;
         if (campaign == null) continue;
 
-        final content = campaign.payload.firstOrNull?.contents.firstOrNull;
+        final content = resolveRootContent(campaign.payload.firstOrNull?.contents ?? const []);
         if (content == null) continue;
 
         return (result, campaignId);
@@ -514,6 +520,48 @@ class GravitySDK {
       extra: extra,
       tags: {'category': categorizeError(error)},
     );
+  }
+
+  /// Handles an `open_step` action: finds the content whose `step` matches
+  /// [onClick.step], closes the current in-app content per its deliveryMethod
+  /// (an inline root is kept), then renders the step with the normal renderer.
+  void openStep({
+    required BuildContext context,
+    required OnClick onClick,
+    required CampaignContent currentContent,
+    required Campaign campaign,
+  }) {
+    final stepContent = resolveStepContent(campaign, onClick.step);
+    if (stepContent == null) {
+      talker.warning('open_step: step ${onClick.step} not found in campaign contents');
+      return;
+    }
+
+    if (stepContent.deliveryMethod == DeliveryMethod.tooltip) {
+      talker.warning('open_step: tooltip step ${onClick.step} is not supported (no anchor selector)');
+      return;
+    }
+
+    _dismissCurrentInApp(context, currentContent);
+    if (!context.mounted) return;
+    _showBackendContent(context, stepContent, campaign);
+  }
+
+  void _dismissCurrentInApp(BuildContext context, CampaignContent currentContent) {
+    switch (currentContent.deliveryMethod) {
+      case DeliveryMethod.modal:
+      case DeliveryMethod.bottomSheet:
+      case DeliveryMethod.fullScreen:
+        final navigator = Navigator.of(context);
+        if (navigator.canPop()) navigator.pop();
+      case DeliveryMethod.tooltip:
+        TooltipOverlay.dismiss();
+      case DeliveryMethod.inline:
+      case DeliveryMethod.snackBar:
+      case DeliveryMethod.json:
+      case DeliveryMethod.unknown:
+        break;
+    }
   }
 
   void _showBackendContent(BuildContext context, CampaignContent content, Campaign campaign, {String? selector}) {
