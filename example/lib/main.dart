@@ -1,3 +1,4 @@
+import 'package:example/src/core/services/presentation_lock_prefs.dart';
 import 'package:example/src/core/services/push_notification_service.dart';
 import 'package:example/src/core/theme/app_theme.dart';
 import 'package:example/src/core/widgets/custom_product_widget_builder.dart';
@@ -36,6 +37,8 @@ Future<void> main() async {
       }
     },
   );
+
+  await PresentationLockPrefs.restore();
 
   await PushNotificationService.instance.updateCurrentStatus();
 

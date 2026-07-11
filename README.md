@@ -11,6 +11,7 @@
 - [🎨 ProductWidgetBuilder — кастомизация продуктов](#productwidgetbuilder--кастомизация-отображения-продуктов)
 - [🧑 Пользователь и настройки](#пользователь-и-настройки)
 - [📄 Отслеживание и события](#отслеживание-и-события)
+- [🔒 Блокировка показа (presentation lock)](#блокировка-показа-presentation-lock)
 - [📈 Взаимодействие](#взаимодействие)
 - [🧩 Получение контента](#получение-контента)
 - [🖼️ Отображение контента](#отображение-контента)
@@ -28,6 +29,7 @@
     - Полноэкранном режиме
     - Bottom sheet с рядом товаров
 - Отправка взаимодействий с контентом и продуктами
+- Временная блокировка автопоказа in-app контента (presentation lock)
 
 ## Установка
 
@@ -195,6 +197,40 @@ await GravitySDK.instance.triggerEvent(
   pageContext: PageContext(...),
 );
 ```
+
+## Блокировка показа (presentation lock)
+
+Приложение может временно запретить автопоказ in-app кампаний Gravity — например, пока показывает собственный диалог, онбординг или paywall:
+
+```dart
+GravitySDK.instance.lockPresentation();
+
+// ... приоритетный UI приложения ...
+
+GravitySDK.instance.unlockPresentation();
+```
+
+Подписка на изменение состояния блокировки:
+
+```dart
+GravitySDK.instance.setPresentationLockListener((locked) {
+  debugPrint('Gravity presentation locked: $locked');
+});
+
+// отписка
+GravitySDK.instance.setPresentationLockListener(null);
+```
+
+Семантика (совпадает с iOS/Android SDK):
+
+- пока блокировка активна, `trackView` и `triggerEvent` загружают и резолвят контент, но не показывают in-app UI — в лог пишется `Presentation is locked, skipped content for campaign <campaignId>`;
+- так как контент под блокировкой всё равно загружается (уходят запрос choose и события contentLoaded), серверные лимиты показов кампании (frequency cap, one-shot) расходуются даже без показа;
+- блокируется только автопоказ: `fetchAnchorContent` (в том числе автозагрузка через `GravityAnchor`), step-навигация уже открытого контента, `trackViewNoShow`/`triggerEventNoShow` и `getContentBy*` под блокировку не попадают;
+- уже открытый in-app контент при `lockPresentation()` не закрывается;
+- после `unlockPresentation()` показы снова разрешены для следующих `trackView`/`triggerEvent`; кампания, пропущенная во время блокировки, ретроактивно не показывается;
+- повторные вызовы lock/unlock безопасны; listener вызывается при каждом вызове;
+- состояние блокировки живёт в памяти и сбрасывается при перезапуске приложения — если оно должно переживать рестарт, сохраняйте и восстанавливайте его на стороне приложения (пример — `PresentationLockPrefs` в `example/`);
+- текущее состояние доступно через `GravitySDK.instance.isPresentationLocked`.
 
 ## Взаимодействие
 

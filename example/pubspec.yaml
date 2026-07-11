@@ -16,6 +16,7 @@ dependencies:
   gravity_sdk:
     path: ../
   permission_handler: ^11.3.1
+  shared_preferences: ^2.5.3
   shimmer: ^3.0.0
   url_launcher: ^6.3.2
   webview_flutter: ^4.10.0

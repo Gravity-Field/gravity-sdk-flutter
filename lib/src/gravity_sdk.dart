@@ -57,6 +57,8 @@ class GravitySDK {
   String? proxyUrl;
   bool isFetchContentOnTrack = true;
   NotificationPermissionStatus notificationPermissionStatus = NotificationPermissionStatus.unknown;
+  bool _isPresentationLocked = false;
+  void Function(bool locked)? _presentationLockListener;
 
   GravitySDK._();
 
@@ -112,6 +114,61 @@ class GravitySDK {
     notificationPermissionStatus = status;
   }
 
+  /// Whether in-app campaign presentation is currently locked.
+  bool get isPresentationLocked => _isPresentationLocked;
+
+  /// Temporarily prevents the SDK from auto-presenting in-app campaign
+  /// content from [trackView] and [triggerEvent], e.g. while the app is
+  /// showing its own dialog, onboarding or paywall.
+  ///
+  /// While locked, content is still loaded and resolved but not shown — the
+  /// choose request and contentLoaded events are sent, so server-side
+  /// frequency caps are consumed even though nothing is presented. Already
+  /// presented content is not dismissed, and the other presentation paths are
+  /// not gated: [fetchAnchorContent] (including auto-fetch from GravityAnchor),
+  /// step navigation of open content, and the noShow/getContentBy* APIs.
+  ///
+  /// The lock is in-memory only and resets on process restart; persist and
+  /// restore it in the app if it must survive restarts. Safe to call
+  /// repeatedly.
+  void lockPresentation() {
+    _isPresentationLocked = true;
+    _logPresentationLock('Presentation lock called, presentation is now locked');
+    _presentationLockListener?.call(true);
+  }
+
+  /// Allows in-app campaign presentation again for subsequent [trackView] and
+  /// [triggerEvent] calls. Content skipped while locked is not shown
+  /// retroactively. Safe to call repeatedly.
+  void unlockPresentation() {
+    _isPresentationLocked = false;
+    _logPresentationLock('Presentation unlock called, presentation is now unlocked');
+    _presentationLockListener?.call(false);
+  }
+
+  /// Sets a listener invoked with the new lock state on every
+  /// [lockPresentation] and [unlockPresentation] call. Pass `null` to remove
+  /// the current listener.
+  void setPresentationLockListener(void Function(bool locked)? listener) {
+    _presentationLockListener = listener;
+  }
+
+  // Lock/unlock are allowed before initialize(), where the logger is not
+  // configured yet and accessing it would throw.
+  void _logPresentationLock(String message) {
+    if (LoggerManager.instance.isInitialized) {
+      talker.info(message);
+    }
+  }
+
+  // The skip log line is a cross-SDK contract: it must stay identical to the
+  // iOS/Android SDKs and between trackView and triggerEvent.
+  bool _skipIfPresentationLocked(String campaignId) {
+    if (!_isPresentationLocked) return false;
+    _logPresentationLock('Presentation is locked, skipped content for campaign $campaignId');
+    return true;
+  }
+
   Future<void> trackView({required BuildContext context, required PageContext pageContext}) async {
     _checkIsInitialized();
     try {
@@ -135,6 +192,8 @@ class GravitySDK {
       }
 
       if (!context.mounted) return;
+
+      if (_skipIfPresentationLocked(campaignIdObj.campaignId)) return;
 
       final campaign = result.data.first;
       final root = resolveRootContent(campaign.payload.firstOrNull?.contents ?? const []);
@@ -207,6 +266,8 @@ class GravitySDK {
       }
 
       if (!context.mounted) return;
+
+      if (_skipIfPresentationLocked(campaignIdObj.campaignId)) return;
 
       final campaign = result.data.first;
       final root = resolveRootContent(campaign.payload.firstOrNull?.contents ?? const []);
