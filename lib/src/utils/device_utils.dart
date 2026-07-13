@@ -1,4 +1,5 @@
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
+import 'package:flutter/foundation.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:ua_client_hints/ua_client_hints.dart';
@@ -15,7 +16,15 @@ class DeviceUtils {
   String? userAgentCache;
   String? deviceIdCache;
 
+  /// Bypasses the platform channels (ua_client_hints, ATT, prefs) in tests.
+  @visibleForTesting
+  Device? debugDevice;
+
   Future<Device> getDevice() async {
+    final override = debugDevice;
+    if (override != null) {
+      return override;
+    }
     try {
       final userAgent = await _getUserAgent();
       final deviceId = await _getDeviceId();
@@ -49,17 +58,29 @@ class DeviceUtils {
     return ua;
   }
 
-  Future<String> _getDeviceId() async {
-    if (deviceIdCache != null) {
-      return deviceIdCache!;
-    }
+  Future<String>? _deviceIdInFlight;
 
-    String? deviceId = await Prefs.instance.getDeviceId();
-    if (deviceId == null) {
-      deviceId = UuidV4().generate();
-      await Prefs.instance.setDeviceId(deviceId);
+  Future<String> _getDeviceId() {
+    if (deviceIdCache != null) {
+      return Future.value(deviceIdCache);
     }
-    deviceIdCache = deviceId;
-    return deviceId;
+    // Single-flight: concurrent first calls must not mint two ids.
+    return _deviceIdInFlight ??= _loadDeviceId();
+  }
+
+  Future<String> _loadDeviceId() async {
+    try {
+      String? deviceId = await Prefs.instance.getDeviceId();
+      if (deviceId == null) {
+        deviceId = UuidV4().generate();
+        await Prefs.instance.setDeviceId(deviceId);
+      }
+      deviceIdCache = deviceId;
+      return deviceId;
+    } catch (_) {
+      // Never cache a rejected future — the next call must retry.
+      _deviceIdInFlight = null;
+      rethrow;
+    }
   }
 }

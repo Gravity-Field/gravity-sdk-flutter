@@ -41,6 +41,17 @@ class SessionManager {
     return null;
   }
 
+  // Serializes uid writes: the awaits inside Prefs are suspension points
+  // where a stale cleanup could otherwise erase a newer generation's uid.
+  Future<void> _userIdWrites = Future<void>.value();
+
+  Future<void> _enqueueUserIdWrite(Future<void> Function() op) {
+    final run = _userIdWrites.then((_) => op());
+    // Callers observe errors through `run`; the chain itself must survive.
+    _userIdWrites = run.then((_) {}, onError: (_) {});
+    return run;
+  }
+
   Future<void> saveUser(User? customUser, User? serverUser, int capturedGeneration) async {
     if (capturedGeneration != _generation) {
       return;
@@ -53,15 +64,24 @@ class SessionManager {
     final ses = serverUser?.ses;
 
     if (uid != null && uid != _userIdCache) {
-      await Prefs.instance.setUserId(uid);
-      if (capturedGeneration != _generation) {
-        await Prefs.instance.removeUserId();
-        return;
-      }
-      _userIdCache = uid;
+      await _enqueueUserIdWrite(() async {
+        if (capturedGeneration != _generation) {
+          return;
+        }
+        await Prefs.instance.setUserId(uid);
+        if (capturedGeneration != _generation) {
+          // A reset landed during our write; undo it. Writes are serialized,
+          // so this cannot hit foreign data.
+          if (await Prefs.instance.getUserId() == uid) {
+            await Prefs.instance.removeUserId();
+          }
+          return;
+        }
+        _userIdCache = uid;
+      });
     }
 
-    if (ses != null) {
+    if (ses != null && capturedGeneration == _generation) {
       _sessionIdCache = ses;
     }
   }
@@ -73,7 +93,7 @@ class SessionManager {
     final resetCompleter = Completer<void>();
     _sessionInitializationFuture = resetCompleter.future;
     try {
-      await Prefs.instance.removeUserId();
+      await _enqueueUserIdWrite(() => Prefs.instance.removeUserId());
     } finally {
       if (identical(_sessionInitializationFuture, resetCompleter.future)) {
         _sessionInitializationFuture = null;
@@ -84,6 +104,10 @@ class SessionManager {
 
   Completer<void> beginSessionInitialization() {
     final completer = Completer<void>();
+    // The stored future may have no awaiter when it error-completes, which
+    // would leak an unhandled Zone error; real getUser awaiters attach their
+    // own listeners and still observe it.
+    unawaited(completer.future.catchError((_) {}));
     _sessionInitializationFuture = completer.future;
     return completer;
   }

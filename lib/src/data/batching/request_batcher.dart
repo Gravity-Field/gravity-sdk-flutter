@@ -4,19 +4,27 @@ typedef BatchGroupKeyGenerator = String Function(Map<String, dynamic> data);
 
 /// Combines multiple requests into one batch call.
 /// Requests are grouped together within [batchDelay] and deduplicated.
-/// When [groupKeyGenerator] is provided, requests are grouped by compatibility -
-/// requests with different group keys are executed in parallel batches.
+/// [dedupKeyGenerator] defines full request identity: requests with an equal
+/// dedup key share one pending request and one result. [groupKeyGenerator]
+/// defines batch compatibility: pending requests with an equal group key are
+/// handed to [batchExecutor] as one batch; different group keys are executed
+/// in parallel batches. The dedup key must be at least as specific as the
+/// group key, otherwise two deduped-together requests could belong to
+/// different batches.
 class RequestBatcher<T> {
   final Future<List<T>> Function(List<Map<String, dynamic>>) _batchExecutor;
   final Duration _batchDelay;
+  final BatchGroupKeyGenerator? _dedupKeyGenerator;
   final BatchGroupKeyGenerator? _groupKeyGenerator;
 
   RequestBatcher({
     required Future<List<T>> Function(List<Map<String, dynamic>>) batchExecutor,
     Duration batchDelay = const Duration(milliseconds: 10),
+    BatchGroupKeyGenerator? dedupKeyGenerator,
     BatchGroupKeyGenerator? groupKeyGenerator,
   }) : _batchExecutor = batchExecutor,
        _batchDelay = batchDelay,
+       _dedupKeyGenerator = dedupKeyGenerator,
        _groupKeyGenerator = groupKeyGenerator;
 
   final List<BatchRequest<T>> _pendingRequests = [];
@@ -52,7 +60,7 @@ class RequestBatcher<T> {
   }
 
   String _generateRequestKey(Map<String, dynamic> data) {
-    final keyGenerator = _groupKeyGenerator;
+    final keyGenerator = _dedupKeyGenerator ?? _groupKeyGenerator;
     if (keyGenerator != null) {
       return keyGenerator(data);
     }
@@ -102,7 +110,16 @@ class RequestBatcher<T> {
     final groups = <String, List<BatchRequest<T>>>{};
 
     for (final request in batch) {
-      final groupKey = _groupKeyGenerator!(request.data);
+      final String groupKey;
+      try {
+        groupKey = _groupKeyGenerator!(request.data);
+      } catch (error, stackTrace) {
+        // A throwing key generator must fail only this caller, not the flush.
+        if (!request.completer.isCompleted) {
+          request.completer.completeError(error, stackTrace);
+        }
+        continue;
+      }
       groups.putIfAbsent(groupKey, () => []).add(request);
     }
 
@@ -172,9 +189,17 @@ class RequestBatcher<T> {
   void clear() {
     _batchTimer?.cancel();
     _batchTimer = null;
+    final aborted = List<BatchRequest<T>>.from(_pendingRequests);
     _pendingRequests.clear();
     _pendingRequestsMap.clear();
-    _isExecuting = false;
+    final error = StateError('RequestBatcher was cleared before the request completed');
+    for (final request in aborted) {
+      if (!request.completer.isCompleted) {
+        request.completer.completeError(error);
+      }
+    }
+    // _isExecuting stays set: the in-flight flush owns its snapshot, and
+    // resetting the flag would let schedule() start a second flush over it.
   }
 }
 

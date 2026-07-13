@@ -1,33 +1,32 @@
 # 📦 GravitySDK for Flutter
 
-`GravitySDK` — это мощный инструмент для интеграции персонализированного контента, отслеживания взаимодействия пользователей и отображения кампаний в мобильных Flutter-приложениях. Он позволяет получать контент по шаблонам, отслеживать события и отображать контент в различных форматах (модальное окно, полноэкранный режим, bottom sheet).
+`GravitySDK` — инструмент для интеграции персонализированного контента, отслеживания взаимодействий пользователей и показа кампаний в мобильных Flutter-приложениях. SDK сам загружает и показывает in-app контент (модальное окно, bottom sheet, полноэкранный режим, tooltip), а также поддерживает inline-виджеты и headless-режим для полностью кастомной отрисовки.
 
 ## 📚 Оглавление
 
 - [✨ Возможности](#возможности)
 - [🚀 Установка](#установка)
 - [⚙️ Инициализация](#инициализация)
-- [🔧 Дополнительные параметры initialize](#дополнительные-параметры-initialize)
-- [🎨 ProductWidgetBuilder — кастомизация продуктов](#productwidgetbuilder--кастомизация-отображения-продуктов)
+- [🪵 Логирование](#логирование)
 - [🧑 Пользователь и настройки](#пользователь-и-настройки)
 - [📄 Отслеживание и события](#отслеживание-и-события)
+- [🔔 Обработка колбэков](#обработка-колбэков)
 - [🔒 Блокировка показа (presentation lock)](#блокировка-показа-presentation-lock)
-- [📈 Взаимодействие](#взаимодействие)
 - [🧩 Получение контента](#получение-контента)
 - [🖼️ Отображение контента](#отображение-контента)
+- [🎨 ProductWidgetBuilder — кастомизация продуктов](#productwidgetbuilder--кастомизация-отображения-продуктов)
+- [📈 Взаимодействия (engagement)](#взаимодействия-engagement)
 - [❗ Обработка ошибок](#обработка-ошибок)
 
 ## Возможности
 
 - Инициализация SDK с ключом API и параметрами секции
-- Настройка контента и прокси
-- Отслеживание посещений страниц и пользовательских событий
-- Получение контента по шаблону
-- Отображение контента в:
-    - Модальном окне
-    - Bottom sheet
-    - Полноэкранном режиме
-    - Bottom sheet с рядом товаров
+- Отслеживание просмотров экранов и пользовательских событий с автопоказом in-app кампаний
+- Получение контента по селектору, ID кампании или группе
+- Автоматический батчинг и дедупликация конкурентных choose-запросов
+- Inline-виджеты и tooltip-кампании (`GravityAnchor`)
+- Headless-режим: сырые данные кампаний без встроенного UI
+- Многошаговые (multi-step) кампании
 - Отправка взаимодействий с контентом и продуктами
 - Временная блокировка автопоказа in-app контента (presentation lock)
 
@@ -37,7 +36,7 @@
 
 ```yaml
 dependencies:
-  gravity_sdk: ^0.8.0
+  gravity_sdk: ^0.20.0
 ```
 
 Затем выполни команду:
@@ -52,6 +51,15 @@ flutter pub get
 import 'package:gravity_sdk/gravity_sdk.dart';
 ```
 
+Требуется Dart SDK `^3.10.0`.
+
+Для iOS добавь в `ios/Runner/Info.plist` описание App Tracking Transparency (SDK читает статус трекинга):
+
+```xml
+<key>NSUserTrackingUsageDescription</key>
+<string>This identifier will be used to deliver personalized ads to you.</string>
+```
+
 ## Инициализация
 
 Для работы SDK необходимо провести базовую инициализацию, передав параметры `apiKey` и `section`. Их можно найти в личном кабинете.
@@ -63,7 +71,7 @@ await GravitySDK.instance.initialize(
 );
 ```
 
-## Дополнительные параметры initialize
+Полная сигнатура:
 
 ```dart
 Future<void> initialize({
@@ -71,132 +79,128 @@ Future<void> initialize({
   required String section,
   ProductWidgetBuilder? productWidgetBuilder,
   GravityEventCallback? gravityEventCallback,
-  bool useAdvertisingId = false,
+  GravityContentCallback? gravityContentCallback,
+  LogLevel logLevel = LogLevel.info,
 });
 ```
 
-- `productWidgetBuilder` — кастомная отрисовка карточек продуктов
-- `gravityEventCallback` — колбэк, вызываемый при трекинге событий
-- `useAdvertisingId` — использовать рекламный идентификатор устройства
+- `productWidgetBuilder` — кастомная отрисовка карточек продуктов ([подробнее](#productwidgetbuilder--кастомизация-отображения-продуктов))
+- `gravityEventCallback` — колбэк событий SDK и действий пользователя ([подробнее](#обработка-колбэков))
+- `gravityContentCallback` — колбэк с сырым контентом кампании для headless-сценариев
+- `logLevel` — уровень логирования
 
-## ProductWidgetBuilder — кастомизация отображения продуктов
-
-ProductWidgetBuilder — это интерфейс, предназначенный для кастомной отрисовки карточек продуктов в рамках кампаний. Он предоставляет гибкость, позволяя разработчику контролировать внешний вид товаров, интегрированных в кампанию, чтобы они соответствовали стилю приложения.
-
-**Зачем это нужно?**
-
-Некоторые кампании, возвращаемые SDK, содержат продукты (например, рекомендованные товары, акции, предложения). Чтобы эти карточки визуально вписывались в интерфейс приложения, SDK предоставляет возможность передать свою реализацию ProductWidgetBuilder.
-
-Если не указать productWidgetBuilder, будет использоваться реализация по умолчанию: DefaultProductWidgetBuilder.
-
-📦 Пример использования
-
-```dart
-class MyCustomProductWidgetBuilder extends ProductWidgetBuilder {
-  @override
-  Widget build(Slot slot) {
-    final item = slot.item;
-
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (item.imageUrl != null)
-            ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-              child: Image.network(
-                item.imageUrl!,
-                height: 160,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (item.isNew == 'true')
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4.0),
-                    child: Text(
-                      '🔥 Новинка',
-                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                Text(
-                  item.name,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '${item.price}',
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
-                ),
-                if (item.oldPrice != null)
-                  Text(
-                    '${item.oldPrice}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                SizedBox(height: 8),
-                if (item.inStock != null)
-                  Text(
-                    item.inStock! ? 'В наличии' : 'Нет в наличии',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: item.inStock! ? Colors.green : Colors.red,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-```
-
-Передача кастомного builder’а при инициализации SDK:
+## Логирование
 
 ```dart
 await GravitySDK.instance.initialize(
-  apiKey: 'your-api-key',
-  section: 'your-section-id',
-  productWidgetBuilder: MyCustomProductWidgetBuilder(),
+  apiKey: 'api-key',
+  section: 'section',
+  logLevel: LogLevel.debug,
 );
 ```
+
+Уровни: `none` (отключено), `error`, `warn`, `info` (по умолчанию), `debug`.
 
 ## Пользователь и настройки
 
 ```dart
+// Ручная идентификация пользователя
 GravitySDK.instance.setUser('user-id', 'session-id');
 
+// Сброс пользователя и сессии (например, при logout)
+await GravitySDK.instance.resetUser();
+
+// Глобальные настройки
 GravitySDK.instance.setOptions(
-  options: Options(...),
-  contentSettings: ContentSettings(...),
+  options: Options(
+    isReturnUserInfo: true,
+    isImplicitImpression: true,
+  ),
+  contentSettings: ContentSettings(
+    skusOnly: false,
+    fields: ['name', 'price', 'imageUrl'],
+  ),
   proxyUrl: 'https://your-proxy.com',
+  isFetchContentOnTrack: true,
 );
+
+// Статус разрешения на push-уведомления
+GravitySDK.instance.setNotificationPermissionStatus(NotificationPermissionStatus.granted);
 ```
+
+- `proxyUrl` — маршрутизация запросов через прокси
+- `isFetchContentOnTrack` — автоматическая загрузка контента после `trackViewNoShow()` / `triggerEventNoShow()` (по умолчанию `true`)
+- `NotificationPermissionStatus`: `granted` / `denied` / `unknown`
 
 ## Отслеживание и события
 
+Оба метода принимают `BuildContext` — если событие триггерит кампанию, SDK сам покажет её контент.
+
 ```dart
 await GravitySDK.instance.trackView(
-  pageContext: PageContext(...),
+  context: context,
+  pageContext: PageContext(
+    type: ContextType.homepage,
+    data: [],
+    location: 'app://homepage',
+  ),
 );
 
 await GravitySDK.instance.triggerEvent(
-  events: [TriggerEvent(...)],
-  pageContext: PageContext(...),
+  context: context,
+  events: [
+    AddToCartEvent(value: 99.99, productId: 'sku-123', quantity: 1, currency: 'RUB'),
+  ],
+  pageContext: PageContext(
+    type: ContextType.product,
+    data: ['sku-123'],
+    location: 'app://product/sku-123',
+  ),
 );
 ```
+
+Доступные события (`TriggerEvent`): `AddToCartEvent`, `RemoveFromCartEvent`, `SyncCartEvent`, `PurchaseEvent`, `AddToWishlistEvent`, `SignUpEvent`, `LoginEvent`, `CustomEvent`.
+
+```dart
+final purchase = PurchaseEvent(
+  uniqueTransactionId: 'ORDER-12345',
+  value: 2550.75,
+  currency: 'RUB',
+  cart: [
+    CartItem(productId: 'sku-123', quantity: 1, itemPrice: 100.50),
+  ],
+);
+
+final custom = CustomEvent(
+  type: 'survey-completed-v1',
+  name: 'Survey completed',
+  customProps: {'surveyId': 'summer-2025', 'rating': '5'},
+);
+```
+
+## Обработка колбэков
+
+`gravityEventCallback` получает события жизненного цикла контента и действий пользователя (`TrackingEvent`). Большинство — информационные; обязательной обработки на стороне приложения требуют `FollowUrlEvent`, `FollowDeeplinkEvent` и `RequestPushEvent`:
+
+```dart
+await GravitySDK.instance.initialize(
+  apiKey: 'api-key',
+  section: 'section',
+  gravityEventCallback: (event) {
+    if (event is FollowUrlEvent) {
+      launchUrl(Uri.parse(event.url), mode: LaunchMode.externalApplication);
+    }
+    if (event is FollowDeeplinkEvent) {
+      // навигация по диплинку приложения
+    }
+    if (event is RequestPushEvent) {
+      // запрос разрешения на push-уведомления
+    }
+  },
+);
+```
+
+Информационные события: `ContentLoadEvent`, `ContentImpressionEvent`, `ContentVisibleImpressionEvent`, `ContentCloseEvent`, `CopyEvent`, `CancelEvent`, `ProductImpressionEvent`.
 
 ## Блокировка показа (presentation lock)
 
@@ -232,43 +236,195 @@ GravitySDK.instance.setPresentationLockListener(null);
 - состояние блокировки живёт в памяти и сбрасывается при перезапуске приложения — если оно должно переживать рестарт, сохраняйте и восстанавливайте его на стороне приложения (пример — `PresentationLockPrefs` в `example/`);
 - текущее состояние доступно через `GravitySDK.instance.isPresentationLocked`.
 
-## Взаимодействие
-
-```dart
-GravitySDK.instance.sendContentEngagement(ContentImpressionEngagement(...));
-GravitySDK.instance.sendProductEngagement(ProductClickEngagement(...));
-```
-
 ## Получение контента
 
+Контент можно запросить напрямую, без автопоказа:
+
 ```dart
-final content = await GravitySDK.instance.getContent('template-id');
+final bySelector = await GravitySDK.instance.getContentBySelector(
+  selector: 'homepage-recommendations',
+  pageContext: pageContext,
+  rules: rules, // опционально, List<RtRule>
+);
+
+final byCampaign = await GravitySDK.instance.getContentByCampaignId(
+  campaignId: 'campaign-id',
+  pageContext: pageContext,
+);
+
+final byGroup = await GravitySDK.instance.getContentByGroup(
+  group: 'homepage-group',
+  pageContext: pageContext,
+);
 ```
+
+Ответ — `ContentResponse` с кампаниями (`data`), их вариациями (`payload`) и контентом (`contents`):
+
+```dart
+final campaign = bySelector.data.firstOrNull;
+final variation = campaign?.payload.firstOrNull;
+final content = variation?.contents.firstOrNull;
+```
+
+### Батчинг и дедупликация
+
+Конкурентные вызовы `getContentBySelector` / `getContentByCampaignId` автоматически оптимизируются в пределах короткого окна (10 мс):
+
+- полностью идентичные запросы **дедуплицируются** — уходит один сетевой вызов, вызывающие делят один ответ;
+- разные запросы с одинаковым окружением (пользователь, `PageContext`, `Options`) **объединяются в один POST /choose** с несколькими элементами `data[]`.
+
+Это прозрачно для вызывающего кода и не требует настройки. `getContentByGroup` в батчинге не участвует.
+
+### Пример: фильтрация рекомендаций правилами
+
+```dart
+final rules = [
+  RtRule(
+    type: 'filter',
+    conditions: [
+      RtRuleCondition(
+        field: 'category',
+        arguments: [RtRuleArgument(action: 'in', value: ['shoes'])],
+      ),
+    ],
+  ),
+];
+```
+
+### Headless-режим
+
+Для полностью кастомной отрисовки есть методы с сырым JSON и «беззвучные» аналоги трекинга (контент возвращается, но не показывается):
+
+```dart
+// модель + сырой JSON
+final GravityDataResponse<ContentResponse> details =
+    await GravitySDK.instance.getContentBySelectorWithDetails(
+  selector: 'homepage-banner',
+  pageContext: pageContext,
+);
+
+// трекинг без показа: null, если кампания не сработала
+final GravityDataResponse<ContentResponse>? triggered =
+    await GravitySDK.instance.trackViewNoShow(pageContext: pageContext);
+
+final GravityDataResponse<ContentResponse>? byEvent =
+    await GravitySDK.instance.triggerEventNoShow(
+  events: [event],
+  pageContext: pageContext,
+);
+```
+
+`trackViewNoShow` / `triggerEventNoShow` дополнительно вызывают `gravityContentCallback` и подчиняются флагу `isFetchContentOnTrack`.
 
 ## Отображение контента
 
-### Модальное окно
+In-app контент (модальное окно, bottom sheet, полноэкранный режим, tooltip) SDK показывает **автоматически** из `trackView` / `triggerEvent` — формат задаётся настройками кампании на стороне Gravity. Многошаговые кампании (переходы между шагами по кнопкам) обрабатываются встроенным рендерером.
+
+### Inline-виджеты
+
+Встраивание кампании в вёрстку экрана:
 
 ```dart
-GravitySDK.instance.showModalContent(context, content);
+GravityInlineWidget(
+  selector: 'homepage-recommendations',
+  height: 250,
+  pageContext: pageContext,
+);
+
+GravityInlineListWidget(
+  group: 'homepage-group',
+  height: 250,
+  pageContext: pageContext,
+);
 ```
 
-### Bottom Sheet
+`GravityInlineWidget` дополнительно принимает `placeholderId`, `width`, `showLoading`, `loadingWidget`, `backgroundColor`, `onLoaded`, `rules`; `GravityInlineListWidget` — `showLoading`, `loadingWidget`, `showIndicator`, `indicatorActiveColor`, `indicatorInactiveColor`.
+
+### Tooltip-кампании: GravityAnchor
+
+`GravityAnchor` помечает виджет как якорь для tooltip-кампании и сам загружает её контент:
 
 ```dart
-GravitySDK.instance.showBottomSheetContent(context, content);
+GravityAnchor(
+  selector: 'profile_tooltip',
+  pageContext: pageContext,
+  builder: (context, onReady) {
+    return GravityInlineWidget(
+      selector: 'profile_inline',
+      height: 120,
+      pageContext: pageContext,
+      onLoaded: onReady,
+    );
+  },
+);
 ```
 
-### Bottom Sheet: Ряд товаров
+Загрузить якорный контент можно и вручную:
 
 ```dart
-GravitySDK.instance.showBottomSheetProductsRow(context, content);
+await GravitySDK.instance.fetchAnchorContent(
+  context: context,
+  selector: 'profile_tooltip',
+  pageContext: pageContext, // опционально
+);
 ```
 
-### Полноэкранное окно
+## ProductWidgetBuilder — кастомизация отображения продуктов
+
+Некоторые кампании содержат продукты (рекомендации, акции). Чтобы карточки товаров вписывались в стиль приложения, передайте свою реализацию `ProductWidgetBuilder` при инициализации; иначе используется `DefaultProductWidgetBuilder`.
 
 ```dart
-GravitySDK.instance.showFullScreenContent(context, content);
+class MyProductWidgetBuilder extends ProductWidgetBuilder {
+  @override
+  Widget build({
+    required BuildContext context,
+    required Slot product,
+    required CampaignContent content,
+    required Campaign campaign,
+  }) {
+    final item = product.item; // Map<String, dynamic> — атрибуты товара из фида
+    final imageUrl = item['imageUrl'] as String?;
+
+    return GestureDetector(
+      onTap: () {
+        GravitySDK.instance.sendProductEngagement(
+          ProductClickEngagement(product, content, campaign),
+        );
+      },
+      child: Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (imageUrl != null) Image.network(imageUrl, height: 160, fit: BoxFit.cover),
+            Text(item['name'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('${item['price'] ?? ''}'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+await GravitySDK.instance.initialize(
+  apiKey: 'api-key',
+  section: 'section',
+  productWidgetBuilder: MyProductWidgetBuilder(),
+);
+```
+
+## Взаимодействия (engagement)
+
+При кастомной отрисовке контента отправляйте взаимодействия вручную:
+
+```dart
+// контент
+GravitySDK.instance.sendContentEngagement(ContentImpressionEngagement(content, campaign));
+GravitySDK.instance.sendContentEngagement(ContentVisibleImpressionEngagement(content, campaign));
+GravitySDK.instance.sendContentEngagement(ContentCloseEngagement(content, campaign));
+
+// продукты
+GravitySDK.instance.sendProductEngagement(ProductClickEngagement(slot, content, campaign));
+GravitySDK.instance.sendProductEngagement(ProductVisibleImpressionEngagement(slot, content, campaign));
 ```
 
 ## Обработка ошибок
@@ -279,3 +435,4 @@ GravitySDK.instance.showFullScreenContent(context, content);
 GravitySDK is not initialized. Call initialize() first.
 ```
 
+Сетевые ошибки `getContentBy*` пробрасываются вызывающему коду (`DioException`); `trackView` / `triggerEvent` и inline-виджеты обрабатывают свои ошибки самостоятельно и не роняют приложение.
