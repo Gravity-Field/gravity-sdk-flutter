@@ -180,7 +180,7 @@ final custom = CustomEvent(
 
 ## Обработка колбэков
 
-`gravityEventCallback` получает события жизненного цикла контента и действий пользователя (`TrackingEvent`). Большинство — информационные; обязательной обработки на стороне приложения требуют `FollowUrlEvent`, `FollowDeeplinkEvent` и `RequestPushEvent`:
+`gravityEventCallback` получает события жизненного цикла контента и действий пользователя (`TrackingEvent`). Большинство — информационные; обязательной обработки на стороне приложения требуют `FollowUrlEvent`, `FollowDeeplinkEvent` и `RequestPushEvent`. `FollowUrlEvent.type` (`FollowUrlType.browser` / `FollowUrlType.webview`) подсказывает, где кампания просит открыть ссылку; если в кампании тип не задан, используется `browser`:
 
 ```dart
 await GravitySDK.instance.initialize(
@@ -188,7 +188,11 @@ await GravitySDK.instance.initialize(
   section: 'section',
   gravityEventCallback: (event) {
     if (event is FollowUrlEvent) {
-      launchUrl(Uri.parse(event.url), mode: LaunchMode.externalApplication);
+      if (event.type == FollowUrlType.webview) {
+        // открыть event.url во внутреннем webview приложения
+      } else {
+        launchUrl(Uri.parse(event.url), mode: LaunchMode.externalApplication);
+      }
     }
     if (event is FollowDeeplinkEvent) {
       // навигация по диплинку приложения
@@ -319,6 +323,8 @@ final GravityDataResponse<ContentResponse>? byEvent =
 ## Отображение контента
 
 In-app контент (модальное окно, bottom sheet, полноэкранный режим, tooltip) SDK показывает **автоматически** из `trackView` / `triggerEvent` — формат задаётся настройками кампании на стороне Gravity. Многошаговые кампании (переходы между шагами по кнопкам) обрабатываются встроенным рендерером.
+
+In-app формы (например, опрос с оценкой приложения) тоже рендерятся автоматически: выбор оценки, текстовый ввод с ограничениями длины, условная видимость элементов в зависимости от ответов. Кнопка отправки неактивна, пока обязательные поля не заполнены; результат отправляется в Gravity без участия приложения. Отдельной обработки не требуется — кроме `FollowUrlEvent`, если кампания после отправки ведёт на внешнюю ссылку (например, в магазин приложений).
 
 ### Inline-виджеты
 
