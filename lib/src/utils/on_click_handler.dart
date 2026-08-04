@@ -85,7 +85,9 @@ class OnClickHandler {
   Future<void> _handleFollowUrlAction(OnClick action) async {
     final url = action.url;
     if (url != null) {
-      _callbackTrackingEvent(FollowUrlEvent(url, content, campaign));
+      _callbackTrackingEvent(
+        FollowUrlEvent(url, content, campaign, type: action.type),
+      );
     }
   }
 

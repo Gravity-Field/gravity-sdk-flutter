@@ -1,0 +1,32 @@
+[
+  {
+    "name": "explicit_browser",
+    "onClick": {"action": "follow_url", "url": "https://example.com", "type": "browser"},
+    "expected": "browser"
+  },
+  {
+    "name": "explicit_webview",
+    "onClick": {"action": "follow_url", "url": "https://example.com", "type": "webview"},
+    "expected": "webview"
+  },
+  {
+    "name": "absent_type_defaults_to_browser",
+    "onClick": {"action": "follow_url", "url": "https://example.com"},
+    "expected": "browser"
+  },
+  {
+    "name": "null_type_defaults_to_browser",
+    "onClick": {"action": "follow_url", "url": "https://example.com", "type": null},
+    "expected": "browser"
+  },
+  {
+    "name": "unknown_type_does_not_break_decoding",
+    "onClick": {"action": "follow_url", "url": "https://example.com", "type": "external"},
+    "expected": "browser"
+  },
+  {
+    "name": "non_string_type_does_not_break_decoding",
+    "onClick": {"action": "follow_url", "url": "https://example.com", "type": 7},
+    "expected": "browser"
+  }
+]

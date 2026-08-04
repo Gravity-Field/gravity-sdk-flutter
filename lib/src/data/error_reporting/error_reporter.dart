@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:gravity_sdk/src/data/session/session_manager.dart';
 import 'package:gravity_sdk/src/gravity_sdk.dart';
 import 'package:gravity_sdk/src/version.dart';
@@ -9,6 +10,12 @@ class ErrorReporter {
   ErrorReporter._();
 
   static final ErrorReporter instance = ErrorReporter._();
+
+  /// Widget tests run under FakeAsync where the fire-and-forget Dio call
+  /// leaves a pending timer that fails the test; there is no transport seam
+  /// to mock, so tests opt out of the network send entirely.
+  @visibleForTesting
+  static bool disableNetworkForTests = false;
 
   static const String _endpoint = 'https://sdk-sentry.gravityfield.ai/error';
   static const int _maxErrorsPerMinute = 10;
@@ -53,6 +60,7 @@ class ErrorReporter {
         'stacktrace': _truncate(stacktrace ?? '', _maxStacktraceLength),
       };
 
+      if (disableNetworkForTests) return;
       _dio.post(_endpoint, data: payload).ignore();
     } catch (_) {}
   }

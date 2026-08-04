@@ -6,6 +6,7 @@ import 'package:example/src/features/main/main_page.dart';
 import 'package:example/src/features/webview/webview_page.dart';
 import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -21,9 +22,13 @@ Future<void> main() async {
       debugPrint('Gravity SDK Event: ${event.runtimeType}');
 
       if (event is FollowUrlEvent) {
-        final context = navigatorKey.currentContext;
-        if (context != null) {
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) => WebViewPage(url: event.url)));
+        if (event.type == FollowUrlType.webview) {
+          final context = navigatorKey.currentContext;
+          if (context != null) {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context) => WebViewPage(url: event.url)));
+          }
+        } else {
+          launchUrl(Uri.parse(event.url), mode: LaunchMode.externalApplication);
         }
       }
 

@@ -46,8 +46,14 @@ class CancelEvent extends TrackingEvent {
 class FollowUrlEvent extends TrackingEvent {
   final String url;
   final CampaignContent content;
+  final FollowUrlType type;
 
-  FollowUrlEvent(this.url, this.content, Campaign campaign) : super(campaign);
+  FollowUrlEvent(
+    this.url,
+    this.content,
+    Campaign campaign, {
+    this.type = FollowUrlType.browser,
+  }) : super(campaign);
 }
 
 class FollowDeeplinkEvent extends TrackingEvent {

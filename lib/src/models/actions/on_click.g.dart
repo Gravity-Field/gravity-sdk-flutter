@@ -16,6 +16,13 @@ OnClick _$OnClickFromJson(Map<String, dynamic> json) => OnClick(
   step: (json['step'] as num?)?.toInt(),
   url: json['url'] as String?,
   deeplink: json['deeplink'] as String?,
+  type:
+      $enumDecodeNullable(
+        _$FollowUrlTypeEnumMap,
+        json['type'],
+        unknownValue: FollowUrlType.browser,
+      ) ??
+      FollowUrlType.browser,
   closeOnClick: json['closeOnClick'] as bool? ?? true,
 );
 
@@ -32,4 +39,9 @@ const _$ActionEnumMap = {
   Action.requestTracking: 'request_tracking',
   Action.openStep: 'open_step',
   Action.unknown: 'unknown',
+};
+
+const _$FollowUrlTypeEnumMap = {
+  FollowUrlType.browser: 'browser',
+  FollowUrlType.webview: 'webview',
 };

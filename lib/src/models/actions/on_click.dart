@@ -2,6 +2,9 @@ import 'package:json_annotation/json_annotation.dart';
 
 import '../../data/error_reporting/error_reporter.dart';
 import 'action.dart';
+import 'follow_url_type.dart';
+
+export 'follow_url_type.dart';
 
 part 'on_click.g.dart';
 
@@ -13,6 +16,11 @@ class OnClick {
   final int? step;
   final String? url;
   final String? deeplink;
+  @JsonKey(
+    defaultValue: FollowUrlType.browser,
+    unknownEnumValue: FollowUrlType.browser,
+  )
+  final FollowUrlType type;
   final bool closeOnClick;
 
   OnClick({
@@ -21,6 +29,7 @@ class OnClick {
     this.step,
     this.url,
     this.deeplink,
+    this.type = FollowUrlType.browser,
     this.closeOnClick = true,
   });
 
