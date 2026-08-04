@@ -1,8 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:gravity_sdk/src/ui/elements/gravity_button.dart';
-import 'package:gravity_sdk/src/ui/elements/gravity_image.dart';
-import 'package:gravity_sdk/src/ui/elements/gravity_text.dart';
+import 'package:gravity_sdk/src/ui/widgets/gravity_elements_column.dart';
 
 import '../../../models/external/campaign.dart';
 import '../../../models/internal/campaign_content.dart';
@@ -62,9 +60,13 @@ class SnackBarContent2 extends SnackBarContent {
         child: Row(
           children: [
             if (image != null) ...[
-              GravityImageWidget(
-                element: image,
-                onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
+              GravityElementsColumn(
+                content: content,
+                campaign: campaign,
+                elements: [image],
+                formsEnabled: false,
+                onClickCallback: (element, action) =>
+                    onClickHandler.handeOnClick(action, context),
               ),
               SizedBox(width: 12),
             ],
@@ -73,24 +75,38 @@ class SnackBarContent2 extends SnackBarContent {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (texts.elementAtOrNull(0) != null)
-                    GravityText(
-                      element: texts.elementAt(0),
-                      onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
+                    GravityElementsColumn(
+                      content: content,
+                      campaign: campaign,
+                      elements: [texts.elementAt(0)],
+                      formsEnabled: false,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      onClickCallback: (element, action) =>
+                          onClickHandler.handeOnClick(action, context),
                     ),
                   if (texts.elementAtOrNull(1) != null) ...[
                     SizedBox(height: 4),
-                    GravityText(
-                      element: texts.elementAt(1),
-                      onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
+                    GravityElementsColumn(
+                      content: content,
+                      campaign: campaign,
+                      elements: [texts.elementAt(1)],
+                      formsEnabled: false,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      onClickCallback: (element, action) =>
+                          onClickHandler.handeOnClick(action, context),
                     ),
                   ],
                   if (button != null) ...[
                     SizedBox(height: 12),
-                    GravityButton(
-                      element: button,
-                      onClickCallback: (action) {
+                    GravityElementsColumn(
+                      content: content,
+                      campaign: campaign,
+                      elements: [button],
+                      formsEnabled: false,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      onClickCallback: (element, action) {
                         onClickHandler.handeOnClick(action, context);
-                        if (action.closeOnClick) {
+                        if (shouldAutoPopOnClick(element, action)) {
                           onDismiss?.call();
                         }
                       },

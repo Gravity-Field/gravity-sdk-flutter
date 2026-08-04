@@ -1,0 +1,212 @@
+[
+  {
+    "name": "equal_numbers_true",
+    "condition": {"attributeName": "score", "operator": "equal", "value": 4},
+    "state": {"score": 4},
+    "expected": true
+  },
+  {
+    "name": "not_equal_numbers_true",
+    "condition": {"attributeName": "score", "operator": "not_equal", "value": 4},
+    "state": {"score": 5},
+    "expected": true
+  },
+  {
+    "name": "less_numbers_true",
+    "condition": {"attributeName": "score", "operator": "less", "value": 4},
+    "state": {"score": 3},
+    "expected": true
+  },
+  {
+    "name": "less_or_equal_numbers_boundary_true",
+    "condition": {"attributeName": "score", "operator": "less_or_equal", "value": 4},
+    "state": {"score": 4},
+    "expected": true
+  },
+  {
+    "name": "more_numbers_true",
+    "condition": {"attributeName": "score", "operator": "more", "value": 4},
+    "state": {"score": 5},
+    "expected": true
+  },
+  {
+    "name": "more_or_equal_numbers_boundary_true",
+    "condition": {"attributeName": "score", "operator": "more_or_equal", "value": 4},
+    "state": {"score": 4},
+    "expected": true
+  },
+  {
+    "name": "is_empty_number_zero_false",
+    "condition": {"attributeName": "score", "operator": "is_empty"},
+    "state": {"score": 0},
+    "expected": false
+  },
+  {
+    "name": "is_not_empty_number_zero_true",
+    "condition": {"attributeName": "score", "operator": "is_not_empty"},
+    "state": {"score": 0},
+    "expected": true
+  },
+  {
+    "name": "string_10_equal_number_9_false",
+    "condition": {"attributeName": "score", "operator": "equal", "value": 9},
+    "state": {"score": "10"},
+    "expected": false
+  },
+  {
+    "name": "string_10_more_number_9_false",
+    "condition": {"attributeName": "score", "operator": "more", "value": 9},
+    "state": {"score": "10"},
+    "expected": false
+  },
+  {
+    "name": "less_or_equal_missing_false",
+    "condition": {"attributeName": "score", "operator": "less_or_equal", "value": 4},
+    "state": {},
+    "expected": false
+  },
+  {
+    "name": "not_equal_missing_true",
+    "condition": {"attributeName": "score", "operator": "not_equal", "value": 4},
+    "state": {},
+    "expected": true
+  },
+  {
+    "name": "is_empty_empty_string_true",
+    "condition": {"attributeName": "comment", "operator": "is_empty"},
+    "state": {"comment": ""},
+    "expected": true
+  },
+  {
+    "name": "is_empty_whitespace_string_true",
+    "condition": {"attributeName": "comment", "operator": "is_empty"},
+    "state": {"comment": "  "},
+    "expected": true
+  },
+  {
+    "name": "is_empty_missing_true",
+    "condition": {"attributeName": "comment", "operator": "is_empty"},
+    "state": {},
+    "expected": true
+  },
+  {
+    "name": "cross_type_number_4_equal_string_4_false",
+    "condition": {"attributeName": "score", "operator": "equal", "value": "4"},
+    "state": {"score": 4},
+    "expected": false
+  },
+  {
+    "name": "nested_all_with_any_true",
+    "condition": {
+      "all": [
+        {"attributeName": "rating", "operator": "more_or_equal", "value": 4},
+        {
+          "any": [
+            {"attributeName": "feedback", "operator": "is_empty"},
+            {"attributeName": "feedback", "operator": "equal", "value": "great"}
+          ]
+        }
+      ]
+    },
+    "state": {"rating": 5, "feedback": "great"},
+    "expected": true
+  },
+  {
+    "name": "nested_any_with_all_false",
+    "condition": {
+      "any": [
+        {"attributeName": "rating", "operator": "less", "value": 3},
+        {
+          "all": [
+            {"attributeName": "feedback", "operator": "is_not_empty"},
+            {"attributeName": "rating", "operator": "equal", "value": 5}
+          ]
+        }
+      ]
+    },
+    "state": {"rating": 5, "feedback": " "},
+    "expected": false
+  },
+  {
+    "name": "scenario_rating_lte_3_null_false",
+    "condition": {"attributeName": "rating", "operator": "less_or_equal", "value": 3},
+    "state": {"rating": null},
+    "expected": false
+  },
+  {
+    "name": "scenario_rating_lte_3_two_true",
+    "condition": {"attributeName": "rating", "operator": "less_or_equal", "value": 3},
+    "state": {"rating": 2},
+    "expected": true
+  },
+  {
+    "name": "scenario_rating_gte_4_five_true",
+    "condition": {"attributeName": "rating", "operator": "more_or_equal", "value": 4},
+    "state": {"rating": 5},
+    "expected": true
+  },
+  {
+    "name": "numeric_int_equals_double_true",
+    "condition": {"attributeName": "score", "operator": "equal", "value": 4.0},
+    "state": {"score": 4},
+    "expected": true
+  },
+  {
+    "name": "not_equal_same_numbers_false",
+    "condition": {"attributeName": "score", "operator": "not_equal", "value": 5},
+    "state": {"score": 5},
+    "expected": false
+  },
+  {
+    "name": "is_not_empty_text_true",
+    "condition": {"attributeName": "comment", "operator": "is_not_empty"},
+    "state": {"comment": "useful"},
+    "expected": true
+  },
+  {
+    "name": "is_not_empty_whitespace_false",
+    "condition": {"attributeName": "comment", "operator": "is_not_empty"},
+    "state": {"comment": " \t "},
+    "expected": false
+  },
+  {
+    "name": "equal_strings_true",
+    "condition": {"attributeName": "status", "operator": "equal", "value": "ready"},
+    "state": {"status": "ready"},
+    "expected": true
+  },
+  {
+    "name": "not_equal_strings_true",
+    "condition": {"attributeName": "status", "operator": "not_equal", "value": "ready"},
+    "state": {"status": "waiting"},
+    "expected": true
+  },
+  {
+    "name": "less_numbers_false",
+    "condition": {"attributeName": "score", "operator": "less", "value": 4},
+    "state": {"score": 5},
+    "expected": false
+  },
+  {
+    "name": "all_group_false",
+    "condition": {
+      "all": [
+        {"attributeName": "rating", "operator": "more", "value": 3},
+        {"attributeName": "feedback", "operator": "is_not_empty"}
+      ]
+    },
+    "state": {"rating": 4},
+    "expected": false
+  },
+  {
+    "name": "any_group_true",
+    "condition": {
+      "any": [
+        {"attributeName": "rating", "operator": "less", "value": 3},
+        {"attributeName": "feedback", "operator": "is_empty"}
+      ]
+    },
+    "state": {"rating": 4},
+    "expected": true
+  }
+]

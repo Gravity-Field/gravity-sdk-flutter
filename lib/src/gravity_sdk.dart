@@ -8,6 +8,7 @@ import 'package:gravity_sdk/src/utils/product_events_service.dart';
 import 'data/api/content_ids_response.dart';
 import 'data/api/content_response.dart';
 import 'data/session/session_manager.dart';
+import 'forms/form_session.dart';
 import 'models/external/gravity_data_response.dart';
 import 'models/external/log_level.dart';
 import 'models/external/rt_rule.dart';
@@ -40,7 +41,8 @@ typedef GravityEventCallback = void Function(TrackingEvent event);
 
 /// Callback invoked with the campaign content GravityDataResponse.
 /// Intended for use in headless mode.
-typedef GravityContentCallback = void Function(GravityDataResponse<ContentResponse> response);
+typedef GravityContentCallback =
+    void Function(GravityDataResponse<ContentResponse> response);
 
 class GravitySDK {
   //init fields
@@ -56,7 +58,8 @@ class GravitySDK {
   Options options = Options();
   String? proxyUrl;
   bool isFetchContentOnTrack = true;
-  NotificationPermissionStatus notificationPermissionStatus = NotificationPermissionStatus.unknown;
+  NotificationPermissionStatus notificationPermissionStatus =
+      NotificationPermissionStatus.unknown;
   bool _isPresentationLocked = false;
   void Function(bool locked)? _presentationLockListener;
 
@@ -133,7 +136,9 @@ class GravitySDK {
   /// repeatedly.
   void lockPresentation() {
     _isPresentationLocked = true;
-    _logPresentationLock('Presentation lock called, presentation is now locked');
+    _logPresentationLock(
+      'Presentation lock called, presentation is now locked',
+    );
     _presentationLockListener?.call(true);
   }
 
@@ -142,7 +147,9 @@ class GravitySDK {
   /// retroactively. Safe to call repeatedly.
   void unlockPresentation() {
     _isPresentationLocked = false;
-    _logPresentationLock('Presentation unlock called, presentation is now unlocked');
+    _logPresentationLock(
+      'Presentation unlock called, presentation is now unlocked',
+    );
     _presentationLockListener?.call(false);
   }
 
@@ -165,21 +172,31 @@ class GravitySDK {
   // iOS/Android SDKs and between trackView and triggerEvent.
   bool _skipIfPresentationLocked(String campaignId) {
     if (!_isPresentationLocked) return false;
-    _logPresentationLock('Presentation is locked, skipped content for campaign $campaignId');
+    _logPresentationLock(
+      'Presentation is locked, skipped content for campaign $campaignId',
+    );
     return true;
   }
 
-  Future<void> trackView({required BuildContext context, required PageContext pageContext}) async {
+  Future<void> trackView({
+    required BuildContext context,
+    required PageContext pageContext,
+  }) async {
     _checkIsInitialized();
     try {
-      final response = await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
+      final response = await GravityRepo.instance.visit(
+        customUser: user,
+        pageContext: pageContext,
+        options: options,
+      );
 
       if (response.campaigns.isEmpty || !context.mounted) return;
 
       final resolved = await _resolveHighestPriority<ContentResponse>(
         campaigns: response.campaigns,
         pageContext: pageContext,
-        fetchContent: (id, ctx) => getContentByCampaignId(campaignId: id, pageContext: ctx),
+        fetchContent: (id, ctx) =>
+            getContentByCampaignId(campaignId: id, pageContext: ctx),
         extractCampaigns: (result) => result.data,
         section: 'GravitySDK.trackView',
       );
@@ -196,9 +213,16 @@ class GravitySDK {
       if (_skipIfPresentationLocked(campaignIdObj.campaignId)) return;
 
       final campaign = result.data.first;
-      final root = resolveRootContent(campaign.payload.firstOrNull?.contents ?? const []);
+      final root = resolveRootContent(
+        campaign.payload.firstOrNull?.contents ?? const [],
+      );
       if (root == null) return;
-      _showBackendContent(context, root, campaign);
+      _showBackendContent(
+        context,
+        root,
+        campaign,
+        pageContext: pageContext,
+      );
     } catch (e, stackTrace) {
       _reportError(e, stackTrace, section: 'GravitySDK.trackView');
     }
@@ -211,7 +235,9 @@ class GravitySDK {
   }) async {
     _checkIsInitialized();
     try {
-      final effectivePageContext = pageContext ?? PageContext(type: ContextType.other, data: [], location: '');
+      final effectivePageContext =
+          pageContext ??
+          PageContext(type: ContextType.other, data: [], location: '');
 
       final response = await GravityRepo.instance.getContentBySelector(
         selector: selector,
@@ -225,10 +251,18 @@ class GravitySDK {
       final campaign = response.data.firstOrNull;
       if (campaign == null) return;
 
-      final content = resolveRootContent(campaign.payload.firstOrNull?.contents ?? const []);
+      final content = resolveRootContent(
+        campaign.payload.firstOrNull?.contents ?? const [],
+      );
       if (content == null) return;
 
-      _showBackendContent(context, content, campaign, selector: selector);
+      _showBackendContent(
+        context,
+        content,
+        campaign,
+        selector: selector,
+        pageContext: effectivePageContext,
+      );
     } catch (e, stackTrace) {
       _reportError(e, stackTrace, section: 'GravitySDK.fetchAnchorContent');
     }
@@ -253,7 +287,8 @@ class GravitySDK {
       final resolved = await _resolveHighestPriority<ContentResponse>(
         campaigns: response.campaigns,
         pageContext: pageContext,
-        fetchContent: (id, ctx) => getContentByCampaignId(campaignId: id, pageContext: ctx),
+        fetchContent: (id, ctx) =>
+            getContentByCampaignId(campaignId: id, pageContext: ctx),
         extractCampaigns: (result) => result.data,
         section: 'GravitySDK.triggerEvent',
       );
@@ -270,9 +305,16 @@ class GravitySDK {
       if (_skipIfPresentationLocked(campaignIdObj.campaignId)) return;
 
       final campaign = result.data.first;
-      final root = resolveRootContent(campaign.payload.firstOrNull?.contents ?? const []);
+      final root = resolveRootContent(
+        campaign.payload.firstOrNull?.contents ?? const [],
+      );
       if (root == null) return;
-      _showBackendContent(context, root, campaign);
+      _showBackendContent(
+        context,
+        root,
+        campaign,
+        pageContext: pageContext,
+      );
     } catch (e, stackTrace) {
       _reportError(e, stackTrace, section: 'GravitySDK.triggerEvent');
     }
@@ -346,7 +388,10 @@ class GravitySDK {
     for (final campaign in content.data) {
       for (final payload in campaign.payload) {
         for (final content in payload.contents) {
-          ContentEventsService.instance.sendContentLoaded(content: content, campaign: campaign);
+          ContentEventsService.instance.sendContentLoaded(
+            content: content,
+            campaign: campaign,
+          );
         }
       }
     }
@@ -372,7 +417,10 @@ class GravitySDK {
     for (final campaign in content.data) {
       for (final payload in campaign.payload) {
         for (final content in payload.contents) {
-          ContentEventsService.instance.sendContentLoaded(content: content, campaign: campaign);
+          ContentEventsService.instance.sendContentLoaded(
+            content: content,
+            campaign: campaign,
+          );
         }
       }
     }
@@ -398,7 +446,10 @@ class GravitySDK {
     for (final campaign in content.data) {
       for (final payload in campaign.payload) {
         for (final content in payload.contents) {
-          ContentEventsService.instance.sendContentLoaded(content: content, campaign: campaign);
+          ContentEventsService.instance.sendContentLoaded(
+            content: content,
+            campaign: campaign,
+          );
         }
       }
     }
@@ -425,7 +476,10 @@ class GravitySDK {
     for (final campaign in response.data.data) {
       for (final payload in campaign.payload) {
         for (final content in payload.contents) {
-          ContentEventsService.instance.sendContentLoaded(content: content, campaign: campaign);
+          ContentEventsService.instance.sendContentLoaded(
+            content: content,
+            campaign: campaign,
+          );
         }
       }
     }
@@ -435,25 +489,30 @@ class GravitySDK {
     return response;
   }
 
-  Future<GravityDataResponse<ContentResponse>> getContentByCampaignIdWithDetails({
+  Future<GravityDataResponse<ContentResponse>>
+  getContentByCampaignIdWithDetails({
     required String campaignId,
     required PageContext pageContext,
     List<RtRule>? rules,
   }) async {
     _checkIsInitialized();
 
-    final response = await GravityRepo.instance.getContentByCampaignIdWithDetails(
-      campaignId: campaignId,
-      pageContext: pageContext,
-      options: options,
-      contentSetting: contentSettings,
-      rules: rules,
-    );
+    final response = await GravityRepo.instance
+        .getContentByCampaignIdWithDetails(
+          campaignId: campaignId,
+          pageContext: pageContext,
+          options: options,
+          contentSetting: contentSettings,
+          rules: rules,
+        );
 
     for (final campaign in response.data.data) {
       for (final payload in campaign.payload) {
         for (final content in payload.contents) {
-          ContentEventsService.instance.sendContentLoaded(content: content, campaign: campaign);
+          ContentEventsService.instance.sendContentLoaded(
+            content: content,
+            campaign: campaign,
+          );
         }
       }
     }
@@ -468,10 +527,16 @@ class GravitySDK {
   ///
   /// Returns GravityDataResponse or `null` if no campaign was triggered.
   /// Also invokes [gravityContentCallback] on success.
-  Future<GravityDataResponse<ContentResponse>?> trackViewNoShow({required PageContext pageContext}) async {
+  Future<GravityDataResponse<ContentResponse>?> trackViewNoShow({
+    required PageContext pageContext,
+  }) async {
     _checkIsInitialized();
     try {
-      final response = await GravityRepo.instance.visit(customUser: user, pageContext: pageContext, options: options);
+      final response = await GravityRepo.instance.visit(
+        customUser: user,
+        pageContext: pageContext,
+        options: options,
+      );
 
       if (response.campaigns.isEmpty || !isFetchContentOnTrack) return null;
 
@@ -522,11 +587,13 @@ class GravitySDK {
   Future<(T, CampaignId)?> _resolveHighestPriority<T>({
     required List<CampaignId> campaigns,
     required PageContext pageContext,
-    required Future<T> Function(String campaignId, PageContext pageContext) fetchContent,
+    required Future<T> Function(String campaignId, PageContext pageContext)
+    fetchContent,
     required List<Campaign> Function(T result) extractCampaigns,
     required String section,
   }) async {
-    final sorted = List.of(campaigns)..sort((a, b) => b.priority.compareTo(a.priority));
+    final sorted = List.of(campaigns)
+      ..sort((a, b) => b.priority.compareTo(a.priority));
 
     for (final campaignId in sorted) {
       try {
@@ -534,7 +601,9 @@ class GravitySDK {
         final campaign = extractCampaigns(result).firstOrNull;
         if (campaign == null) continue;
 
-        final content = resolveRootContent(campaign.payload.firstOrNull?.contents ?? const []);
+        final content = resolveRootContent(
+          campaign.payload.firstOrNull?.contents ?? const [],
+        );
         if (content == null) continue;
 
         return (result, campaignId);
@@ -543,7 +612,10 @@ class GravitySDK {
           e,
           stackTrace,
           section: section,
-          extra: {'campaignId': campaignId.campaignId, 'priority': campaignId.priority},
+          extra: {
+            'campaignId': campaignId.campaignId,
+            'priority': campaignId.priority,
+          },
         );
       }
     }
@@ -556,13 +628,17 @@ class GravitySDK {
     required List<CampaignId> campaigns,
     required PageContext pageContext,
   }) async {
-    final resolved = await _resolveHighestPriority<GravityDataResponse<ContentResponse>>(
-      campaigns: campaigns,
-      pageContext: pageContext,
-      fetchContent: (campaignId, ctx) => getContentByCampaignIdWithDetails(campaignId: campaignId, pageContext: ctx),
-      extractCampaigns: (result) => result.data.data,
-      section: 'GravitySDK._resolveHighestPriorityNoShow',
-    );
+    final resolved =
+        await _resolveHighestPriority<GravityDataResponse<ContentResponse>>(
+          campaigns: campaigns,
+          pageContext: pageContext,
+          fetchContent: (campaignId, ctx) => getContentByCampaignIdWithDetails(
+            campaignId: campaignId,
+            pageContext: ctx,
+          ),
+          extractCampaigns: (result) => result.data.data,
+          section: 'GravitySDK._resolveHighestPriorityNoShow',
+        );
 
     return resolved?.$1;
   }
@@ -591,24 +667,57 @@ class GravitySDK {
     required OnClick onClick,
     required CampaignContent currentContent,
     required Campaign campaign,
+    FormSession? session,
   }) {
-    final stepContent = resolveStepContent(campaign, onClick.step);
-    if (stepContent == null) {
-      talker.warning('open_step: step ${onClick.step} not found in campaign contents');
+    session?.beginStepTransition();
+
+    final matches = <CampaignContent>[];
+    if (onClick.step != null) {
+      for (final variation in campaign.payload) {
+        for (final content in variation.contents) {
+          if (content.step == onClick.step) matches.add(content);
+        }
+      }
+    }
+
+    if (matches.isEmpty) {
+      session?.consumeStepTransition();
+      talker.warning(
+        'open_step: step ${onClick.step} not found in campaign contents',
+      );
       return;
     }
+
+    if (matches.length > 1) {
+      talker.warning(
+        'open_step: multiple contents found for step ${onClick.step}; using the first',
+      );
+    }
+
+    final stepContent = matches.first;
 
     if (stepContent.deliveryMethod == DeliveryMethod.tooltip) {
-      talker.warning('open_step: tooltip step ${onClick.step} is not supported (no anchor selector)');
+      session?.consumeStepTransition();
+      talker.warning(
+        'open_step: tooltip step ${onClick.step} is not supported (no anchor selector)',
+      );
       return;
     }
 
+    final presentationContext = Navigator.of(context).context;
     _dismissCurrentInApp(context, currentContent);
-    if (!context.mounted) return;
-    _showBackendContent(context, stepContent, campaign);
+    _showBackendContent(
+      presentationContext,
+      stepContent,
+      campaign,
+      session: session,
+    );
   }
 
-  void _dismissCurrentInApp(BuildContext context, CampaignContent currentContent) {
+  void _dismissCurrentInApp(
+    BuildContext context,
+    CampaignContent currentContent,
+  ) {
     switch (currentContent.deliveryMethod) {
       case DeliveryMethod.modal:
       case DeliveryMethod.bottomSheet:
@@ -625,15 +734,37 @@ class GravitySDK {
     }
   }
 
-  void _showBackendContent(BuildContext context, CampaignContent content, Campaign campaign, {String? selector}) {
+  void _showBackendContent(
+    BuildContext context,
+    CampaignContent content,
+    Campaign campaign, {
+    String? selector,
+    PageContext? pageContext,
+    FormSession? session,
+  }) {
     try {
       switch (content.deliveryMethod) {
         case DeliveryMethod.modal:
-          _showModalContent(context, content, campaign);
+          _showModalContent(
+            context,
+            content,
+            campaign,
+            session ?? _createFormSession(pageContext, campaign),
+          );
         case DeliveryMethod.bottomSheet:
-          _showBottomSheetContent(context, content, campaign);
+          _showBottomSheetContent(
+            context,
+            content,
+            campaign,
+            session ?? _createFormSession(pageContext, campaign),
+          );
         case DeliveryMethod.fullScreen:
-          _showFullScreenContent(context, content, campaign);
+          _showFullScreenContent(
+            context,
+            content,
+            campaign,
+            session ?? _createFormSession(pageContext, campaign),
+          );
         case DeliveryMethod.snackBar:
           _showSnackBar(context, content, campaign);
         case DeliveryMethod.tooltip:
@@ -656,7 +787,28 @@ class GravitySDK {
     }
   }
 
-  void _showTooltipContent(BuildContext context, CampaignContent content, Campaign campaign, String selector) {
+  FormSession _createFormSession(
+    PageContext? pageContext,
+    Campaign campaign,
+  ) {
+    return FormSession(
+      pageContext:
+          pageContext ??
+          const PageContext(
+            type: ContextType.other,
+            data: [],
+            location: '',
+          ),
+      hasFormElements: campaignHasFormElements(campaign),
+    );
+  }
+
+  void _showTooltipContent(
+    BuildContext context,
+    CampaignContent content,
+    Campaign campaign,
+    String selector,
+  ) {
     if (!AnchorRegistry.instance.hasAnchor(selector)) {
       talker.warning('Tooltip: anchor with selector "$selector" not found');
       return;
@@ -665,31 +817,63 @@ class GravitySDK {
     final config = content.variables.tooltipConfig ?? TooltipConfig();
 
     if (context.mounted) {
-      TooltipOverlay.show(context: context, content: content, campaign: campaign, config: config, selector: selector);
-    }
-  }
-
-  void _showModalContent(BuildContext context, CampaignContent content, Campaign campaign) {
-    if (context.mounted) {
-      final modal = ModalContent(content: content, campaign: campaign);
-
-      showDialog(
+      TooltipOverlay.show(
         context: context,
-        builder: (context) {
-          return modal;
-        },
+        content: content,
+        campaign: campaign,
+        config: config,
+        selector: selector,
       );
     }
   }
 
-  void _showBottomSheetContent(BuildContext context, CampaignContent content, Campaign campaign) {
+  void _showModalContent(
+    BuildContext context,
+    CampaignContent content,
+    Campaign campaign,
+    FormSession session,
+  ) {
     if (context.mounted) {
-      final bottomSheet = BottomSheetContent(content: content, campaign: campaign);
+      final modal = ModalContent(
+        content: content,
+        campaign: campaign,
+        session: session,
+      );
+
+      showDialog<void>(
+        context: context,
+        builder: (context) {
+          return modal;
+        },
+      ).then((_) {
+        if (!session.consumeStepTransition()) {
+          session.finish(
+            FormCloseReason.dismiss,
+            content: content,
+            campaign: campaign,
+          );
+        }
+      });
+    }
+  }
+
+  void _showBottomSheetContent(
+    BuildContext context,
+    CampaignContent content,
+    Campaign campaign,
+    FormSession session,
+  ) {
+    if (context.mounted) {
+      final bottomSheet = BottomSheetContent(
+        content: content,
+        campaign: campaign,
+        session: session,
+      );
 
       final frameUi = content.variables.frameUI!;
       final container = frameUi.container;
 
-      showModalBottomSheet(
+      showModalBottomSheet<void>(
         backgroundColor: container.style?.backgroundColor,
         isScrollControlled: true,
         useSafeArea: true,
@@ -704,24 +888,55 @@ class GravitySDK {
         builder: (context) {
           return bottomSheet;
         },
-      );
+      ).whenComplete(() {
+        if (!session.consumeStepTransition()) {
+          session.finish(
+            FormCloseReason.dismiss,
+            content: content,
+            campaign: campaign,
+          );
+        }
+      });
     }
   }
 
-  void _showFullScreenContent(BuildContext context, CampaignContent content, Campaign campaign) {
+  void _showFullScreenContent(
+    BuildContext context,
+    CampaignContent content,
+    Campaign campaign,
+    FormSession session,
+  ) {
     if (context.mounted) {
-      final fullScreen = FullScreenContent(content: content, campaign: campaign);
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) {
-            return fullScreen;
-          },
-        ),
+      final fullScreen = FullScreenContent(
+        content: content,
+        campaign: campaign,
+        session: session,
       );
+      Navigator.of(context)
+          .push<void>(
+            MaterialPageRoute(
+              builder: (context) {
+                return fullScreen;
+              },
+            ),
+          )
+          .then((_) {
+            if (!session.consumeStepTransition()) {
+              session.finish(
+                FormCloseReason.dismiss,
+                content: content,
+                campaign: campaign,
+              );
+            }
+          });
     }
   }
 
-  void _showSnackBar(BuildContext context, CampaignContent content, Campaign campaign) {
+  void _showSnackBar(
+    BuildContext context,
+    CampaignContent content,
+    Campaign campaign,
+  ) {
     final template = content.templateSystemName;
 
     if (template == null || template == TemplateSystemName.unknown) {
@@ -745,7 +960,9 @@ class GravitySDK {
 
   void _checkIsInitialized() {
     if (apiKey.isEmpty || section.isEmpty) {
-      throw Exception('GravitySDK is not initialized. Call initialize() first.');
+      throw Exception(
+        'GravitySDK is not initialized. Call initialize() first.',
+      );
     }
   }
 }

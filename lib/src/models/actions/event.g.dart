@@ -27,5 +27,6 @@ const _$ActionEnumMap = {
   Action.requestPush: 'request_push',
   Action.requestTracking: 'request_tracking',
   Action.openStep: 'open_step',
+  Action.submitForm: 'submit_form',
   Action.unknown: 'unknown',
 };

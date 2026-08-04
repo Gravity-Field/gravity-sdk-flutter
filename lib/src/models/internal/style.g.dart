@@ -51,6 +51,9 @@ Style _$StyleFromJson(Map<String, dynamic> json) => Style(
     _$ProductContainerTypeEnumMap,
     json['productContainerType'],
   ),
+  rating: json['rating'] == null
+      ? null
+      : RatingStyle.fromJson(json['rating'] as Map<String, dynamic>),
 );
 
 const _$GravityContentAlignmentEnumMap = {

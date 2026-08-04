@@ -35,6 +35,20 @@ class GravityRepo {
   @visibleForTesting
   static Duration chooseBatchDelay = const Duration(milliseconds: 10);
 
+  /// Observes tracking batches without replacing the production transport.
+  @visibleForTesting
+  static void Function(List<String> urls)? triggerEventUrlsObserver;
+
+  /// Replaces the whole [event] pipeline in tests. Invoked synchronously so
+  /// side effects scheduled by the caller during a fire-and-forget dispatch
+  /// happen inside that dispatch (the double-tap tests depend on this).
+  @visibleForTesting
+  static Future<CampaignIdsResponse> Function(
+    List<TriggerEvent> events,
+    PageContext pageContext,
+  )?
+  eventOverride;
+
   late final _chooseBatcher = RequestBatcher<ContentResponse>(
     batchExecutor: _executeChooseBatch,
     batchDelay: chooseBatchDelay,
@@ -52,6 +66,9 @@ class GravityRepo {
     required PageContext pageContext,
     required Options options,
   }) async {
+    final override = eventOverride;
+    if (override != null) return override(events, pageContext);
+
     final sessionCompleter = _startSessionInitializationIfFirst(customUser);
 
     // Generation before the user snapshot: if a reset lands between the two,
@@ -71,7 +88,12 @@ class GravityRepo {
       final context = await _mixPageContextAttributes(pageContext);
       final response = await _api.event(events, user, context, options);
 
-      await _finalizeSession(customUser, response.user, sessionCompleter, capturedGen);
+      await _finalizeSession(
+        customUser,
+        response.user,
+        sessionCompleter,
+        capturedGen,
+      );
       return response;
     } catch (error, stackTrace) {
       _handleSessionFailure(sessionCompleter, error, stackTrace);
@@ -110,7 +132,12 @@ class GravityRepo {
       final context = await _mixPageContextAttributes(pageContext);
       final response = await _api.visit(user, context, options);
 
-      await _finalizeSession(customUser, response.user, sessionCompleter, capturedGen);
+      await _finalizeSession(
+        customUser,
+        response.user,
+        sessionCompleter,
+        capturedGen,
+      );
       return response;
     } catch (error, stackTrace) {
       _handleSessionFailure(sessionCompleter, error, stackTrace);
@@ -215,6 +242,8 @@ class GravityRepo {
   }
 
   Future<void> triggerEventUrls(List<String> urls) async {
+    triggerEventUrlsObserver?.call(List.unmodifiable(urls));
+
     for (final url in urls) {
       try {
         await _api.triggerEventUrl(url);
@@ -246,14 +275,20 @@ class GravityRepo {
   }
 
   Completer<void>? _startSessionInitializationIfFirst(User? customUser) {
-    final isFirstRequest = customUser == null && !_sessionManager.hasSession && !_sessionManager.isInitializing;
+    final isFirstRequest =
+        customUser == null &&
+        !_sessionManager.hasSession &&
+        !_sessionManager.isInitializing;
     if (isFirstRequest) {
       return _sessionManager.beginSessionInitialization();
     }
     return null;
   }
 
-  Future<User?> _getUserForRequest(User? customUser, Completer<void>? sessionCompleter) async {
+  Future<User?> _getUserForRequest(
+    User? customUser,
+    Completer<void>? sessionCompleter,
+  ) async {
     if (sessionCompleter != null) {
       if (customUser != null) {
         return customUser;
@@ -285,9 +320,17 @@ class GravityRepo {
     }
   }
 
-  void _handleSessionFailure(Completer<void>? sessionCompleter, Object error, StackTrace stackTrace) {
+  void _handleSessionFailure(
+    Completer<void>? sessionCompleter,
+    Object error,
+    StackTrace stackTrace,
+  ) {
     if (sessionCompleter != null) {
-      _sessionManager.failSessionInitialization(sessionCompleter, error, stackTrace);
+      _sessionManager.failSessionInitialization(
+        sessionCompleter,
+        error,
+        stackTrace,
+      );
     }
   }
 
@@ -299,7 +342,9 @@ class GravityRepo {
     return await _sessionManager.getUser(null);
   }
 
-  Future<List<ContentResponse>> _executeChooseBatch(List<Map<String, dynamic>> requests) async {
+  Future<List<ContentResponse>> _executeChooseBatch(
+    List<Map<String, dynamic>> requests,
+  ) async {
     if (requests.isEmpty) {
       return [];
     }
@@ -311,7 +356,8 @@ class GravityRepo {
     // owner may have been replaced.
     User? adoptedUser;
     if (isSessionUser) {
-      while (_sessionManager.sessionId == null && _sessionManager.isInitializing) {
+      while (_sessionManager.sessionId == null &&
+          _sessionManager.isInitializing) {
         try {
           await _sessionManager.getUser(null);
         } catch (_) {
@@ -356,7 +402,10 @@ class GravityRepo {
       Future<void> runWave(List<int> indices, {User? userOverride}) async {
         final waveRequests = <Map<String, dynamic>>[
           for (final i in indices)
-            if (userOverride == null) requests[i] else {...requests[i], 'user': userOverride},
+            if (userOverride == null)
+              requests[i]
+            else
+              {...requests[i], 'user': userOverride},
         ];
         final waveResponses = waveRequests.length == 1
             ? [await _executeSingleChoose(waveRequests.first)]
@@ -366,11 +415,17 @@ class GravityRepo {
         }
       }
 
-      if (waves.length > 1 && isSessionUser && _sessionManager.sessionId == null) {
+      if (waves.length > 1 &&
+          isSessionUser &&
+          _sessionManager.sessionId == null) {
         // Cold start: run wave 0 alone and adopt its session, so the other
         // waves don't each open their own.
         await runWave(waves.first, userOverride: adoptedUser);
-        await _sessionManager.saveUser(null, results[waves.first.first]!.user, capturedGen);
+        await _sessionManager.saveUser(
+          null,
+          results[waves.first.first]!.user,
+          capturedGen,
+        );
         if (completer != null) {
           // The session is usable now; don't hold parked waiters through the
           // remaining waves.
@@ -378,10 +433,14 @@ class GravityRepo {
         }
         final sessionUser = _sessionManager.getCachedUser() ?? adoptedUser;
         await Future.wait([
-          for (final indices in waves.skip(1)) runWave(indices, userOverride: sessionUser),
+          for (final indices in waves.skip(1))
+            runWave(indices, userOverride: sessionUser),
         ]);
       } else {
-        await Future.wait([for (final indices in waves) runWave(indices, userOverride: adoptedUser)]);
+        await Future.wait([
+          for (final indices in waves)
+            runWave(indices, userOverride: adoptedUser),
+        ]);
       }
 
       if (isSessionUser) {
@@ -436,7 +495,9 @@ class GravityRepo {
     }
   }
 
-  Future<List<ContentResponse>> _executeBatchedChoose(List<Map<String, dynamic>> requests) async {
+  Future<List<ContentResponse>> _executeBatchedChoose(
+    List<Map<String, dynamic>> requests,
+  ) async {
     final firstReq = requests.first;
     assert(
       requests.every((r) => chooseGroupKey(r) == chooseGroupKey(firstReq)),
@@ -447,7 +508,9 @@ class GravityRepo {
     final context = firstReq['context'] as PageContext;
 
     final dataArray = requests.map((req) {
-      final data = <String, dynamic>{'option': (req['contentSettings'] as ContentSettings).toJson()};
+      final data = <String, dynamic>{
+        'option': (req['contentSettings'] as ContentSettings).toJson(),
+      };
 
       if (req.containsKey('selector')) {
         data['selector'] = req['selector'];
@@ -481,11 +544,17 @@ class GravityRepo {
       if (campaign.selector != null) {
         campaignsBySelector.putIfAbsent(campaign.selector!, () => campaign);
         for (final variation in campaign.payload) {
-          fallbackByCampaignId.putIfAbsent(variation.campaignId, () => campaign);
+          fallbackByCampaignId.putIfAbsent(
+            variation.campaignId,
+            () => campaign,
+          );
         }
       } else {
         for (final variation in campaign.payload) {
-          campaignsByCampaignId.putIfAbsent(variation.campaignId, () => campaign);
+          campaignsByCampaignId.putIfAbsent(
+            variation.campaignId,
+            () => campaign,
+          );
         }
       }
     }
@@ -498,11 +567,14 @@ class GravityRepo {
       final matchingCampaign = selector != null
           ? campaignsBySelector[selector]
           : campaignId != null
-          ? campaignsByCampaignId[campaignId] ?? fallbackByCampaignId[campaignId]
+          ? campaignsByCampaignId[campaignId] ??
+                fallbackByCampaignId[campaignId]
           : null;
 
       if (matchingCampaign != null) {
-        results.add(ContentResponse(user: batchResponse.user, data: [matchingCampaign]));
+        results.add(
+          ContentResponse(user: batchResponse.user, data: [matchingCampaign]),
+        );
       } else {
         results.add(ContentResponse(user: batchResponse.user, data: const []));
       }
@@ -539,7 +611,8 @@ class GravityRepo {
     return GravityDataResponse(data: content, json: json);
   }
 
-  Future<GravityDataResponse<ContentResponse>> getContentByCampaignIdWithDetails({
+  Future<GravityDataResponse<ContentResponse>>
+  getContentByCampaignIdWithDetails({
     required String campaignId,
     User? customUser,
     required PageContext pageContext,

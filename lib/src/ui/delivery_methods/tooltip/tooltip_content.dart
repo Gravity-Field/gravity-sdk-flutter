@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart' hide Action;
+import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../../../models/actions/action.dart';
 import '../../../models/external/campaign.dart';
 import '../../../models/internal/arrow.dart';
 import '../../../models/internal/campaign_content.dart';
@@ -12,7 +11,7 @@ import '../../../models/internal/tooltip_positioning.dart';
 import '../../../utils/content_events_service.dart';
 import '../../../utils/on_click_handler.dart';
 import '../../anchor/anchor_registry.dart';
-import '../../elements/gravity_element.dart';
+import '../../widgets/gravity_elements_column.dart';
 import 'tooltip_arrow_painter.dart';
 
 class TooltipContent extends StatefulWidget {
@@ -338,7 +337,6 @@ class _TooltipContentState extends State<TooltipContent> {
   Widget _buildTooltipBody(Color backgroundColor) {
     final frameUi = widget.content.variables.frameUI;
     final container = frameUi?.container;
-    final elements = widget.content.variables.elements;
     final products = widget.content.products;
     final cornerRadius = container?.style?.cornerRadius ?? 8.0;
     final outlineColor = container?.style?.outlineColor;
@@ -357,27 +355,19 @@ class _TooltipContentState extends State<TooltipContent> {
         right: container?.style?.padding?.right ?? 12,
         bottom: container?.style?.padding?.bottom ?? 10,
       ),
-      child: Column(
+      child: GravityElementsColumn(
+        content: widget.content,
+        campaign: widget.campaign,
+        products: products,
+        formsEnabled: false,
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children:
-            elements
-                ?.map(
-                  (e) => GravityElement(
-                    element: e,
-                    campaign: widget.campaign,
-                    content: widget.content,
-                    products: products,
-                    onClickCallback: (action) {
-                      onClickHandler.handeOnClick(action, context);
-                      if (action.closeOnClick == true && action.action != Action.openStep) {
-                        widget.onDismiss();
-                      }
-                    },
-                  ).getWidget(),
-                )
-                .toList() ??
-            [],
+        onClickCallback: (element, action) {
+          onClickHandler.handeOnClick(action, context);
+          if (shouldAutoCloseOnClick(action)) {
+            widget.onDismiss();
+          }
+        },
       ),
     );
   }

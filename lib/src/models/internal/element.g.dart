@@ -29,5 +29,7 @@ const _$ElementTypeEnumMap = {
   ElementType.spacer: 'spacer',
   ElementType.productsContainer: 'products-container',
   ElementType.webview: 'webview',
+  ElementType.optionSelect: 'option-select',
+  ElementType.textInput: 'text-input',
   ElementType.unknown: 'unknown',
 };

@@ -7,11 +7,13 @@ import '../../models/internal/style.dart';
 class GravityButton extends StatelessWidget {
   final Element element;
   final Function(OnClick onClick) onClickCallback;
+  final bool enabled;
 
   const GravityButton({
     super.key,
     required this.element,
     required this.onClickCallback,
+    this.enabled = true,
   });
 
   @override
@@ -33,16 +35,35 @@ class GravityButton extends StatelessWidget {
                 )
               : EdgeInsets.zero,
         ),
-        backgroundColor: WidgetStateProperty.all(style.backgroundColor),
+
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return null;
+          }
+          return style.backgroundColor;
+        }),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return null;
+          }
+          return textStyle?.color;
+        }),
         overlayColor: WidgetStateProperty.all(style.pressColor),
         minimumSize: style.size?.height != null ? WidgetStateProperty.all(Size(0, style.size!.height!)) : null,
-        shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-          RoundedRectangleBorder(
+        shape: WidgetStateProperty.resolveWith<RoundedRectangleBorder>((
+          states,
+        ) {
+          var outlineColor = style.outlineColor;
+          if (outlineColor != null && states.contains(WidgetState.disabled)) {
+            outlineColor = outlineColor.withValues(alpha: 0.4);
+          }
+          return RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(style.cornerRadius ?? 8),
-          ),
-        ),
+            side: outlineColor == null ? BorderSide.none : BorderSide(color: outlineColor),
+          );
+        }),
       ),
-      onPressed: onClick != null
+      onPressed: enabled && onClick != null
           ? () {
               onClickCallback(onClick);
             }
@@ -50,7 +71,6 @@ class GravityButton extends StatelessWidget {
       child: Text(
         element.text ?? '',
         style: TextStyle(
-          color: textStyle?.color,
           fontSize: textStyle?.fontSize,
           fontWeight: textStyle?.fontWeight,
         ),

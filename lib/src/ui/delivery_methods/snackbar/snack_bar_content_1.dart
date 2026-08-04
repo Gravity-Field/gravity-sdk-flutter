@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gravity_sdk/src/ui/elements/gravity_image.dart';
-import 'package:gravity_sdk/src/ui/elements/gravity_text.dart';
+import 'package:gravity_sdk/src/ui/widgets/gravity_elements_column.dart';
 
 import '../../../models/external/campaign.dart';
 import '../../../models/internal/campaign_content.dart';
@@ -59,11 +58,14 @@ class SnackBarContent1 extends SnackBarContent {
         child: Row(
           children: [
             if (images.isNotEmpty) ...[
-              GravityImageWidget(
-                element: images.first,
-                onClickCallback: (action) {
+              GravityElementsColumn(
+                content: content,
+                campaign: campaign,
+                elements: [images.first],
+                formsEnabled: false,
+                onClickCallback: (element, action) {
                   onClickHandler.handeOnClick(action, context);
-                  if (action.closeOnClick) {
+                  if (shouldAutoCloseOnClick(action)) {
                     onDismiss?.call();
                   }
                 },
@@ -75,15 +77,25 @@ class SnackBarContent1 extends SnackBarContent {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (texts.elementAtOrNull(0) != null)
-                    GravityText(
-                      element: texts.elementAt(0),
-                      onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
+                    GravityElementsColumn(
+                      content: content,
+                      campaign: campaign,
+                      elements: [texts.elementAt(0)],
+                      formsEnabled: false,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      onClickCallback: (element, action) =>
+                          onClickHandler.handeOnClick(action, context),
                     ),
                   if (texts.elementAtOrNull(1) != null) ...[
                     SizedBox(height: 4),
-                    GravityText(
-                      element: texts.elementAt(1),
-                      onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
+                    GravityElementsColumn(
+                      content: content,
+                      campaign: campaign,
+                      elements: [texts.elementAt(1)],
+                      formsEnabled: false,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      onClickCallback: (element, action) =>
+                          onClickHandler.handeOnClick(action, context),
                     ),
                   ],
                 ],
@@ -91,11 +103,14 @@ class SnackBarContent1 extends SnackBarContent {
             ),
             if (images.elementAtOrNull(1) != null) ...[
               SizedBox(width: 8),
-              GravityImageWidget(
-                element: images.elementAt(1),
-                onClickCallback: (action) {
+              GravityElementsColumn(
+                content: content,
+                campaign: campaign,
+                elements: [images.elementAt(1)],
+                formsEnabled: false,
+                onClickCallback: (element, action) {
                   onClickHandler.handeOnClick(action, context);
-                  if (action.closeOnClick) {
+                  if (shouldAutoCloseOnClick(action)) {
                     onDismiss?.call();
                   }
                 },

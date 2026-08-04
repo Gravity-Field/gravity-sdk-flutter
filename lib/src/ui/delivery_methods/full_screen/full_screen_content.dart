@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart' hide Action;
-import 'package:gravity_sdk/src/models/actions/action.dart';
-import 'package:gravity_sdk/src/models/internal/element.dart';
+import 'package:gravity_sdk/src/forms/form_session.dart';
 import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../models/external/campaign.dart';
+import '../../../models/actions/action.dart';
 import '../../../models/internal/campaign_content.dart';
 import '../../../utils/content_events_service.dart';
-import '../../elements/gravity_element.dart';
 import '../../widgets/close_button.dart';
+import '../../widgets/gravity_elements_column.dart';
 
 class FullScreenContent extends StatefulWidget {
   final CampaignContent content;
   final Campaign campaign;
+  final FormSession? session;
 
-  const FullScreenContent({super.key, required this.content, required this.campaign});
+  const FullScreenContent({
+    super.key,
+    required this.content,
+    required this.campaign,
+    this.session,
+  });
 
   @override
   State<FullScreenContent> createState() => _FullScreenContentState();
@@ -28,10 +34,17 @@ class _FullScreenContentState extends State<FullScreenContent> {
   void initState() {
     super.initState();
 
-    onClickHandler = OnClickHandler(campaign: widget.campaign, content: widget.content);
+    onClickHandler = OnClickHandler(
+      campaign: widget.campaign,
+      content: widget.content,
+      session: widget.session,
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ContentEventsService.instance.sendContentImpression(campaign: widget.campaign, content: widget.content);
+      ContentEventsService.instance.sendContentImpression(
+        campaign: widget.campaign,
+        content: widget.content,
+      );
     });
   }
 
@@ -40,7 +53,6 @@ class _FullScreenContentState extends State<FullScreenContent> {
     final frameUi = widget.content.variables.frameUI!;
     final container = frameUi.container;
     final close = frameUi.close;
-    final elements = widget.content.variables.elements ?? [];
     final contentId = widget.content.contentId;
     final products = widget.content.products;
 
@@ -66,7 +78,8 @@ class _FullScreenContentState extends State<FullScreenContent> {
         backgroundColor: backgroundColor,
         body: Stack(
           children: [
-            if (backgroundImage != null) Positioned.fill(child: Image.network(backgroundImage, fit: fit)),
+            if (backgroundImage != null)
+              Positioned.fill(child: Image.network(backgroundImage, fit: fit)),
             SafeArea(
               bottom: false,
               child: SizedBox.expand(
@@ -81,33 +94,41 @@ class _FullScreenContentState extends State<FullScreenContent> {
                         builder: (context, constraints) {
                           return SingleChildScrollView(
                             child: ConstrainedBox(
-                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                              child: Column(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: GravityElementsColumn(
+                                content: widget.content,
+                                campaign: widget.campaign,
+                                products: products,
+                                session: widget.session,
+                                formsEnabled: true,
                                 crossAxisAlignment:
-                                    container.style?.contentAlignment?.toCrossAxisAlignment() ??
+                                    container.style?.contentAlignment
+                                        ?.toCrossAxisAlignment() ??
                                     CrossAxisAlignment.center,
                                 mainAxisAlignment:
-                                    container.style?.verticalAlignment?.toMainAxisAlignment() ??
+                                    container.style?.verticalAlignment
+                                        ?.toMainAxisAlignment() ??
                                     MainAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.min,
-                                children: elements
-                                    .map(
-                                      (e) => GravityElement(
-                                        element: e,
-                                        onClickCallback: (action) {
-                                          onClickHandler.handeOnClick(action, context);
-                                          if (e.type == ElementType.button &&
-                                              action.closeOnClick &&
-                                              action.action != Action.openStep) {
-                                            Navigator.of(context).pop();
-                                          }
-                                        },
-                                        campaign: widget.campaign,
-                                        content: widget.content,
-                                        products: products,
-                                      ).getWidget(),
-                                    )
-                                    .toList(),
+                                onClickCallback: (element, action) {
+                                  final shouldPop = shouldAutoPopOnClick(
+                                    element,
+                                    action,
+                                  );
+                                  onClickHandler.handeOnClick(
+                                    action,
+                                    context,
+                                    explicitClose:
+                                        shouldPop &&
+                                        (action.action == Action.close ||
+                                            action.action == Action.cancel),
+                                  );
+                                  if (shouldPop) {
+                                    Navigator.of(context).pop();
+                                  }
+                                },
                               ),
                             ),
                           );
@@ -117,10 +138,18 @@ class _FullScreenContentState extends State<FullScreenContent> {
                     if (close != null)
                       GravityCloseButtonWidget(
                         close: close,
-                        onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
-                        // onClosePressed: () {
-                        //   ContentEventsService.instance.sendContentClosed(widget.content);
-                        // },
+                        onClickCallback: (action) {
+                          onClickHandler.handeOnClick(
+                            action,
+                            context,
+                            explicitClose: true,
+                          );
+                          Navigator.of(context).pop();
+                        },
+                        onClose: () {
+                          onClickHandler.finishExplicitClose();
+                          Navigator.of(context).pop();
+                        },
                       ),
                   ],
                 ),

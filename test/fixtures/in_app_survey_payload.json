@@ -1,0 +1,289 @@
+{
+  "data": [
+    {
+      "payload": [
+        {
+          "decisionId": "gf:6819e7c0d7303f0f6b0ef263:6a09e770c6e093f77eeb982b:1784634211",
+          "experienceId": "6a5f4b7b73a8b1a026084fe7",
+          "variationId": "6a5f4b7b73a8b1a026084fe9",
+          "campaignId": "6a5f4b7b73a8b1a026084fe2",
+          "contents": [
+            {
+              "variables": {
+                "onVisibleImpression": {
+                  "action": "visible_impression"
+                },
+                "frameUI": {
+                  "close": null,
+                  "container": {
+                    "style": {
+                      "backgroundColor": "#ffffffff",
+                      "contentAlignment": "center",
+                      "cornerRadius": 25,
+                      "padding": {
+                        "bottom": 24,
+                        "left": 24,
+                        "right": 24,
+                        "top": 24
+                      }
+                    }
+                  }
+                },
+                "elements": [
+                  {
+                    "style": {
+                      "contentAlignment": "center",
+                      "fontSize": 24,
+                      "fontWeight": "600",
+                      "layoutWidth": "match_parent",
+                      "margin": {
+                        "bottom": 24,
+                        "left": 0,
+                        "right": 0,
+                        "top": 0
+                      },
+                      "textColor": "#181d27ff"
+                    },
+                    "text": "Вам нравится Hoff?",
+                    "type": "text"
+                  },
+                  {
+                    "style": {
+                      "contentAlignment": "center",
+                      "fontSize": 18,
+                      "fontWeight": "400",
+                      "layoutWidth": "match_parent",
+                      "margin": {
+                        "bottom": 24,
+                        "left": 0,
+                        "right": 0,
+                        "top": 0
+                      },
+                      "textColor": "#181d27ff"
+                    },
+                    "text": "Оцените наше приложение",
+                    "type": "text"
+                  },
+                  {
+                    "attributeName": "rating",
+                    "displayFormat": "rating",
+                    "options": [
+                      {
+                        "value": 1
+                      },
+                      {
+                        "value": 2
+                      },
+                      {
+                        "value": 3
+                      },
+                      {
+                        "value": 4
+                      },
+                      {
+                        "value": 5
+                      }
+                    ],
+                    "required": true,
+                    "selectMode": "single",
+                    "style": {
+                      "contentAlignment": "center",
+                      "layoutWidth": "wrap_content",
+                      "margin": {
+                        "bottom": 24,
+                        "left": 0,
+                        "right": 0,
+                        "top": 0
+                      },
+                      "rating": {
+                        "selectedColor": "#f5a623ff",
+                        "unselectedColor": "#d9d9d9ff"
+                      }
+                    },
+                    "type": "option-select"
+                  },
+                  {
+                    "onClick": {
+                      "action": "close"
+                    },
+                    "style": {
+                      "backgroundColor": "#ffffffff",
+                      "cornerRadius": 48,
+                      "layoutWidth": "match_parent",
+                      "outlineColor": "#d9d9d9ff",
+                      "size": {
+                        "height": 48
+                      },
+                      "textStyle": {
+                        "color": "#181d27ff",
+                        "fontSize": 16,
+                        "fontWeight": "600"
+                      }
+                    },
+                    "text": "Не сейчас",
+                    "type": "button",
+                    "visibleWhen": {
+                      "attributeName": "rating",
+                      "operator": "is_empty"
+                    }
+                  },
+                  {
+                    "style": {
+                      "contentAlignment": "start",
+                      "fontSize": 14,
+                      "fontWeight": "400",
+                      "layoutWidth": "match_parent",
+                      "margin": {
+                        "bottom": 12,
+                        "left": 0,
+                        "right": 0,
+                        "top": 0
+                      },
+                      "textColor": "#181d27ff"
+                    },
+                    "text": "Расскажите, что вам не понравилось в нашем приложении. Это поможет нам стать лучше",
+                    "type": "text",
+                    "visibleWhen": {
+                      "attributeName": "rating",
+                      "operator": "less_or_equal",
+                      "value": 3
+                    }
+                  },
+                  {
+                    "attributeName": "feedback",
+                    "maxLength": 250,
+                    "placeholder": "Ваш комментарий",
+                    "required": false,
+                    "style": {
+                      "backgroundColor": "#f5f5f5ff",
+                      "cornerRadius": 8,
+                      "layoutWidth": "match_parent",
+                      "margin": {
+                        "bottom": 24,
+                        "left": 0,
+                        "right": 0,
+                        "top": 0
+                      },
+                      "padding": {
+                        "bottom": 16,
+                        "left": 16,
+                        "right": 16,
+                        "top": 16
+                      },
+                      "size": {
+                        "height": 160
+                      },
+                      "textStyle": {
+                        "color": "#181d27ff",
+                        "fontSize": 14,
+                        "fontWeight": "400"
+                      }
+                    },
+                    "type": "text-input",
+                    "visibleWhen": {
+                      "attributeName": "rating",
+                      "operator": "less_or_equal",
+                      "value": 3
+                    },
+                    "minLength": 15
+                  },
+                  {
+                    "onClick": {
+                      "action": "submit_form",
+                      "closeOnClick": false,
+                      "default": {
+                        "do": [
+                          {
+                            "effect": "close"
+                          }
+                        ]
+                      },
+                      "event": {
+                        "name": "In-app review submitted",
+                        "type": "in-app-review-v1"
+                      },
+                      "routes": [
+                        {
+                          "do": [
+                            {
+                              "effect": "follow_url",
+                              "type": "browser",
+                              "url": "https://play.google.com/store/apps/details?id=ru.appteka.ecco&hl=ru&ysclid=mryz56rxhl74867876"
+                            }
+                          ],
+                          "when": {
+                            "attributeName": "rating",
+                            "operator": "more_or_equal",
+                            "value": 4
+                          }
+                        }
+                      ]
+                    },
+                    "style": {
+                      "backgroundColor": "#ef001cff",
+                      "cornerRadius": 48,
+                      "layoutWidth": "match_parent",
+                      "pressColor": "#d90019ff",
+                      "size": {
+                        "height": 48
+                      },
+                      "textStyle": {
+                        "color": "#ffffffff",
+                        "fontSize": 16,
+                        "fontWeight": "600"
+                      }
+                    },
+                    "text": "Отправить",
+                    "type": "button",
+                    "visibleWhen": {
+                      "attributeName": "rating",
+                      "operator": "is_not_empty"
+                    }
+                  }
+                ]
+              },
+              "contentId": "6a5f4b7b73a8b1a026084feb:b4f86ca37af249a2a0ac8d615d0203c2",
+              "deliveryMethod": "bottom_sheet",
+              "events": [
+                {
+                  "type": "visible_impression",
+                  "urls": [
+                    "https://ev.stellarlabs.ai/v2/engagement?type=WRIMP&decisionId=gf:6819e7c0d7303f0f6b0ef263:6a09e770c6e093f77eeb982b:1784634211&contentId=6a5f4b7b73a8b1a026084feb:b4f86ca37af249a2a0ac8d615d0203c2"
+                  ]
+                },
+                {
+                  "type": "click",
+                  "urls": [
+                    "https://ev.stellarlabs.ai/v2/engagement?type=WCLICK&decisionId=gf:6819e7c0d7303f0f6b0ef263:6a09e770c6e093f77eeb982b:1784634211&contentId=6a5f4b7b73a8b1a026084feb:b4f86ca37af249a2a0ac8d615d0203c2"
+                  ]
+                },
+                {
+                  "type": "follow_url",
+                  "urls": [
+                    "https://ev.stellarlabs.ai/v2/engagement?type=WCLICK&decisionId=gf:6819e7c0d7303f0f6b0ef263:6a09e770c6e093f77eeb982b:1784634211&contentId=6a5f4b7b73a8b1a026084feb:b4f86ca37af249a2a0ac8d615d0203c2"
+                  ]
+                },
+                {
+                  "type": "follow_deeplink",
+                  "urls": [
+                    "https://ev.stellarlabs.ai/v2/engagement?type=WCLICK&decisionId=gf:6819e7c0d7303f0f6b0ef263:6a09e770c6e093f77eeb982b:1784634211&contentId=6a5f4b7b73a8b1a026084feb:b4f86ca37af249a2a0ac8d615d0203c2"
+                  ]
+                },
+                {
+                  "type": "request_push",
+                  "urls": [
+                    "https://ev.stellarlabs.ai/v2/engagement?type=WCLICK&decisionId=gf:6819e7c0d7303f0f6b0ef263:6a09e770c6e093f77eeb982b:1784634211&contentId=6a5f4b7b73a8b1a026084feb:b4f86ca37af249a2a0ac8d615d0203c2"
+                  ]
+                }
+              ],
+              "contentType": "native"
+            }
+          ],
+          "testId": "6a5f4b7c73a8b1a026084fed"
+        }
+      ],
+      "selector": "in_app_survey_demo"
+    }
+  ],
+  "user": {}
+}

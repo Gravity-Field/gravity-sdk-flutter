@@ -4,7 +4,7 @@ import 'package:gravity_sdk/src/utils/on_click_handler.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../utils/content_events_service.dart';
-import '../../elements/gravity_element.dart';
+import '../../widgets/gravity_elements_column.dart';
 
 class InlineContent extends StatefulWidget {
   final CampaignContent content;
@@ -35,7 +35,6 @@ class _InlineContentState extends State<InlineContent> {
   Widget build(BuildContext context) {
     final frameUi = widget.content.variables.frameUI;
     final container = frameUi?.container;
-    final elements = widget.content.variables.elements ?? [];
     final products = widget.content.products;
     final contentId = widget.content.contentId;
 
@@ -81,20 +80,15 @@ class _InlineContentState extends State<InlineContent> {
         clipBehavior: Clip.hardEdge,
         child: SingleChildScrollView(
           physics: const NeverScrollableScrollPhysics(),
-          child: Column(
+          child: GravityElementsColumn(
+            content: widget.content,
+            campaign: widget.campaign,
+            products: products,
+            formsEnabled: false,
             crossAxisAlignment: container?.style?.contentAlignment?.toCrossAxisAlignment() ?? CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
-            children: elements
-                .map(
-                  (e) => GravityElement(
-                    element: e,
-                    onClickCallback: (action) => onClickHandler.handeOnClick(action, context),
-                    campaign: widget.campaign,
-                    content: widget.content,
-                    products: products,
-                  ).getWidget(),
-                )
-                .toList(),
+            onClickCallback: (element, action) =>
+                onClickHandler.handeOnClick(action, context),
           ),
         ),
       ),

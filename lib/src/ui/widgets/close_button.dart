@@ -6,13 +6,13 @@ import '../../models/actions/close.dart';
 class GravityCloseButtonWidget extends StatelessWidget {
   final Close close;
   final Function(OnClick) onClickCallback;
-  final VoidCallback? onClose;
+  final VoidCallback onClose;
 
   const GravityCloseButtonWidget({
     super.key,
     required this.close,
     required this.onClickCallback,
-    this.onClose,
+    required this.onClose,
   });
 
   @override
@@ -26,15 +26,16 @@ class GravityCloseButtonWidget extends StatelessWidget {
         onTap: () {
           if (close.onClick != null) {
             onClickCallback(close.onClick!);
-          }
-          if (onClose != null) {
-            onClose!();
           } else {
-            Navigator.of(context).pop();
+            onClose();
           }
         },
         child: close.image != null
-            ? Image.network(close.image!, width: close.style?.size?.width, height: close.style?.size?.height)
+            ? Image.network(
+                close.image!,
+                width: close.style?.size?.width,
+                height: close.style?.size?.height,
+              )
             : Icon(Icons.close),
       ),
     );

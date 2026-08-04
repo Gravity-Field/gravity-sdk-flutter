@@ -37,6 +37,7 @@ class Style {
   final GravityPositioned? positioned;
   final GridSettings? gridSettings;
   final ProductContainerType? productContainerType;
+  final RatingStyle? rating;
 
   Style({
     this.backgroundColor,
@@ -59,9 +60,39 @@ class Style {
     this.positioned,
     this.gridSettings,
     this.productContainerType,
+    this.rating,
   });
 
   factory Style.fromJson(Map<String, dynamic> json) => _$StyleFromJson(json);
+}
+
+class RatingStyle {
+  final Color? _selectedColor;
+  final Color? _unselectedColor;
+  final double? _itemSize;
+  final double? _itemSpacing;
+
+  RatingStyle({
+    Color? selectedColor,
+    Color? unselectedColor,
+    double? itemSize,
+    double? itemSpacing,
+  }) : _selectedColor = selectedColor,
+       _unselectedColor = unselectedColor,
+       _itemSize = itemSize,
+       _itemSpacing = itemSpacing;
+
+  factory RatingStyle.fromJson(Map<String, dynamic> json) => RatingStyle(
+    selectedColor: ParseUtils.parseColor(json['selectedColor']),
+    unselectedColor: ParseUtils.parseColor(json['unselectedColor']),
+    itemSize: ParseUtils.parseDimension(json['itemSize']),
+    itemSpacing: ParseUtils.parseDimension(json['itemSpacing']),
+  );
+
+  Color get selectedColor => _selectedColor ?? const Color(0xFFF5A623);
+  Color get unselectedColor => _unselectedColor ?? const Color(0xFFD9D9D9);
+  double get itemSize => _itemSize ?? 36.0;
+  double get itemSpacing => _itemSpacing ?? 8.0;
 }
 
 @JsonSerializable()

@@ -24,6 +24,8 @@ enum Action {
   requestTracking,
   @JsonValue('open_step')
   openStep,
+  @JsonValue('submit_form')
+  submitForm,
   @JsonValue('unknown')
   unknown;
 }
