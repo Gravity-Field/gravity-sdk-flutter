@@ -269,16 +269,13 @@ class GravityRepo {
 
     attributes['app_version'] = '$version+$buildNumber';
     attributes['sdk_version'] = packageVersion;
-    attributes['app_platform'] = Platform.operatingSystem;
+    attributes['app_platform'] = Platform.isIOS ? 'iOS' : Platform.operatingSystem;
 
     return pageContext.copyWith(attributes: attributes);
   }
 
   Completer<void>? _startSessionInitializationIfFirst(User? customUser) {
-    final isFirstRequest =
-        customUser == null &&
-        !_sessionManager.hasSession &&
-        !_sessionManager.isInitializing;
+    final isFirstRequest = customUser == null && !_sessionManager.hasSession && !_sessionManager.isInitializing;
     if (isFirstRequest) {
       return _sessionManager.beginSessionInitialization();
     }
@@ -356,8 +353,7 @@ class GravityRepo {
     // owner may have been replaced.
     User? adoptedUser;
     if (isSessionUser) {
-      while (_sessionManager.sessionId == null &&
-          _sessionManager.isInitializing) {
+      while (_sessionManager.sessionId == null && _sessionManager.isInitializing) {
         try {
           await _sessionManager.getUser(null);
         } catch (_) {
@@ -372,9 +368,7 @@ class GravityRepo {
     // mixed-generation group implies an anonymous shared user, so what gets
     // adopted is a fresh identity, never a resurrected one. Computed before
     // the gate: a throw here must not leave the gate pending forever.
-    final capturedGen = requests
-        .map((r) => r['gen'] as int)
-        .reduce((a, b) => a > b ? a : b);
+    final capturedGen = requests.map((r) => r['gen'] as int).reduce((a, b) => a > b ? a : b);
     // Only a cold session-user batch owns the gate: warm and custom-user
     // batches must not stall or poison unrelated waiters.
     final completer = isSessionUser && _sessionManager.sessionId == null
@@ -402,10 +396,7 @@ class GravityRepo {
       Future<void> runWave(List<int> indices, {User? userOverride}) async {
         final waveRequests = <Map<String, dynamic>>[
           for (final i in indices)
-            if (userOverride == null)
-              requests[i]
-            else
-              {...requests[i], 'user': userOverride},
+            if (userOverride == null) requests[i] else {...requests[i], 'user': userOverride},
         ];
         final waveResponses = waveRequests.length == 1
             ? [await _executeSingleChoose(waveRequests.first)]
@@ -415,9 +406,7 @@ class GravityRepo {
         }
       }
 
-      if (waves.length > 1 &&
-          isSessionUser &&
-          _sessionManager.sessionId == null) {
+      if (waves.length > 1 && isSessionUser && _sessionManager.sessionId == null) {
         // Cold start: run wave 0 alone and adopt its session, so the other
         // waves don't each open their own.
         await runWave(waves.first, userOverride: adoptedUser);
@@ -433,13 +422,11 @@ class GravityRepo {
         }
         final sessionUser = _sessionManager.getCachedUser() ?? adoptedUser;
         await Future.wait([
-          for (final indices in waves.skip(1))
-            runWave(indices, userOverride: sessionUser),
+          for (final indices in waves.skip(1)) runWave(indices, userOverride: sessionUser),
         ]);
       } else {
         await Future.wait([
-          for (final indices in waves)
-            runWave(indices, userOverride: adoptedUser),
+          for (final indices in waves) runWave(indices, userOverride: adoptedUser),
         ]);
       }
 
@@ -567,8 +554,7 @@ class GravityRepo {
       final matchingCampaign = selector != null
           ? campaignsBySelector[selector]
           : campaignId != null
-          ? campaignsByCampaignId[campaignId] ??
-                fallbackByCampaignId[campaignId]
+          ? campaignsByCampaignId[campaignId] ?? fallbackByCampaignId[campaignId]
           : null;
 
       if (matchingCampaign != null) {
@@ -611,8 +597,7 @@ class GravityRepo {
     return GravityDataResponse(data: content, json: json);
   }
 
-  Future<GravityDataResponse<ContentResponse>>
-  getContentByCampaignIdWithDetails({
+  Future<GravityDataResponse<ContentResponse>> getContentByCampaignIdWithDetails({
     required String campaignId,
     User? customUser,
     required PageContext pageContext,
