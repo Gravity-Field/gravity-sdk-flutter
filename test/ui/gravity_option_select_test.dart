@@ -1,7 +1,12 @@
-import 'package:flutter/material.dart' hide Element;
+import 'dart:convert';
+
+import 'package:flutter/material.dart' hide Action, Element;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/forms/form_session.dart';
+import 'package:gravity_sdk/src/models/actions/action.dart';
+import 'package:gravity_sdk/src/models/actions/on_click.dart';
+import 'package:gravity_sdk/src/models/external/campaign.dart';
 import 'package:gravity_sdk/src/models/external/page_context.dart';
 import 'package:gravity_sdk/src/models/internal/element.dart';
 import 'package:gravity_sdk/src/models/internal/style.dart';
@@ -18,7 +23,32 @@ FormSession _session() => FormSession(
   hasFormElements: true,
 );
 
-Element _ratingElement() => Element(
+Campaign _campaign() => Campaign.fromJson(
+  jsonDecode(
+        jsonEncode({
+          'selector': 'option-select-test',
+          'payload': [
+            {
+              'campaignId': 'campaign-1',
+              'experienceId': 'experience-1',
+              'variationId': 'variation-1',
+              'decisionId': 'decision-1',
+              'contents': [
+                {
+                  'contentId': 'content-1',
+                  'deliveryMethod': 'modal',
+                  'contentType': 'native',
+                  'variables': <String, Object?>{},
+                },
+              ],
+            },
+          ],
+        }),
+      )
+      as Map<String, dynamic>,
+);
+
+Element _ratingElement({OnClick? lastOptionClick}) => Element(
   type: ElementType.optionSelect,
   style: Style(
     rating: RatingStyle(
@@ -29,14 +59,28 @@ Element _ratingElement() => Element(
     ),
   ),
   attributeName: 'rating',
-  optionValues: const [1, 2, 3, 4, 5],
+  options: [
+    const FormOption(value: 1),
+    const FormOption(value: 2),
+    const FormOption(value: 3),
+    const FormOption(value: 4),
+    FormOption(value: 5, onClick: lastOptionClick),
+  ],
   isRequired: true,
 );
 
-Widget _subject(Element element, FormSession session) => MaterialApp(
+Widget _subject(
+  Element element,
+  FormSession session, {
+  Function(OnClick)? onClickCallback,
+}) => MaterialApp(
   home: Scaffold(
     body: Center(
-      child: GravityOptionSelect(element: element, session: session),
+      child: GravityOptionSelect(
+        element: element,
+        session: session,
+        onClickCallback: onClickCallback ?? (_) {},
+      ),
     ),
   ),
 );
@@ -110,6 +154,103 @@ void main() {
     expect(session.valueOf('rating'), 4);
   });
 
+  testWidgets('updates the session before invoking the option action', (
+    tester,
+  ) async {
+    final session = _session();
+    final onClick = OnClick(action: Action.submitForm, closeOnClick: false);
+    final actions = <OnClick>[];
+    Object? ratingAtCallback;
+
+    await tester.pumpWidget(
+      _subject(
+        _ratingElement(lastOptionClick: onClick),
+        session,
+        onClickCallback: (action) {
+          actions.add(action);
+          ratingAtCallback = session.valueOf('rating');
+        },
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.star).at(4));
+    await tester.pump();
+
+    expect(session.valueOf('rating'), 5);
+    expect(actions, [onClick]);
+    expect(
+      ratingAtCallback,
+      5,
+      reason: 'Form state is updated before the action runs',
+    );
+  });
+
+  testWidgets('tap on an option without onClick only selects', (tester) async {
+    final session = _session();
+    final actions = <OnClick>[];
+
+    await tester.pumpWidget(
+      _subject(
+        _ratingElement(
+          lastOptionClick: OnClick(action: Action.submitForm),
+        ),
+        session,
+        onClickCallback: actions.add,
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.star).at(2));
+    await tester.pump();
+
+    expect(session.valueOf('rating'), 3);
+    expect(actions, isEmpty);
+  });
+
+  testWidgets('ignores taps while the form is submitting', (tester) async {
+    final session = _session()..setValue('rating', 2);
+    session.beginSubmit();
+    final actions = <OnClick>[];
+
+    await tester.pumpWidget(
+      _subject(
+        _ratingElement(
+          lastOptionClick: OnClick(action: Action.submitForm),
+        ),
+        session,
+        onClickCallback: actions.add,
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.star).at(4));
+    await tester.pump();
+
+    expect(session.valueOf('rating'), 2);
+    expect(actions, isEmpty);
+  });
+
+  testWidgets('ignores taps after the form is finished', (tester) async {
+    final campaign = _campaign();
+    final session = _session()..setValue('rating', 2);
+    session.finish(
+      FormCloseReason.submitted,
+      content: campaign.payload.first.contents.first,
+      campaign: campaign,
+    );
+    final actions = <OnClick>[];
+
+    await tester.pumpWidget(
+      _subject(
+        _ratingElement(
+          lastOptionClick: OnClick(action: Action.submitForm),
+        ),
+        session,
+        onClickCallback: actions.add,
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.star).at(4));
+    await tester.pump();
+
+    expect(session.valueOf('rating'), 2);
+    expect(actions, isEmpty);
+  });
+
   testWidgets('applies the element margin around the star row', (
     tester,
   ) async {
@@ -126,7 +267,13 @@ void main() {
         ),
       ),
       attributeName: 'rating',
-      optionValues: const [1, 2, 3, 4, 5],
+      options: const [
+        FormOption(value: 1),
+        FormOption(value: 2),
+        FormOption(value: 3),
+        FormOption(value: 4),
+        FormOption(value: 5),
+      ],
     );
 
     await tester.pumpWidget(_subject(element, session));

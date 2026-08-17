@@ -48,7 +48,14 @@ class OnClickHandler {
           explicitClose &&
           session?.hasFormElements == true &&
           onClick.action == Action.close;
-      if (event != null && !closeTrackingOwnedBySession) {
+      // SubmitExecutor owns submit_form tracking: firing it here would report
+      // a "submit" for clicks its validation rejects (option taps reach this
+      // handler even when the form is invalid — a disabled button does not).
+      final submitTrackingOwnedByExecutor =
+          onClick.action == Action.submitForm && session != null;
+      if (event != null &&
+          !closeTrackingOwnedBySession &&
+          !submitTrackingOwnedByExecutor) {
         GravityRepo.instance.triggerEventUrls(event.urls);
       }
 

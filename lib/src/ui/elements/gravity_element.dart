@@ -67,7 +67,11 @@ class GravityElement {
         return GravityWebView(element: element);
       case ElementType.optionSelect:
         if (session == null || !formsEnabled) return SizedBox.shrink();
-        return GravityOptionSelect(element: element, session: session!);
+        return GravityOptionSelect(
+          element: element,
+          session: session!,
+          onClickCallback: onClickCallback,
+        );
       case ElementType.textInput:
         if (session == null || !formsEnabled) return SizedBox.shrink();
         return GravityTextInput(element: element, session: session!);

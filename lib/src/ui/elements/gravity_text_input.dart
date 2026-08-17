@@ -19,6 +19,13 @@ String minLengthHint(int minLength) {
   return 'Минимум $minLength $noun';
 }
 
+Widget? _noCounter(
+  BuildContext context, {
+  required int currentLength,
+  required bool isFocused,
+  required int? maxLength,
+}) => null;
+
 class GravityTextInput extends StatefulWidget {
   const GravityTextInput({
     super.key,
@@ -91,6 +98,9 @@ class _GravityTextInputState extends State<GravityTextInput> {
       controller: _controller,
       keyboardType: TextInputType.multiline,
       maxLength: widget.element.maxLength,
+      // A null from buildCounter removes the counter together with its
+      // reserved line; counterText: '' would keep an empty row instead.
+      buildCounter: widget.element.showCounter == false ? _noCounter : null,
       maxLines: null,
       expands: height != null,
       textAlignVertical: TextAlignVertical.top,

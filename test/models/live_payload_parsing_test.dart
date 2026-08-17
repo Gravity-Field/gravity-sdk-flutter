@@ -29,7 +29,7 @@ void main() {
     final rating = elements[2];
     expect(rating.type, ElementType.optionSelect);
     expect(rating.attributeName, 'rating');
-    expect(rating.optionValues, [1, 2, 3, 4, 5]);
+    expect(rating.options!.map((o) => o.value).toList(), [1, 2, 3, 4, 5]);
     expect(rating.isRequired, isTrue);
     expect(rating.style!.rating!.selectedColor, isNotNull);
 

@@ -216,6 +216,8 @@ void main() {
       expect(customEvents.single.customProps, {
         'rating': '1',
         'feedback': 'Не хватает деталей',
+        'campaignId': '6a5f4b7b73a8b1a026084fe2',
+        'experienceId': '6a5f4b7b73a8b1a026084fe7',
       });
       expect(find.byType(BottomSheetContent), findsNothing);
       expect(session.successfulReasons, [FormCloseReason.submitted]);
@@ -260,6 +262,8 @@ void main() {
       expect(customEvents.single.customProps, {
         'rating': '3',
         'feedback': 'Теперь достаточно длинно',
+        'campaignId': '6a5f4b7b73a8b1a026084fe2',
+        'experienceId': '6a5f4b7b73a8b1a026084fe7',
       });
       expect(session.successfulReasons, [FormCloseReason.submitted]);
     },
@@ -293,7 +297,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(session.valueOf('feedback'), 'Сначала было непонятно');
-      expect(customEvents.single.customProps, {'rating': '5'});
+      expect(customEvents.single.customProps, {
+        'rating': '5',
+        'campaignId': '6a5f4b7b73a8b1a026084fe2',
+        'experienceId': '6a5f4b7b73a8b1a026084fe7',
+      });
       // The real sheet also emits its visible-impression host callback, so
       // only the follow-url slice is pinned here.
       final followUrlEvents = callbacks.whereType<FollowUrlEvent>().toList();

@@ -43,8 +43,7 @@ class GravityElementsColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final contentElements =
-        elements ?? content.variables.elements ?? const <Element>[];
+    final contentElements = elements ?? content.variables.elements ?? const <Element>[];
     final formSession = session;
 
     if (formSession == null) return _buildColumn(contentElements, null);
@@ -65,13 +64,9 @@ class GravityElementsColumn extends StatelessWidget {
       );
     }
 
-    final renderedElements = (formsEnabled
-            ? allElements
-            : allElements.where((element) => !element.isFormInput))
+    final renderedElements = (formsEnabled ? allElements : allElements.where((element) => !element.isFormInput))
         .toList();
-    final visibleElements = formSession == null
-        ? renderedElements
-        : formSession.visibleElements(renderedElements);
+    final visibleElements = formSession == null ? renderedElements : formSession.visibleElements(renderedElements);
 
     return Column(
       crossAxisAlignment: crossAxisAlignment,
@@ -87,9 +82,7 @@ class GravityElementsColumn extends StatelessWidget {
         // «Отправить») and must swap in place instantly — a size animation
         // makes the incoming button crawl in from below the outgoing one.
         if (element.type == ElementType.button) {
-          return visible
-              ? _elementWidget(element, visibleElements)
-              : const SizedBox.shrink();
+          return visible ? _elementWidget(element, visibleElements) : const SizedBox.shrink();
         }
         // Other conditional elements keep a stable slot in the column and
         // animate between content and a collapsed placeholder, so
@@ -106,9 +99,7 @@ class GravityElementsColumn extends StatelessWidget {
               child: child,
             ),
           ),
-          child: visible
-              ? _elementWidget(element, visibleElements)
-              : const SizedBox.shrink(),
+          child: visible ? _elementWidget(element, visibleElements) : const SizedBox.shrink(),
         );
       }).toList(),
     );
@@ -133,29 +124,26 @@ class GravityElementsColumn extends StatelessWidget {
   }
 
   bool _isFormElement(Element element) {
-    return element.isFormInput ||
-        (element.type == ElementType.button &&
-            element.onClick?.action == Action.submitForm);
+    return element.isFormInput || (element.type == ElementType.button && element.onClick?.action == Action.submitForm);
   }
 
   bool _isEnabled(Element element, List<Element> visibleElements) {
-    if (element.type != ElementType.button ||
-        element.onClick?.action != Action.submitForm) {
+    if (element.type != ElementType.button || element.onClick?.action != Action.submitForm) {
       return true;
     }
 
     final formSession = session;
-    if (!formsEnabled ||
-        formSession == null ||
-        formSession.isSubmitting ||
-        formSession.isFinished) {
-      return false;
-    }
+    if (!formsEnabled || formSession == null) return false;
+    // Submitting/finished is deliberately not a disabled state: the submit
+    // runs synchronously and the content is popped immediately, so greying
+    // the button out would only show up as a flicker while the sheet closes.
+    // Repeat clicks are already dropped by SubmitExecutor's own guard.
 
-    return visibleElements.where((element) => element.isFormInput).every(
-      (element) =>
-          isInputValueValid(element, formSession.valueOf(element.attributeName!)),
-    );
+    return visibleElements
+        .where((element) => element.isFormInput)
+        .every(
+          (element) => isInputValueValid(element, formSession.valueOf(element.attributeName!)),
+        );
   }
 }
 

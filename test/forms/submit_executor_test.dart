@@ -170,6 +170,49 @@ CampaignContent _contentWithUnknownTrackingEvent() => CampaignContent(
   events: [Event(type: Action.unknown, urls: const [])],
 );
 
+/// Required rating that stays empty until a test fills it, plus a
+/// `submit_form` tracking entry in content.events.
+CampaignContent _contentWithSubmitTracking() => CampaignContent(
+  contentId: 'submit-tracking-content',
+  templateSystemName: null,
+  deliveryMethod: DeliveryMethod.modal,
+  contentType: 'native',
+  variables: Variables(
+    elements: [
+      Element(
+        type: ElementType.optionSelect,
+        style: null,
+        attributeName: 'rating',
+        options: const [
+          FormOption(value: 1),
+          FormOption(value: 2),
+          FormOption(value: 3),
+          FormOption(value: 4),
+          FormOption(value: 5),
+        ],
+        isRequired: true,
+      ),
+    ],
+  ),
+  products: null,
+  events: [
+    Event(
+      type: Action.submitForm,
+      urls: const ['https://track.example/submit'],
+    ),
+  ],
+);
+
+OnClick _plainSubmitOnClick() => OnClick(
+  action: Action.submitForm,
+  closeOnClick: false,
+  event: const FormEventSpec(type: 'in-app-review-v1', name: 'Submitted'),
+  defaultRoute: const FormRoute(
+    when: null,
+    effects: [FormEffect(effect: FormEffectType.close)],
+  ),
+);
+
 void main() {
   setUpAll(() {
     ErrorReporter.disableNetworkForTests = true;
@@ -347,7 +390,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(customEvents, hasLength(1));
-      expect(customEvents.single.customProps, {'rating': '5'});
+      expect(customEvents.single.customProps, {
+        'rating': '5',
+        'campaignId': '6a5f4b7b73a8b1a026084fe2',
+        'experienceId': '6a5f4b7b73a8b1a026084fe7',
+      });
       expect(callbacks, hasLength(1));
       expect(callbacks.single, isA<FollowUrlEvent>());
       expect(
@@ -393,6 +440,8 @@ void main() {
       expect(customEvents.single.customProps, {
         'rating': '1',
         'feedback': '',
+        'campaignId': '6a5f4b7b73a8b1a026084fe2',
+        'experienceId': '6a5f4b7b73a8b1a026084fe7',
       });
       expect(session.successfulReasons, [FormCloseReason.submitted]);
       expect(find.byKey(const ValueKey('form-route')), findsNothing);
@@ -426,7 +475,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(session.valueOf('feedback'), 'Needs improvement');
-      expect(customEvents.single.customProps, {'rating': '5'});
+      expect(customEvents.single.customProps, {
+        'rating': '5',
+        'campaignId': '6a5f4b7b73a8b1a026084fe2',
+        'experienceId': '6a5f4b7b73a8b1a026084fe7',
+      });
       expect(callbacks.single, isA<FollowUrlEvent>());
       expect(session.successfulReasons, [FormCloseReason.submitted]);
     },
@@ -568,5 +621,146 @@ void main() {
     await tester.pump();
 
     expect(trackingCalls, 0);
+  });
+
+  testWidgets('event props carry the campaign and experience ids', (
+    tester,
+  ) async {
+    final fixture = _loadSurveyFixture();
+    final session = _SpyFormSession()
+      ..setValue('rating', 5)
+      ..setValue('feedback', 'Ничего лишнего');
+    final context = await _pumpFormRoute(tester);
+    final customEvents = <CustomEvent>[];
+    GravityRepo.eventOverride = (events, pageContext) {
+      customEvents.addAll(events.whereType<CustomEvent>());
+      return Future.value(_emptyEventResponse);
+    };
+
+    await SubmitExecutor().execute(
+      onClick: fixture.submit,
+      content: fixture.content,
+      campaign: fixture.campaign,
+      session: session,
+      context: context,
+    );
+    await tester.pumpAndSettle();
+
+    final variation = fixture.campaign.payload.single;
+    expect(customEvents.single.customProps, {
+      'rating': '5',
+      'campaignId': variation.campaignId,
+      'experienceId': variation.experienceId,
+    });
+  });
+
+  testWidgets('campaign ids win over form attributes of the same name', (
+    tester,
+  ) async {
+    final fixture = _loadSurveyFixture();
+    final session = _SpyFormSession()..setValue('rating', 5);
+    final context = await _pumpFormRoute(tester);
+    final customEvents = <CustomEvent>[];
+    GravityRepo.eventOverride = (events, pageContext) {
+      customEvents.addAll(events.whereType<CustomEvent>());
+      return Future.value(_emptyEventResponse);
+    };
+    final content = CampaignContent(
+      contentId: fixture.content.contentId,
+      templateSystemName: null,
+      deliveryMethod: DeliveryMethod.modal,
+      contentType: 'native',
+      variables: Variables(
+        elements: [
+          Element(
+            type: ElementType.textInput,
+            style: null,
+            attributeName: 'campaignId',
+          ),
+        ],
+      ),
+      products: null,
+      events: null,
+    );
+    session.setValue('campaignId', 'подделка');
+
+    await SubmitExecutor().execute(
+      onClick: fixture.submit,
+      content: content,
+      campaign: fixture.campaign,
+      session: session,
+      context: context,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      customEvents.single.customProps!['campaignId'],
+      fixture.campaign.payload.single.campaignId,
+    );
+  });
+
+  testWidgets('invalid form: submit_form click fires no tracking urls', (
+    tester,
+  ) async {
+    final fixture = _loadSurveyFixture();
+    final session = _SpyFormSession();
+    final context = await _pumpFormRoute(tester);
+    final trackedUrls = <String>[];
+    var eventCalls = 0;
+    GravityRepo.triggerEventUrlsObserver = trackedUrls.addAll;
+    GravityRepo.eventOverride = (events, pageContext) {
+      eventCalls++;
+      return Future.value(_emptyEventResponse);
+    };
+
+    // Требуемый rating пуст: сабмит обязан молча не состояться ЦЕЛИКОМ —
+    // без выстрела tracking-URL «сабмита» в аналитику (нет «частично
+    // работает»). Кнопку такой клик не покидает (она задизейблена), а вот
+    // тап по звезде с onClick доходит до обработчика всегда.
+    OnClickHandler(
+      content: _contentWithSubmitTracking(),
+      campaign: fixture.campaign,
+      session: session,
+    ).handeOnClick(_plainSubmitOnClick(), context);
+    await tester.pumpAndSettle();
+
+    expect(trackedUrls, isEmpty);
+    expect(eventCalls, 0);
+    expect(session.beginSubmitCalls, 0);
+    expect(session.successfulReasons, isEmpty);
+  });
+
+  testWidgets('valid submit fires submit_form tracking urls exactly once', (
+    tester,
+  ) async {
+    final fixture = _loadSurveyFixture();
+    final session = _SpyFormSession()..setValue('rating', 5);
+    final context = await _pumpFormRoute(tester);
+    final trackedUrls = <String>[];
+    var eventCalls = 0;
+    GravityRepo.triggerEventUrlsObserver = trackedUrls.addAll;
+    GravityRepo.eventOverride = (events, pageContext) {
+      eventCalls++;
+      return Future.value(_emptyEventResponse);
+    };
+    final handler = OnClickHandler(
+      content: _contentWithSubmitTracking(),
+      campaign: fixture.campaign,
+      session: session,
+    );
+
+    handler.handeOnClick(_plainSubmitOnClick(), context);
+    await tester.pumpAndSettle();
+
+    expect(trackedUrls, ['https://track.example/submit']);
+    expect(eventCalls, 1);
+    expect(session.successfulReasons, [FormCloseReason.submitted]);
+
+    // Повторный клик по завершённой сессии не дострелит ни URL, ни событие.
+    handler.handeOnClick(_plainSubmitOnClick(), context);
+    await tester.pumpAndSettle();
+
+    expect(trackedUrls, hasLength(1));
+    expect(eventCalls, 1);
   });
 }

@@ -71,7 +71,13 @@ List<Element> _elements() => [
     type: ElementType.optionSelect,
     style: Style(),
     attributeName: 'rating',
-    optionValues: const [1, 2, 3, 4, 5],
+    options: const [
+      FormOption(value: 1),
+      FormOption(value: 2),
+      FormOption(value: 3),
+      FormOption(value: 4),
+      FormOption(value: 5),
+    ],
   ),
 ];
 
@@ -386,6 +392,54 @@ void main() {
       expect(submitButton().onPressed, isNull);
 
       session.setValue('feedback', 'Ready');
+      await tester.pump();
+      expect(submitButton().onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'keeps the submit button styled while the form closes after a submit',
+    (
+      tester,
+    ) async {
+      final submit = Element(
+        type: ElementType.button,
+        text: 'Submit and close',
+        style: Style(),
+        onClick: OnClick(action: Action.submitForm),
+      );
+      final content = _content([submit]);
+      final campaign = _campaign(content);
+      final session = _session();
+
+      await tester.pumpWidget(
+        _subject(
+          content: content,
+          campaign: campaign,
+          session: session,
+          formsEnabled: true,
+        ),
+      );
+
+      FilledButton submitButton() => tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Submit and close'),
+      );
+
+      expect(submitButton().onPressed, isNotNull);
+
+      // Submit runs synchronously and the content is popped right after, so
+      // a greyed-out disabled frame would only ever be seen as a flicker on
+      // the closing sheet — the button must keep its own colours instead.
+      session.beginSubmit();
+      await tester.pump();
+      expect(submitButton().onPressed, isNotNull);
+
+      session.endSubmit();
+      session.finish(
+        FormCloseReason.submitted,
+        content: content,
+        campaign: campaign,
+      );
       await tester.pump();
       expect(submitButton().onPressed, isNotNull);
     },

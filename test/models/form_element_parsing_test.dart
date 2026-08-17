@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gravity_sdk/src/models/actions/action.dart';
 import 'package:gravity_sdk/src/models/internal/element.dart';
 
 Map<String, dynamic> validRating() => {
@@ -13,7 +14,8 @@ void main() {
     final e = Element.fromJson(validRating());
     expect(e.type, ElementType.optionSelect);
     expect(e.attributeName, 'rating');
-    expect(e.optionValues, [1, 2, 3, 4, 5]);
+    expect(e.options!.map((o) => o.value).toList(), [1, 2, 3, 4, 5]);
+    expect(e.options!.map((o) => o.onClick), everyElement(isNull));
     expect(e.isRequired, isTrue);
     expect(e.style!.rating!.itemSize, 36);
   });
@@ -23,6 +25,76 @@ void main() {
     expect(e.maxLength, 250);
     expect(e.minLength, 10);
     expect(e.isFormInput, isTrue);
+  });
+  group('option onClick', () {
+    Map<String, dynamic> withOptionClick(Object? onClick) {
+      final json = validRating();
+      json['options'] = <Object?>[
+        for (var i = 1; i <= 4; i++) {'value': i},
+        {'value': 5, 'onClick': onClick},
+      ];
+      return json;
+    }
+
+    test('submit_form onClick on an option parses', () {
+      final e = Element.fromJson(
+        withOptionClick({
+          'action': 'submit_form',
+          'closeOnClick': false,
+          'event': {
+            'type': 'in-app-review-v1',
+            'name': 'In-app review submitted',
+          },
+          'default': {
+            'do': [
+              {'effect': 'open_step', 'step': 2},
+            ],
+          },
+        }),
+      );
+
+      expect(e.type, ElementType.optionSelect);
+      expect(e.options!.take(4).map((o) => o.onClick), everyElement(isNull));
+      final onClick = e.options!.last.onClick!;
+      expect(onClick.action, Action.submitForm);
+      expect(onClick.closeOnClick, isFalse);
+      expect(onClick.event!.type, 'in-app-review-v1');
+      expect(onClick.event!.name, 'In-app review submitted');
+      expect(onClick.defaultRoute, isNotNull);
+    });
+
+    group('invalid onClick keeps the rating selectable without an action', () {
+      final cases = <String, Object?>{
+        'unsupported action': {'action': 'close'},
+        'unknown action': {'action': 'do_magic'},
+        'submit_form without event and default': {
+          'action': 'submit_form',
+          'closeOnClick': false,
+        },
+        'not a map': 'tap',
+        'missing action': {'closeOnClick': false},
+        'explicit null': null,
+      };
+      cases.forEach((name, onClick) {
+        test(name, () {
+          final e = Element.fromJson(withOptionClick(onClick));
+          expect(e.type, ElementType.optionSelect);
+          expect(e.options!.map((o) => o.value).toList(), [1, 2, 3, 4, 5]);
+          expect(e.options!.last.onClick, isNull);
+        });
+      });
+    });
+  });
+
+  test('text-input showCounter false parses', () {
+    final e = Element.fromJson({'type': 'text-input', 'attributeName': 'feedback', 'maxLength': 250, 'showCounter': false});
+    expect(e.type, ElementType.textInput);
+    expect(e.showCounter, isFalse);
+  });
+  test('text-input without showCounter keeps it null', () {
+    final e = Element.fromJson({'type': 'text-input', 'attributeName': 'feedback'});
+    expect(e.type, ElementType.textInput);
+    expect(e.showCounter, isNull);
   });
   test('minLength zero is treated as no minimum', () {
     final e = Element.fromJson({'type': 'text-input', 'attributeName': 'feedback', 'minLength': 0});
@@ -51,6 +123,7 @@ void main() {
       'text-input bad minLength': {'type': 'text-input', 'attributeName': 'f', 'minLength': 'few'},
       'text-input negative minLength': {'type': 'text-input', 'attributeName': 'f', 'minLength': -1},
       'minLength above maxLength': {'type': 'text-input', 'attributeName': 'f', 'minLength': 20, 'maxLength': 5},
+      'text-input bad showCounter': {'type': 'text-input', 'attributeName': 'f', 'showCounter': 'nope'},
     };
     cases.forEach((name, json) {
       test(name, () => expect(Element.fromJson(json).type, ElementType.unknown));
@@ -70,6 +143,7 @@ void main() {
       'placeholder': {'type': 'text-input', 'attributeName': 'f', 'placeholder': null},
       'maxLength': {'type': 'text-input', 'attributeName': 'f', 'maxLength': null},
       'minLength': {'type': 'text-input', 'attributeName': 'f', 'minLength': null},
+      'showCounter': {'type': 'text-input', 'attributeName': 'f', 'showCounter': null},
     };
     cases.forEach((name, json) {
       test(name, () => expect(Element.fromJson(json).type, ElementType.unknown));

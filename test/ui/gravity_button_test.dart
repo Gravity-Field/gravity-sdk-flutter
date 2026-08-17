@@ -43,6 +43,17 @@ void main() {
     ErrorReporter.disableNetworkForTests = true;
   });
 
+  testWidgets('clips the press ripple to the rounded shape', (tester) async {
+    await tester.pumpWidget(_subject(_button()));
+
+    // Без клипа Material рисует всплеск прямоугольником поверх скруглённой
+    // кнопки — на закрывающейся шторке это выглядит как рывок цвета.
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).clipBehavior,
+      Clip.antiAlias,
+    );
+  });
+
   testWidgets('outlineColor renders as a border around the button', (
     tester,
   ) async {

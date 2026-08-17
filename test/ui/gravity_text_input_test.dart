@@ -21,7 +21,7 @@ FormSession _session() => FormSession(
   hasFormElements: true,
 );
 
-Element _textInputElement({int? maxLength, int? minLength, double? height}) => Element(
+Element _textInputElement({int? maxLength, int? minLength, double? height, bool? showCounter}) => Element(
   type: ElementType.textInput,
   style: Style(
     backgroundColor: const Color(0xFFEFF1F3),
@@ -37,6 +37,7 @@ Element _textInputElement({int? maxLength, int? minLength, double? height}) => E
   attributeName: 'feedback',
   maxLength: maxLength,
   minLength: minLength,
+  showCounter: showCounter,
   placeholder: 'Ваш комментарий',
 );
 
@@ -94,6 +95,25 @@ void main() {
     );
     expect(session.valueOf('feedback'), '😀😀😀😀😀');
     expect(find.text('5/5'), findsOneWidget);
+  });
+
+  testWidgets('hides the counter when showCounter is false', (tester) async {
+    final session = _session();
+
+    await tester.pumpWidget(
+      _textInputSubject(
+        _textInputElement(maxLength: 5, showCounter: false),
+        session,
+      ),
+    );
+    await tester.enterText(find.byType(TextField), '😀😀😀😀😀😀');
+    await tester.pump();
+
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      '😀😀😀😀😀',
+    );
+    expect(find.text('5/5'), findsNothing);
   });
 
   testWidgets('shows the minimum length hint under the field', (tester) async {

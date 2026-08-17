@@ -42,8 +42,7 @@ class SubmitExecutor {
     );
     final visibleInputs = visible.where((e) => e.isFormInput).toList();
     final snapshot = <String, Object?>{
-      for (final input in visibleInputs)
-        input.attributeName!: session.valueOf(input.attributeName!),
+      for (final input in visibleInputs) input.attributeName!: session.valueOf(input.attributeName!),
     };
 
     final invalidInput = visibleInputs.any(
@@ -53,8 +52,25 @@ class SubmitExecutor {
 
     session.beginSubmit();
     try {
+      session.markSubmitted();
+      final trackingEvent = content.events?.firstWhereOrNull(
+        (event) => event.type == Action.submitForm,
+      );
+      if (trackingEvent != null) {
+        GravityRepo.instance.triggerEventUrls(trackingEvent.urls);
+      }
+
+      final variation = campaign.payload.firstWhereOrNull(
+        (variation) => variation.contents.any(
+          (candidate) => identical(candidate, content) || candidate.contentId == content.contentId,
+        ),
+      );
       final props = <String, String>{
         for (final entry in snapshot.entries) entry.key: _serialize(entry.value),
+        if (variation != null) ...{
+          'campaignId': variation.campaignId,
+          'experienceId': variation.experienceId,
+        },
       };
       // Fire-and-forget (spec §3.4): the repo reports and rethrows, so the
       // error must be swallowed here or it becomes an unhandled async error.
@@ -74,8 +90,7 @@ class SubmitExecutor {
 
       final route =
           onClick.routes?.firstWhereOrNull(
-            (route) =>
-                route.when != null && evaluateCondition(route.when!, snapshot),
+            (route) => route.when != null && evaluateCondition(route.when!, snapshot),
           ) ??
           defaultRoute;
       _runEffects(
@@ -107,6 +122,8 @@ class SubmitExecutor {
       final effect = effects[index];
       var terminal = true;
       switch (effect.effect) {
+        case FormEffectType.none:
+          terminal = false;
         case FormEffectType.close:
           _finishAndPop(session, content, campaign, context);
         case FormEffectType.openUrl:

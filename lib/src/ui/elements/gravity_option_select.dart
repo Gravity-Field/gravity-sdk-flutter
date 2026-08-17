@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Element;
 
 import '../../forms/form_session.dart';
+import '../../models/actions/on_click.dart';
 import '../../models/internal/element.dart';
 import '../../models/internal/style.dart';
 
@@ -9,15 +10,17 @@ class GravityOptionSelect extends StatelessWidget {
     super.key,
     required this.element,
     required this.session,
+    required this.onClickCallback,
   });
 
   final Element element;
   final FormSession session;
+  final Function(OnClick) onClickCallback;
 
   @override
   Widget build(BuildContext context) {
     final attributeName = element.attributeName!;
-    final options = element.optionValues!;
+    final options = element.options!;
     final style = element.style;
     final ratingStyle = style?.rating ?? RatingStyle();
 
@@ -44,10 +47,15 @@ class GravityOptionSelect extends StatelessWidget {
                       ? ratingStyle.selectedColor
                       : ratingStyle.unselectedColor,
                   size: ratingStyle.itemSize,
-                  onTap: () => session.setValue(
-                    attributeName,
-                    options[index],
-                  ),
+                  // State first, action second (with the fresh snapshot):
+                  // SubmitExecutor reads the session synchronously, so an
+                  // option-triggered submit must see the value of this tap.
+                  onTap: () {
+                    if (session.isSubmitting || session.isFinished) return;
+                    session.setValue(attributeName, options[index].value);
+                    final onClick = options[index].onClick;
+                    if (onClick != null) onClickCallback(onClick);
+                  },
                 ),
               ),
           ],

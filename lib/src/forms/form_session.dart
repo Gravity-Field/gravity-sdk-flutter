@@ -36,6 +36,13 @@ class FormSession extends ChangeNotifier {
 
   Map<String, Object?> get stateView => UnmodifiableMapView(_state);
 
+  static const submittedAttribute = 'submitted';
+
+  void markSubmitted() {
+    _state[submittedAttribute] = 'true';
+    notifyListeners();
+  }
+
   void beginSubmit() {
     _isSubmitting = true;
     notifyListeners();
@@ -75,9 +82,7 @@ class FormSession extends ChangeNotifier {
 
   List<Element> visibleElements(List<Element> elements) => elements
       .where(
-        (element) =>
-            element.visibleWhen == null ||
-            evaluateCondition(element.visibleWhen!, stateView),
+        (element) => element.visibleWhen == null || evaluateCondition(element.visibleWhen!, stateView),
       )
       .toList();
 }
@@ -87,9 +92,7 @@ bool campaignHasFormElements(Campaign campaign) {
     (variation) => variation.contents.any(
       (content) => (content.variables.elements ?? const <Element>[]).any(
         (element) =>
-            element.isFormInput ||
-            (element.type == ElementType.button &&
-                element.onClick?.action == Action.submitForm),
+            element.isFormInput || (element.type == ElementType.button && element.onClick?.action == Action.submitForm),
       ),
     ),
   );

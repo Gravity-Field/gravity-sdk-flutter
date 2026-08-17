@@ -1,7 +1,7 @@
 import '../internal/condition.dart';
 import 'follow_url_type.dart';
 
-enum FormEffectType { close, openUrl, openDeeplink, openStep }
+enum FormEffectType { none, close, openUrl, openDeeplink, openStep }
 
 class FormEffect {
   final FormEffectType effect;
@@ -22,6 +22,8 @@ class FormEffect {
     if (json is! Map<String, dynamic>) return null;
 
     switch (json['effect']) {
+      case 'none':
+        return const FormEffect(effect: FormEffectType.none);
       case 'close':
         return const FormEffect(effect: FormEffectType.close);
       case 'open_url':

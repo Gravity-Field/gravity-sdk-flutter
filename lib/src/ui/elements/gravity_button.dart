@@ -24,6 +24,7 @@ class GravityButton extends StatelessWidget {
     final onClick = element.onClick;
 
     final buttonWidget = FilledButton(
+      clipBehavior: Clip.antiAlias,
       style: ButtonStyle(
         padding: WidgetStateProperty.all(
           style.padding != null
