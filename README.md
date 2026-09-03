@@ -320,6 +320,33 @@ final GravityDataResponse<ContentResponse>? byEvent =
 
 `trackViewNoShow` / `triggerEventNoShow` дополнительно вызывают `gravityContentCallback` и подчиняются флагу `isFetchContentOnTrack`.
 
+### Произвольные ключи `variables`
+
+Кроме типизированных полей (`title`, `elements`, `frameUI`, …) объект `variables` кампании может содержать любые ключи, заданные в дашборде Gravity. Они доступны без разбора сырого JSON:
+
+- `content.rawVariables` — весь объект `variables` как `Map<String, dynamic>`;
+- `content.variables['<ключ>']` — значение по ключу (`Object?`; `null` и если ключа нет, и если в нём записан `null` — различить можно через `content.rawVariables.containsKey('<ключ>')`);
+- `content.variables.valueOf<T>('<ключ>')` — то же, но вернёт значение, только если оно имеет тип `T`, иначе `null`. Значения приходят из `jsonDecode`, поэтому `T` должен быть JSON-типом: объекты — `Map<String, dynamic>`, массивы — `List<dynamic>` (не `List<String>`), числа — `num` (целое `15` не является `double`, а `1.5` — `int`), строки — `String`, флаги — `bool`.
+
+`rawVariables` есть у любого `CampaignContent`, откуда бы он ни пришёл: `getContentBySelector`, `…WithDetails`, `gravityContentCallback`, `ContentLoadEvent.content`, inline-виджеты.
+
+```dart
+final content = details.data.data.first.payload.first.contents.first;
+
+// A/B-вариация, описанная в кампании произвольным объектом
+final variant = content.variables.valueOf<Map<String, dynamic>>('inline_banner');
+final label = variant?['variant'] as String?;
+
+// весь объект целиком
+final all = content.rawVariables;
+```
+
+Важно:
+
+- `rawVariables` — **полный** объект `variables`, включая типизированные ключи; типизированные поля (`content.variables.title`, `content.variables.elements`, …) продолжают работать как раньше;
+- карта неизменяемая на верхнем уровне (попытка записи бросит `UnsupportedError`), но вложенные объекты и списки — те же экземпляры, что и в `GravityDataResponse.json`: не мутируйте их;
+- набор и структура ключей полностью определяются настройками кампании на стороне Gravity — SDK их не валидирует и ничего о них не предполагает.
+
 ## Отображение контента
 
 In-app контент (модальное окно, bottom sheet, полноэкранный режим, tooltip) SDK показывает **автоматически** из `trackView` / `triggerEvent` — формат задаётся настройками кампании на стороне Gravity. Многошаговые кампании (переходы между шагами по кнопкам) обрабатываются встроенным рендерером.

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gravity_sdk/src/data/api/content_response.dart';
 import 'package:gravity_sdk/src/models/actions/action.dart';
@@ -65,5 +66,33 @@ void main() {
     );
     expect(onClick.defaultRoute!.effects.single.effect, FormEffectType.close);
     expect(submit.visibleWhen!.operator, ConditionOperator.isNotEmpty);
+  });
+
+  test('rawVariables exposes the live variables object as it arrived', () {
+    final response = ContentResponse.fromJson(json);
+    final content = response.data.single.payload.single.contents.single;
+
+    // Independently decoded copy: a structural comparison, not a comparison
+    // of the very map instances the parser was handed.
+    final fresh = jsonDecode(
+      File('test/fixtures/in_app_survey_payload.json').readAsStringSync(),
+    ) as Map<String, dynamic>;
+    final campaign = (fresh['data'] as List).single as Map<String, dynamic>;
+    final variation = (campaign['payload'] as List).single as Map<String, dynamic>;
+    final rawContent = (variation['contents'] as List).single as Map<String, dynamic>;
+    final expected = rawContent['variables'] as Map<String, dynamic>;
+
+    expect(
+      content.rawVariables.keys,
+      containsAll(<String>['frameUI', 'elements', 'onVisibleImpression']),
+    );
+    expect(content.rawVariables.keys, hasLength(expected.keys.length));
+    expect(
+      const DeepCollectionEquality().equals(content.rawVariables, expected),
+      isTrue,
+    );
+    // The typed view of the same payload is untouched by the raw one.
+    expect(content.variables.elements, hasLength(7));
+    expect(content.variables.onVisibleImpression, isNotNull);
   });
 }

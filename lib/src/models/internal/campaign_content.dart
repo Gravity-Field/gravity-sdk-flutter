@@ -38,6 +38,10 @@ class CampaignContent {
     this.step,
   });
 
+  /// Raw `variables` object of this content, including keys with no typed
+  /// counterpart in [Variables]. Shallow-unmodifiable.
+  Map<String, dynamic> get rawVariables => variables.raw;
+
   factory CampaignContent.fromJson(Map<String, dynamic> json) {
     final result = _$CampaignContentFromJson(json);
     if (result.deliveryMethod == DeliveryMethod.unknown) {
