@@ -335,6 +335,11 @@ class GravitySDK {
           campaign: engagement.campaign,
           callbackTrackingEvent: false,
         );
+      case ContentClickEngagement():
+        ContentEventsService.instance.sendContentClick(
+          content: engagement.content,
+          campaign: engagement.campaign,
+        );
       case ContentCloseEngagement():
         ContentEventsService.instance.sendContentClosed(
           content: engagement.content,
@@ -345,6 +350,7 @@ class GravitySDK {
   }
 
   Future<void> triggerTrackingUrl(String url) async {
+    _checkIsInitialized();
     await GravityRepo.instance.triggerEventUrls([url]);
   }
 

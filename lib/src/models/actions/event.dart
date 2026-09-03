@@ -10,7 +10,20 @@ class Event {
   final Action type;
   final List<String> urls;
 
-  Event({required this.type, required this.urls});
+  /// `events[].type` as sent by the server. Types without an [Action] member
+  /// (e.g. `click`) parse as [Action.unknown] and are told apart only by this.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final String rawType;
 
-  factory Event.fromJson(Map<String, dynamic> json) => _$EventFromJson(json);
+  Event({required this.type, required this.urls, this.rawType = ''});
+
+  factory Event.fromJson(Map<String, dynamic> json) {
+    final result = _$EventFromJson(json);
+    final raw = json['type'];
+    return Event(
+      type: result.type,
+      urls: result.urls,
+      rawType: raw is String ? raw : '',
+    );
+  }
 }

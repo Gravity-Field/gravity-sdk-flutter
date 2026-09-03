@@ -6,6 +6,8 @@ import 'package:gravity_sdk/src/repos/gravity_repo.dart';
 class ContentEventsService {
   ContentEventsService._();
 
+  static const contentClickEventType = 'click';
+
   static final ContentEventsService instance = ContentEventsService._();
 
   void sendContentLoaded({
@@ -64,6 +66,31 @@ class ContentEventsService {
     );
   }
 
+  /// `click` deliberately has no [Action] member: [OnClickHandler] treats
+  /// [Action.unknown] as "do nothing", so adding it would activate every
+  /// button configured with `action: "click"`.
+  void sendContentClick({
+    required CampaignContent content,
+    required Campaign campaign,
+  }) {
+    try {
+      final event = content.events?.firstWhereOrNull(
+        (event) => event.rawType == contentClickEventType,
+      );
+      if (event == null) return;
+
+      GravityRepo.instance.triggerEventUrls(event.urls);
+    } catch (e, stackTrace) {
+      ErrorReporter.instance.report(
+        message: e.toString(),
+        level: 'warning',
+        section: 'ContentEventsService.sendContentClick',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': 'tracking'},
+      );
+    }
+  }
+
   void _trackEvent({
     required ContentAction? action,
     required CampaignContent content,
@@ -72,6 +99,8 @@ class ContentEventsService {
   }) {
     try {
       if (action == null) return;
+      // Unknown actions must not match unknown event types such as `click`.
+      if (action.action == Action.unknown) return;
 
       final event = content.events?.firstWhereOrNull((event) => event.type == action.action);
 

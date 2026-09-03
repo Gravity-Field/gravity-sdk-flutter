@@ -28,3 +28,12 @@ final class ContentCloseEngagement extends ContentEngagement {
     super.campaign,
   );
 }
+
+/// Click on content rendered by the app. Not for SDK-rendered content: its
+/// buttons already report the click.
+final class ContentClickEngagement extends ContentEngagement {
+  const ContentClickEngagement(
+    super.content,
+    super.campaign,
+  );
+}

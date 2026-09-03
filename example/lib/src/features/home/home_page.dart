@@ -1,4 +1,5 @@
 import 'package:example/gen/assets.gen.dart';
+import 'package:example/src/core/widgets/content_click_button.dart';
 import 'package:example/src/core/widgets/product_shimmer_loader.dart';
 import 'package:flutter/material.dart' hide Element, Container;
 
@@ -87,6 +88,14 @@ class _HomePageState extends State<HomePage> {
                     onLoaded: onReady,
                   );
                 },
+              ),
+              const ContentClickButton(
+                selector: 'inline_widget_qa',
+                pageContext: PageContext(
+                  type: ContextType.homepage,
+                  data: [],
+                  location: 'homepage',
+                ),
               ),
               const GravityInlineWidget(
                 key: Key('inline_multi_widget_qa_placeholder_1'),

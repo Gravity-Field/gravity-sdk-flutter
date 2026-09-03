@@ -454,11 +454,16 @@ await GravitySDK.instance.initialize(
 GravitySDK.instance.sendContentEngagement(ContentImpressionEngagement(content, campaign));
 GravitySDK.instance.sendContentEngagement(ContentVisibleImpressionEngagement(content, campaign));
 GravitySDK.instance.sendContentEngagement(ContentCloseEngagement(content, campaign));
+GravitySDK.instance.sendContentEngagement(ContentClickEngagement(content, campaign));
 
 // продукты
 GravitySDK.instance.sendProductEngagement(ProductClickEngagement(slot, content, campaign));
 GravitySDK.instance.sendProductEngagement(ProductVisibleImpressionEngagement(slot, content, campaign));
 ```
+
+`ContentClickEngagement` — клик по контенту, который приложение отрисовало само (например, A/B-вариация в headless-режиме). SDK берёт URL из `content.events` с типом `click`; если сервер такого события не прислал, вызов ничего не отправляет. Для контента, который рисует сам SDK, отправлять его не нужно: кнопки `follow_url`, `follow_deeplink` и `request_push` уже фиксируют клик своими действиями, и повторный вызов удвоит его в статистике.
+
+`ContentEngagement` — `sealed`-класс: если в приложении есть исчерпывающий `switch` по его подтипам, после обновления добавьте ветку для `ContentClickEngagement`.
 
 ## Обработка ошибок
 
