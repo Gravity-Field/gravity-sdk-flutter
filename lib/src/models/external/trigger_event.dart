@@ -3,12 +3,24 @@ import 'package:json_annotation/json_annotation.dart';
 part 'trigger_event.g.dart';
 
 abstract class TriggerEvent {
+  /// Extra properties sent alongside the typed fields. String values only.
+  @JsonKey(includeIfNull: false)
+  final Map<String, String>? customProps;
+
+  /// When the event happened; sent in UTC. Omitted, the server uses receipt time.
+  @JsonKey(includeIfNull: false, toJson: _eventTimeToJson)
+  final DateTime? eventTime;
+
+  TriggerEvent({this.customProps, this.eventTime});
+
   String get type;
 
   String get name;
 
   Map<String, dynamic> toJson();
 }
+
+String? _eventTimeToJson(DateTime? time) => time?.toUtc().toIso8601String();
 
 @JsonSerializable(createFactory: false, createToJson: true)
 class AddToCartEvent extends TriggerEvent {
@@ -29,6 +41,8 @@ class AddToCartEvent extends TriggerEvent {
     required this.quantity,
     this.currency,
     this.cart,
+    super.customProps,
+    super.eventTime,
   });
 
   @override
@@ -52,6 +66,8 @@ class PurchaseEvent extends TriggerEvent {
     required this.value,
     required this.cart,
     this.currency,
+    super.customProps,
+    super.eventTime,
   });
 
   @override
@@ -77,6 +93,8 @@ class RemoveFromCartEvent extends TriggerEvent {
     required this.quantity,
     this.currency,
     this.cart,
+    super.customProps,
+    super.eventTime,
   });
 
   @override
@@ -98,6 +116,8 @@ class SyncCartEvent extends TriggerEvent {
     required this.value,
     this.currency,
     this.cart,
+    super.customProps,
+    super.eventTime,
   });
 
   @override
@@ -117,6 +137,8 @@ class AddToWishlistEvent extends TriggerEvent {
   AddToWishlistEvent({
     required this.value,
     required this.productId,
+    super.customProps,
+    super.eventTime,
   });
 
   @override
@@ -138,6 +160,8 @@ class SignUpEvent extends TriggerEvent {
     this.hashedEmail,
     this.cuid,
     this.cuidType,
+    super.customProps,
+    super.eventTime,
   });
 
   @override
@@ -159,6 +183,8 @@ class LoginEvent extends TriggerEvent {
     this.hashedEmail,
     this.cuid,
     this.cuidType,
+    super.customProps,
+    super.eventTime,
   });
 
   @override
@@ -171,12 +197,21 @@ class CustomEvent extends TriggerEvent {
   final String type;
   @override
   final String name;
-  final Map<String, String>? customProps;
+  @JsonKey(includeIfNull: false)
+  final String? cuid;
+  @JsonKey(includeIfNull: false)
+  final String? cuidType;
+  @JsonKey(includeIfNull: false)
+  final List<CartItem>? cart;
 
   CustomEvent({
     required this.type,
     required this.name,
-    this.customProps,
+    this.cuid,
+    this.cuidType,
+    this.cart,
+    super.customProps,
+    super.eventTime,
   });
 
   @override

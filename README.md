@@ -178,6 +178,23 @@ final custom = CustomEvent(
 );
 ```
 
+У всех событий есть два необязательных поля:
+
+- `customProps` — дополнительные свойства `Map<String, String>` (только строковые значения: числа передавайте строкой, вложенные объекты и списки сервер не принимает);
+- `eventTime` — когда событие произошло (`DateTime`). SDK отправляет его в UTC; если не задано, сервер берёт время получения. Полезно при отложенной отправке.
+
+```dart
+AddToCartEvent(
+  value: 99.99,
+  productId: 'sku-123',
+  quantity: 1,
+  customProps: {'list': 'search'},
+  eventTime: DateTime.now(),
+);
+```
+
+У `CustomEvent` дополнительно есть `cuid` / `cuidType` (идентификатор пользователя, как у `LoginEvent`) и `cart` (список `CartItem`).
+
 ## Обработка колбэков
 
 `gravityEventCallback` получает события жизненного цикла контента и действий пользователя (`TrackingEvent`). Большинство — информационные; обязательной обработки на стороне приложения требуют `FollowUrlEvent`, `FollowDeeplinkEvent` и `RequestPushEvent`. `FollowUrlEvent.type` (`FollowUrlType.browser` / `FollowUrlType.webview`) подсказывает, где кампания просит открыть ссылку; если в кампании тип не задан, используется `browser`:

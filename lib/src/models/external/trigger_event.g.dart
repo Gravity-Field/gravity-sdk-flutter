@@ -8,6 +8,8 @@ part of 'trigger_event.dart';
 
 Map<String, dynamic> _$AddToCartEventToJson(AddToCartEvent instance) =>
     <String, dynamic>{
+      'customProps': ?instance.customProps,
+      'eventTime': ?_eventTimeToJson(instance.eventTime),
       'value': instance.value,
       'productId': instance.productId,
       'quantity': instance.quantity,
@@ -19,6 +21,8 @@ Map<String, dynamic> _$AddToCartEventToJson(AddToCartEvent instance) =>
 
 Map<String, dynamic> _$PurchaseEventToJson(PurchaseEvent instance) =>
     <String, dynamic>{
+      'customProps': ?instance.customProps,
+      'eventTime': ?_eventTimeToJson(instance.eventTime),
       'uniqueTransactionId': instance.uniqueTransactionId,
       'value': instance.value,
       'currency': instance.currency,
@@ -30,6 +34,8 @@ Map<String, dynamic> _$PurchaseEventToJson(PurchaseEvent instance) =>
 Map<String, dynamic> _$RemoveFromCartEventToJson(
   RemoveFromCartEvent instance,
 ) => <String, dynamic>{
+  'customProps': ?instance.customProps,
+  'eventTime': ?_eventTimeToJson(instance.eventTime),
   'value': instance.value,
   'productId': instance.productId,
   'quantity': instance.quantity,
@@ -41,6 +47,8 @@ Map<String, dynamic> _$RemoveFromCartEventToJson(
 
 Map<String, dynamic> _$SyncCartEventToJson(SyncCartEvent instance) =>
     <String, dynamic>{
+      'customProps': ?instance.customProps,
+      'eventTime': ?_eventTimeToJson(instance.eventTime),
       'value': instance.value,
       'currency': instance.currency,
       'cart': instance.cart,
@@ -50,6 +58,8 @@ Map<String, dynamic> _$SyncCartEventToJson(SyncCartEvent instance) =>
 
 Map<String, dynamic> _$AddToWishlistEventToJson(AddToWishlistEvent instance) =>
     <String, dynamic>{
+      'customProps': ?instance.customProps,
+      'eventTime': ?_eventTimeToJson(instance.eventTime),
       'value': instance.value,
       'productId': instance.productId,
       'type': instance.type,
@@ -58,6 +68,8 @@ Map<String, dynamic> _$AddToWishlistEventToJson(AddToWishlistEvent instance) =>
 
 Map<String, dynamic> _$SignUpEventToJson(SignUpEvent instance) =>
     <String, dynamic>{
+      'customProps': ?instance.customProps,
+      'eventTime': ?_eventTimeToJson(instance.eventTime),
       'hashedEmail': instance.hashedEmail,
       'cuid': instance.cuid,
       'cuidType': instance.cuidType,
@@ -67,6 +79,8 @@ Map<String, dynamic> _$SignUpEventToJson(SignUpEvent instance) =>
 
 Map<String, dynamic> _$LoginEventToJson(LoginEvent instance) =>
     <String, dynamic>{
+      'customProps': ?instance.customProps,
+      'eventTime': ?_eventTimeToJson(instance.eventTime),
       'hashedEmail': instance.hashedEmail,
       'cuid': instance.cuid,
       'cuidType': instance.cuidType,
@@ -76,9 +90,13 @@ Map<String, dynamic> _$LoginEventToJson(LoginEvent instance) =>
 
 Map<String, dynamic> _$CustomEventToJson(CustomEvent instance) =>
     <String, dynamic>{
+      'customProps': ?instance.customProps,
+      'eventTime': ?_eventTimeToJson(instance.eventTime),
       'type': instance.type,
       'name': instance.name,
-      'customProps': instance.customProps,
+      'cuid': ?instance.cuid,
+      'cuidType': ?instance.cuidType,
+      'cart': ?instance.cart,
     };
 
 Map<String, dynamic> _$CartItemToJson(CartItem instance) => <String, dynamic>{
