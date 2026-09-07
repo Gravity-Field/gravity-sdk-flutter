@@ -881,6 +881,11 @@ class GravitySDK {
 
       showModalBottomSheet<void>(
         backgroundColor: container.style?.backgroundColor,
+        // When the backend configures a handle the SDK renders it itself
+        // (see BottomSheetContent), so Material's own handle is switched off
+        // even if the host theme enables it via bottomSheetTheme.showDragHandle.
+        // With no backend config the host theme keeps deciding, as before.
+        showDragHandle: frameUi.dragHandle != null ? false : null,
         isScrollControlled: true,
         useSafeArea: true,
         clipBehavior: Clip.antiAlias,
