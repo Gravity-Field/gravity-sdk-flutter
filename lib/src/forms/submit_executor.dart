@@ -72,8 +72,10 @@ class SubmitExecutor {
           'experienceId': variation.experienceId,
         },
       };
-      // Fire-and-forget (spec §3.4): the repo reports and rethrows, so the
-      // error must be swallowed here or it becomes an unhandled async error.
+      // Fire-and-forget (spec §3.4): on a network failure the repo queues the
+      // request for later delivery and returns an empty response; anything else
+      // is rethrown, so it must be swallowed here or it becomes an unhandled
+      // async error.
       unawaited(
         GravityRepo.instance
             .event(

@@ -88,12 +88,14 @@ void main() {
 
     // Api throws on any non-2xx, so a returned response means the server
     // accepted every event in the batch.
-    final response = await Api().event(
+    final api = Api();
+    final body = await api.buildEventBody(
       events,
       null,
       const PageContext(type: ContextType.other, data: [], location: '/event-live'),
       const Options(),
     );
+    final response = await api.postEventBody(body);
     // ignore: avoid_print
     print('server accepted ${events.length} events; campaigns triggered: ${response.campaigns.length}');
   });

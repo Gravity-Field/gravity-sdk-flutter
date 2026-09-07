@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:dio/dio.dart' show DioException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
+import 'package:gravity_sdk/src/data/api/api.dart';
 import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/data/session/session_manager.dart';
 import 'package:gravity_sdk/src/models/internal/device.dart';
@@ -57,6 +58,9 @@ void main() {
     // Must run before the first getContent* call: the delay is baked into the
     // late-final batcher. A wide window keeps concurrent test calls merged.
     GravityRepo.chooseBatchDelay = const Duration(milliseconds: 80);
+
+    // Tests below drive 500s on purpose; real retry pauses would add seconds.
+    Api.retryDelays = const [];
 
     PackageInfo.setMockInitialValues(
       appName: 'wire-test',

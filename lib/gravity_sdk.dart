@@ -3,6 +3,7 @@ export 'src/models/actions/action.dart';
 export 'src/models/external/content_settings.dart';
 export 'src/models/external/log_level.dart';
 export 'src/models/external/notification_permission_status.dart';
+export 'src/models/external/offline_queue_settings.dart';
 export 'src/models/external/options.dart';
 export 'src/models/external/page_context.dart';
 export 'src/models/external/tracking_event.dart';

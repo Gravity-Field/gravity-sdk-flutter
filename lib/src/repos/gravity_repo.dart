@@ -2,7 +2,12 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:gravity_sdk/gravity_sdk.dart' show GravitySDK;
+import 'package:gravity_sdk/src/data/api/retry_class.dart';
 import 'package:gravity_sdk/src/data/batching/request_batcher.dart';
+import 'package:gravity_sdk/src/data/outbox/outbox_dispatcher.dart';
+import 'package:gravity_sdk/src/data/outbox/outbox_entry.dart';
+import 'package:gravity_sdk/src/data/outbox/outbox_store.dart';
 import 'package:gravity_sdk/src/repos/choose_batch_keys.dart';
 import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/data/session/session_manager.dart';
@@ -10,7 +15,9 @@ import 'package:gravity_sdk/src/models/external/gravity_data_response.dart';
 import 'package:gravity_sdk/src/models/external/page_context.dart';
 import 'package:gravity_sdk/src/models/external/rt_rule.dart';
 import 'package:gravity_sdk/src/models/external/trigger_event.dart';
+import 'package:gravity_sdk/src/utils/clock.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:uuid/uuid.dart';
 
 import '../data/api/api.dart';
 import '../data/error_reporting/error_helpers.dart';
@@ -23,12 +30,88 @@ import '../models/external/user.dart';
 import '../version.dart';
 
 class GravityRepo {
-  GravityRepo._();
+  GravityRepo._() {
+    Api.onRequestSucceeded = () => outbox.onRequestSucceeded();
+  }
 
   static final GravityRepo instance = GravityRepo._();
 
   final _api = Api();
   final _sessionManager = SessionManager.instance;
+
+  /// Deferred delivery of requests that failed for network reasons.
+  late final OutboxDispatcher outbox = OutboxDispatcher(
+    store: OutboxStore(),
+    sender: sendOutboxEntry,
+    settings: () => GravitySDK.instance.offlineQueue,
+  );
+
+  /// Sends one persisted entry. Responses are used only as a success signal:
+  /// campaigns are ignored.
+  Future<void> sendOutboxEntry(OutboxEntry entry) async {
+    switch (entry.kind) {
+      case OutboxKind.event:
+        await _sendDeferredEvent(entry.body!);
+      case OutboxKind.engagement:
+        await _api.triggerEventUrl(entry.url!, deferred: true);
+      case OutboxKind.visit:
+        throw UnsupportedError('visit entries are not delivered by this version');
+    }
+  }
+
+  /// Delivers a frozen `/event` body.
+  ///
+  /// A body without identity was queued before any session existed. It takes
+  /// the same session path as an online request: it waits for an
+  /// initialisation already in flight, or performs it itself and keeps the
+  /// uid the server assigns. Sending it anonymously instead would make the
+  /// server mint a throwaway user for the event, while the app's next request
+  /// would be given another one.
+  Future<void> _sendDeferredEvent(Map<String, dynamic> body) async {
+    if (_hasIdentity(body['user'])) {
+      await _api.postEventBody(body, deferred: true);
+      return;
+    }
+
+    final sessionCompleter = _startSessionInitializationIfFirst(null);
+    var capturedGen = _sessionManager.generation;
+    try {
+      var user = await _getUserForRequest(null, sessionCompleter);
+      while (capturedGen != _sessionManager.generation) {
+        capturedGen = _sessionManager.generation;
+        user = await _sessionManager.getUser(null);
+      }
+      final response = await _api.postEventBody(_withIdentity(body, user), deferred: true);
+      await _finalizeSession(null, response.user, sessionCompleter, capturedGen);
+    } catch (error, stackTrace) {
+      _handleSessionFailure(sessionCompleter, error, stackTrace);
+      rethrow;
+    }
+  }
+
+  static bool _hasIdentity(Object? user) => user is Map && (user['uid'] != null || user['custom'] != null);
+
+  static Map<String, dynamic> _withIdentity(Map<String, dynamic> body, User? user) {
+    final uid = user?.uid;
+    if (uid == null) return body;
+    final existing = body['user'];
+    final ses = user?.ses;
+    return {
+      ...body,
+      'user': {
+        ...(existing is Map<String, dynamic> ? existing : const <String, dynamic>{}),
+        'uid': uid,
+        if (ses != null) 'ses': ses,
+      },
+    };
+  }
+
+  static OutboxEntry _eventEntry(Map<String, dynamic> body, DateTime raisedAt) => OutboxEntry(
+    id: const Uuid().v4(),
+    kind: OutboxKind.event,
+    createdAt: raisedAt.toUtc(),
+    body: body,
+  );
 
   /// Baked into [_chooseBatcher] on first use; override in tests before the
   /// first getContent* call to widen the merge window.
@@ -69,13 +152,33 @@ class GravityRepo {
     final override = eventOverride;
     if (override != null) return override(events, pageContext);
 
+    // The event happened now; everything below may wait for the session.
+    final raisedAt = Clock.now();
     final sessionCompleter = _startSessionInitializationIfFirst(customUser);
 
     // Generation before the user snapshot: if a reset lands between the two,
     // the stale user must carry a stale generation so saveUser skips it.
     var capturedGen = _sessionManager.generation;
 
+    Map<String, dynamic>? frozen;
+    OutboxEntry? reserved;
+    // Until our own request is on the wire, any failure is someone else's
+    // (the session request we waited for, storage) and says nothing about
+    // this event: it must stay queued rather than be dropped as rejected.
+    var sent = false;
+    // Queue generation this call belongs to; a clearQueue() bumps it.
+    final epoch = outbox.epoch;
     try {
+      // Everything the body needs, with the identity known right now, then
+      // disk first: a process killed while this call waits for a session
+      // another request is creating, or while its own request hangs, must
+      // not lose the event. The drain steps over the entry until we let go.
+      final known = customUser ?? _sessionManager.getCachedUser();
+      final context = await _mixPageContextAttributes(pageContext);
+      frozen = await _api.buildEventBody(events, known, context, options, now: raisedAt);
+      final entry = _eventEntry(frozen, raisedAt);
+      if (await outbox.reserve(entry)) reserved = entry;
+
       var user = await _getUserForRequest(customUser, sessionCompleter);
       // A reset while we awaited leaves both snapshots stale: re-snapshot,
       // generation first. The gated getUser is required — a direct Prefs
@@ -85,8 +188,25 @@ class GravityRepo {
         capturedGen = _sessionManager.generation;
         user = await _sessionManager.getUser(null);
       }
-      final context = await _mixPageContextAttributes(pageContext);
-      final response = await _api.event(events, user, context, options);
+      // clearQueue() ran after this call began: the event was part of what
+      // the caller asked to drop, whether its write landed before the clear
+      // (already gone) or after it (must go now, or the drain would send it).
+      if (reserved != null && outbox.epoch != epoch) {
+        await outbox.discard(reserved.id);
+        return const CampaignIdsResponse(user: User());
+      }
+
+      final body = _withUser(frozen, user);
+      // The event belongs to the user it was raised for: freeze that identity
+      // before sending, or a replay after a logout would attribute it to
+      // whoever is signed in by then.
+      if (reserved != null && !_sameIdentity(known, user)) {
+        reserved = reserved.copyWith(body: body);
+        await outbox.update(reserved);
+      }
+
+      sent = true;
+      final response = await _api.postEventBody(body);
 
       await _finalizeSession(
         customUser,
@@ -94,19 +214,55 @@ class GravityRepo {
         sessionCompleter,
         capturedGen,
       );
+      if (reserved != null) await outbox.complete(reserved.id);
       return response;
     } catch (error, stackTrace) {
       _handleSessionFailure(sessionCompleter, error, stackTrace);
+
+      // A queue cleared meanwhile takes this event with it: nothing that
+      // began before the clear may put itself back.
+      final cleared = outbox.epoch != epoch;
+      final keep = !cleared && (!sent || classifyError(error) != RetryClass.permanent);
+      var queued = false;
+      if (keep && reserved != null) {
+        // Already on disk: it stays there even if the queue was switched off
+        // meanwhile (disabled only stops sending, it never drops entries).
+        outbox.release(reserved.id);
+        queued = true;
+      } else if (keep && frozen != null && GravitySDK.instance.offlineQueue.enabled) {
+        // Built but never reserved (storage refused, or the queue was off at
+        // the time): one more try to get it on disk.
+        queued = outbox.epoch == epoch && await outbox.enqueue(_eventEntry(frozen, raisedAt));
+      } else if (reserved != null) {
+        await outbox.discard(reserved.id);
+      }
+
+      // 'queued' is reported only once the entry is actually on disk, so it
+      // never claims a delivery that was never scheduled.
       ErrorReporter.instance.report(
         message: error.toString(),
-        level: errorLevel(error),
+        level: queued ? 'warning' : errorLevel(error),
         section: 'GravityRepo.event',
         stacktrace: stackTrace.toString(),
-        tags: {'category': categorizeError(error), 'endpoint': 'event'},
+        tags: {
+          'category': categorizeError(error),
+          'endpoint': 'event',
+          'outcome': queued ? 'queued' : 'failed',
+        },
       );
-      rethrow;
+      if (!queued) rethrow;
+      return const CampaignIdsResponse(user: User());
     }
   }
+
+  /// The frozen body with the session identity resolved for this send.
+  static Map<String, dynamic> _withUser(Map<String, dynamic> frozen, User? user) => {
+    ...frozen,
+    'user': user?.toJson() ?? <String, dynamic>{},
+  };
+
+  static bool _sameIdentity(User? a, User? b) =>
+      a?.uid == b?.uid && a?.ses == b?.ses && a?.custom == b?.custom;
 
   Future<CampaignIdsResponse> visit({
     User? customUser,

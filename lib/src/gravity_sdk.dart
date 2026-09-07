@@ -3,6 +3,7 @@ import 'package:gravity_sdk/src/models/internal/delivery_type.dart';
 import 'package:gravity_sdk/src/models/internal/template_system_name.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/snackbar/snack_bar_content.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/tooltip/tooltip_overlay.dart';
+import 'package:gravity_sdk/src/utils/clock.dart';
 import 'package:gravity_sdk/src/utils/product_events_service.dart';
 
 import 'data/api/content_ids_response.dart';
@@ -17,6 +18,7 @@ import 'models/external/campaign.dart';
 import 'models/external/content_engagement.dart';
 import 'models/external/content_settings.dart';
 import 'models/external/notification_permission_status.dart';
+import 'models/external/offline_queue_settings.dart';
 import 'models/external/options.dart';
 import 'models/external/page_context.dart';
 import 'models/external/product_engagement.dart';
@@ -58,6 +60,14 @@ class GravitySDK {
   Options options = Options();
   String? proxyUrl;
   bool isFetchContentOnTrack = true;
+  OfflineQueueSettings offlineQueue = const OfflineQueueSettings();
+
+  /// How long a `/visit` or `/event` response stays worth acting on. Campaigns
+  /// from responses that took longer are not resolved (the screen has most
+  /// likely changed). Also bounds the transient retry of `/visit`, `/event`
+  /// and `/choose`.
+  Duration staleContentTimeout = const Duration(seconds: 10);
+
   NotificationPermissionStatus notificationPermissionStatus =
       NotificationPermissionStatus.unknown;
   bool _isPresentationLocked = false;
@@ -82,6 +92,8 @@ class GravitySDK {
     this.gravityContentCallback = gravityContentCallback;
 
     LoggerManager.instance.configure(logLevel);
+
+    await GravityRepo.instance.outbox.start();
   }
 
   void setOptions({
@@ -89,6 +101,8 @@ class GravitySDK {
     ContentSettings? contentSettings,
     String? proxyUrl,
     bool? isFetchContentOnTrack,
+    OfflineQueueSettings? offlineQueue,
+    Duration? staleContentTimeout,
   }) {
     if (options != null) {
       this.options = options;
@@ -102,7 +116,59 @@ class GravitySDK {
     if (proxyUrl != null) {
       this.proxyUrl = proxyUrl;
     }
+    if (offlineQueue != null) {
+      final wasEnabled = this.offlineQueue.enabled;
+      this.offlineQueue = offlineQueue;
+      // Before initialize() there is nothing to wake: start() looks at the
+      // disk anyway, and touching the repo this early would build Api
+      // before the logger is configured.
+      if (offlineQueue.enabled && !wasEnabled && apiKey.isNotEmpty) {
+        GravityRepo.instance.outbox.onSettingsChanged();
+      }
+    }
+    if (staleContentTimeout != null) {
+      this.staleContentTimeout = staleContentTimeout;
+    }
   }
+
+  /// Sends queued requests now (e.g. from the app's own connectivity
+  /// listener). Completes when the queue is empty or blocked by a failure.
+  ///
+  /// A no-op while [offlineQueue] is disabled: nothing is ever queued then.
+  /// A queued event without identity waits for the session initialisation that
+  /// is already in flight, so the call can take as long as the network
+  /// timeouts of that request allow.
+  Future<void> flushQueue() {
+    _checkIsInitialized();
+    return GravityRepo.instance.outbox.flush();
+  }
+
+  /// Number of requests waiting in the offline queue.
+  Future<int> get pendingDeliveries {
+    _checkIsInitialized();
+    return GravityRepo.instance.outbox.pendingCount;
+  }
+
+  /// Drops every request waiting in the offline queue, for good. Meant for
+  /// cases where the queued data must not stay on the device or must not be
+  /// delivered later (a privacy-driven sign-out, a shared device, a switch
+  /// of environment). [resetUser] does not do this: events that happened
+  /// before a sign-out are still delivered for the user who raised them.
+  ///
+  /// Works while [offlineQueue] is disabled. Throws when storage refused to
+  /// write the empty queue (the data may still be on disk) and when called
+  /// before [initialize]. A request already on the wire finishes on its own
+  /// and is not re-queued; an event still waiting for its session is
+  /// dropped without being sent.
+  Future<void> clearQueue() {
+    _checkIsInitialized();
+    return GravityRepo.instance.outbox.clear();
+  }
+
+  /// True when [startedAt] is older than [staleContentTimeout] (plus
+  /// [extra], the campaign's own delay, when checking after it).
+  bool _isStale(DateTime startedAt, {Duration extra = Duration.zero}) =>
+      Clock.now().difference(startedAt) > staleContentTimeout + extra;
 
   void setUser(String userId, String sessionId) {
     user = User(custom: userId, ses: sessionId);
@@ -184,13 +250,14 @@ class GravitySDK {
   }) async {
     _checkIsInitialized();
     try {
+      final startedAt = Clock.now();
       final response = await GravityRepo.instance.visit(
         customUser: user,
         pageContext: pageContext,
         options: options,
       );
 
-      if (response.campaigns.isEmpty || !context.mounted) return;
+      if (response.campaigns.isEmpty || !context.mounted || _isStale(startedAt)) return;
 
       final resolved = await _resolveHighestPriority<ContentResponse>(
         campaigns: response.campaigns,
@@ -208,7 +275,10 @@ class GravitySDK {
         await Future.delayed(Duration(milliseconds: campaignIdObj.delayTime));
       }
 
-      if (!context.mounted) return;
+      if (!context.mounted ||
+          _isStale(startedAt, extra: Duration(milliseconds: campaignIdObj.delayTime))) {
+        return;
+      }
 
       if (_skipIfPresentationLocked(campaignIdObj.campaignId)) return;
 
@@ -275,6 +345,7 @@ class GravitySDK {
   }) async {
     _checkIsInitialized();
     try {
+      final startedAt = Clock.now();
       final response = await GravityRepo.instance.event(
         events: events,
         customUser: user,
@@ -282,7 +353,7 @@ class GravitySDK {
         options: options,
       );
 
-      if (response.campaigns.isEmpty || !context.mounted) return;
+      if (response.campaigns.isEmpty || !context.mounted || _isStale(startedAt)) return;
 
       final resolved = await _resolveHighestPriority<ContentResponse>(
         campaigns: response.campaigns,
@@ -300,7 +371,10 @@ class GravitySDK {
         await Future.delayed(Duration(milliseconds: campaignIdObj.delayTime));
       }
 
-      if (!context.mounted) return;
+      if (!context.mounted ||
+          _isStale(startedAt, extra: Duration(milliseconds: campaignIdObj.delayTime))) {
+        return;
+      }
 
       if (_skipIfPresentationLocked(campaignIdObj.campaignId)) return;
 
@@ -538,13 +612,14 @@ class GravitySDK {
   }) async {
     _checkIsInitialized();
     try {
+      final startedAt = Clock.now();
       final response = await GravityRepo.instance.visit(
         customUser: user,
         pageContext: pageContext,
         options: options,
       );
 
-      if (response.campaigns.isEmpty || !isFetchContentOnTrack) return null;
+      if (response.campaigns.isEmpty || !isFetchContentOnTrack || _isStale(startedAt)) return null;
 
       return await _resolveHighestPriorityNoShow(
         campaigns: response.campaigns,
@@ -567,6 +642,7 @@ class GravitySDK {
   }) async {
     _checkIsInitialized();
     try {
+      final startedAt = Clock.now();
       final response = await GravityRepo.instance.event(
         events: events,
         customUser: user,
@@ -574,7 +650,7 @@ class GravitySDK {
         options: options,
       );
 
-      if (response.campaigns.isEmpty || !isFetchContentOnTrack) return null;
+      if (response.campaigns.isEmpty || !isFetchContentOnTrack || _isStale(startedAt)) return null;
 
       return await _resolveHighestPriorityNoShow(
         campaigns: response.campaigns,
