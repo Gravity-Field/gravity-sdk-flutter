@@ -17,6 +17,7 @@ class AppTheme {
         ),
       ),
       colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+      bottomSheetTheme: const BottomSheetThemeData(showDragHandle: true),
       useMaterial3: true,
     );
   }
