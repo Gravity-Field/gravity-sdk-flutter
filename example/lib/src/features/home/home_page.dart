@@ -2,6 +2,7 @@ import 'package:example/gen/assets.gen.dart';
 import 'package:example/src/core/widgets/content_click_button.dart';
 import 'package:example/src/core/widgets/event_props_button.dart';
 import 'package:example/src/core/widgets/product_shimmer_loader.dart';
+import 'package:example/src/core/widgets/raw_variables_view.dart';
 import 'package:flutter/material.dart' hide Element, Container;
 
 import 'package:gravity_sdk/gravity_sdk.dart';
@@ -64,6 +65,14 @@ class _HomePageState extends State<HomePage> {
                 key: Key('inline_banner'),
                 selector: 'inline_banner',
                 height: 174,
+                pageContext: PageContext(
+                  type: ContextType.homepage,
+                  data: [],
+                  location: 'homepage',
+                ),
+              ),
+              const RawVariablesView(
+                selector: 'inline_widget_qa',
                 pageContext: PageContext(
                   type: ContextType.homepage,
                   data: [],
