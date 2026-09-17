@@ -44,5 +44,10 @@ RetryClass classifyError(Object error) {
       return error.error is IOException
           ? RetryClass.transient
           : RetryClass.permanent;
+    // Newer dio versions add exception types (e.g. `transformTimeout` in
+    // 5.10.0). Treat anything unknown as non-retryable so the SDK keeps
+    // compiling against every dio 5.x.
+    default:
+      return RetryClass.permanent;
   }
 }
