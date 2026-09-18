@@ -111,6 +111,15 @@ GravitySDK.instance.setUser('user-id', 'session-id');
 // Сброс пользователя и сессии (например, при logout)
 await GravitySDK.instance.resetUser();
 
+// Серверный uid анонимной сессии (null до первого успешного запроса)
+final uid = await GravitySDK.instance.getUserId();
+
+// Колбэк при появлении или смене серверного uid (null после resetUser)
+GravitySDK.instance.setUserIdListener((uid) => saveToKeychain(uid));
+
+// Восстановить прежнего пользователя по сохранённому uid (например, после переустановки)
+await GravitySDK.instance.restoreUserId(savedUid);
+
 // Глобальные настройки
 GravitySDK.instance.setOptions(
   options: Options(
@@ -129,6 +138,9 @@ GravitySDK.instance.setOptions(
 GravitySDK.instance.setNotificationPermissionStatus(NotificationPermissionStatus.granted);
 ```
 
+- `getUserId()` — всегда серверный uid анонимной сессии; идентификатор, переданный в `setUser()`, здесь не возвращается. Ждёт завершения уже идущей инициализации сессии. Доступен до `initialize()`.
+- `setUserIdListener()` — вызывается, когда серверный uid становится известен процессу или меняется: после первого успешного запроса на холодном старте, после `resetUser()` (с `null`) и после `restoreUserId()`. Ответ сервера с тем же uid колбэк не вызывает. Передай `null`, чтобы снять слушателя.
+- `restoreUserId(uid)` — восстанавливает пользователя, которому сервер ранее выдал этот uid (например, после переустановки приложения): сбрасывает текущую сессию и пользователя из `setUser()`, следующий запрос уходит с этим uid, и сервер узнаёт прежнего пользователя с его историей и сегментами. Неизвестный серверу uid игнорируется — будет выдан новый. Пустая строка — `ArgumentError`. Под `setUser()` сервер uid/ses не возвращает, поэтому `getUserId()` отдаёт последний известный анонимный uid.
 - `proxyUrl` — маршрутизация запросов через прокси
 - `isFetchContentOnTrack` — автоматическая загрузка контента после `trackViewNoShow()` / `triggerEventNoShow()` (по умолчанию `true`)
 - `NotificationPermissionStatus`: `granted` / `denied` / `unknown`

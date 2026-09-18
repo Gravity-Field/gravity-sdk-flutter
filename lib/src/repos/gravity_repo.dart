@@ -73,13 +73,22 @@ class GravityRepo {
       return;
     }
 
-    final sessionCompleter = _startSessionInitializationIfFirst(null);
+    var sessionCompleter = _startSessionInitializationIfFirst(null);
     var capturedGen = _sessionManager.generation;
     try {
       var user = await _getUserForRequest(null, sessionCompleter);
       while (capturedGen != _sessionManager.generation) {
         capturedGen = _sessionManager.generation;
         user = await _sessionManager.getUser(null);
+      }
+      // The gate we parked behind may have been a reset's or restore's own,
+      // which covers only the uid write: nobody owns the session request
+      // once it lifts. Elect the owner again (see _adoptSessionOwnership).
+      if (sessionCompleter == null && !_sessionManager.hasSession) {
+        final adopted = await _adoptSessionOwnership();
+        sessionCompleter = adopted.completer;
+        capturedGen = adopted.generation;
+        user = adopted.user;
       }
       final response = await _api.postEventBody(_withIdentity(body, user), deferred: true);
       await _finalizeSession(null, response.user, sessionCompleter, capturedGen);
@@ -122,6 +131,11 @@ class GravityRepo {
   @visibleForTesting
   static void Function(List<String> urls)? triggerEventUrlsObserver;
 
+  /// Replaces the Prefs read of the stored uid in the session owner's identity
+  /// snapshot; tests use it to make that read fail.
+  @visibleForTesting
+  static Future<String?> Function()? storedUserIdReadOverride;
+
   /// Replaces the whole [event] pipeline in tests. Invoked synchronously so
   /// side effects scheduled by the caller during a fire-and-forget dispatch
   /// happen inside that dispatch (the double-tap tests depend on this).
@@ -154,7 +168,7 @@ class GravityRepo {
 
     // The event happened now; everything below may wait for the session.
     final raisedAt = Clock.now();
-    final sessionCompleter = _startSessionInitializationIfFirst(customUser);
+    var sessionCompleter = _startSessionInitializationIfFirst(customUser);
 
     // Generation before the user snapshot: if a reset lands between the two,
     // the stale user must carry a stale generation so saveUser skips it.
@@ -188,11 +202,26 @@ class GravityRepo {
         capturedGen = _sessionManager.generation;
         user = await _sessionManager.getUser(null);
       }
+      // The gate we parked behind may have been a reset's or restore's own,
+      // which covers only the uid write: nobody owns the session request
+      // once it lifts. Elect the owner again (see _adoptSessionOwnership).
+      if (customUser == null && sessionCompleter == null && !_sessionManager.hasSession) {
+        final adopted = await _adoptSessionOwnership();
+        sessionCompleter = adopted.completer;
+        capturedGen = adopted.generation;
+        user = adopted.user;
+      }
       // clearQueue() ran after this call began: the event was part of what
       // the caller asked to drop, whether its write landed before the clear
       // (already gone) or after it (must go now, or the drain would send it).
       if (reserved != null && outbox.epoch != epoch) {
         await outbox.discard(reserved.id);
+        // Nothing goes on the wire, so no session will come back: a gate this
+        // call owns (taken up front or adopted above) must not stay pending.
+        // Without a session the next request elects an owner again.
+        if (sessionCompleter != null) {
+          _sessionManager.completeSessionInitialization(sessionCompleter);
+        }
         return const CampaignIdsResponse(user: User());
       }
 
@@ -269,7 +298,7 @@ class GravityRepo {
     required PageContext pageContext,
     required Options options,
   }) async {
-    final sessionCompleter = _startSessionInitializationIfFirst(customUser);
+    var sessionCompleter = _startSessionInitializationIfFirst(customUser);
 
     // Generation before the user snapshot: if a reset lands between the two,
     // the stale user must carry a stale generation so saveUser skips it.
@@ -284,6 +313,15 @@ class GravityRepo {
       while (customUser == null && capturedGen != _sessionManager.generation) {
         capturedGen = _sessionManager.generation;
         user = await _sessionManager.getUser(null);
+      }
+      // The gate we parked behind may have been a reset's or restore's own,
+      // which covers only the uid write: nobody owns the session request
+      // once it lifts. Elect the owner again (see _adoptSessionOwnership).
+      if (customUser == null && sessionCompleter == null && !_sessionManager.hasSession) {
+        final adopted = await _adoptSessionOwnership();
+        sessionCompleter = adopted.completer;
+        capturedGen = adopted.generation;
+        user = adopted.user;
       }
       final context = await _mixPageContextAttributes(pageContext);
       final response = await _api.visit(user, context, options);
@@ -438,6 +476,34 @@ class GravityRepo {
     return null;
   }
 
+  /// Re-runs the owner election for an anonymous request that woke up
+  /// without a session: it takes the gate itself when nobody holds it, or
+  /// parks behind the holder and checks again, as _executeChooseBatch does.
+  /// Without this, every request that waited out a reset or restore would go
+  /// out without a session and each bring back its own.
+  Future<({Completer<void>? completer, int generation, User? user})> _adoptSessionOwnership() async {
+    while (!_sessionManager.hasSession) {
+      if (!_sessionManager.isInitializing) {
+        final completer = _sessionManager.beginSessionInitialization();
+        final generation = _sessionManager.generation;
+        try {
+          final user = await _getUserForRequest(null, completer);
+          return (completer: completer, generation: generation, user: user);
+        } catch (error, stackTrace) {
+          // The gate is ours from beginSessionInitialization on: a failed
+          // snapshot must release it, or every anonymous request parks forever.
+          _sessionManager.failSessionInitialization(completer, error, stackTrace);
+          rethrow;
+        }
+      }
+      // A failure of the current owner surfaces here; a failure of a
+      // superseded generation is swallowed by getUser, and we loop.
+      await _sessionManager.getUser(null);
+    }
+    final generation = _sessionManager.generation;
+    return (completer: null, generation: generation, user: await _sessionManager.getUser(null));
+  }
+
   Future<User?> _getUserForRequest(
     User? customUser,
     Completer<void>? sessionCompleter,
@@ -453,7 +519,8 @@ class GravityRepo {
         return User(uid: cachedUid, ses: cachedSes);
       }
 
-      final userIdFromPrefs = await Prefs.instance.getUserId();
+      final readStored = storedUserIdReadOverride ?? Prefs.instance.getUserId;
+      final userIdFromPrefs = await readStored();
       return User(uid: userIdFromPrefs, ses: cachedSes);
     } else {
       return await _ensureUser(customUser);

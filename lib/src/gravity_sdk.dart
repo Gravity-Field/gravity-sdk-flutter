@@ -179,6 +179,36 @@ class GravitySDK {
     await SessionManager.instance.resetSession();
   }
 
+  /// The uid the server assigned to this device's anonymous session, or null
+  /// before the first successful request. Waits for a session initialisation
+  /// in flight. Always the server uid: a custom id passed to [setUser] is
+  /// not returned here. Available before [initialize].
+  Future<String?> getUserId() => SessionManager.instance.loadUserId();
+
+  /// Called with the server uid when it becomes known to this process or
+  /// changes: after the first successful request of a cold start, after
+  /// [resetUser] (with null) and after [restoreUserId]. A server answer that
+  /// echoes the current uid does not fire it. Pass null to remove the
+  /// listener. Available before [initialize].
+  void setUserIdListener(void Function(String? uid)? listener) {
+    SessionManager.instance.onUserIdChanged = listener;
+  }
+
+  /// Restores the user the server previously assigned [uid] to (obtained
+  /// earlier from [getUserId]), e.g. after a reinstall. Drops the current
+  /// session and any custom user set via [setUser]; the next request carries
+  /// [uid] and the server recognises that user again, with their history and
+  /// segments (an unknown uid is ignored by the server, which then assigns a
+  /// new one). Throws [ArgumentError] for an empty [uid].
+  /// Available before [initialize].
+  Future<void> restoreUserId(String uid) async {
+    if (uid.isEmpty) {
+      throw ArgumentError.value(uid, 'uid', 'must not be empty');
+    }
+    user = null;
+    await SessionManager.instance.restoreUserId(uid);
+  }
+
   void setNotificationPermissionStatus(NotificationPermissionStatus status) {
     notificationPermissionStatus = status;
   }
