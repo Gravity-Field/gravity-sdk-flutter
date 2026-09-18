@@ -107,6 +107,8 @@ await GravitySDK.instance.initialize(
 ```dart
 // Ручная идентификация пользователя
 GravitySDK.instance.setUser('user-id', 'session-id');
+// После setUser() все последующие запросы SDK, включая запросы контента
+// (getContent*, GravityInlineWidget, GravityAnchor, автопоказ in-app), уходят от имени этого пользователя.
 
 // Сброс пользователя и сессии (например, при logout)
 await GravitySDK.instance.resetUser();

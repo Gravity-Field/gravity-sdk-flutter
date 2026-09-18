@@ -341,6 +341,7 @@ class GravitySDK {
 
       final response = await GravityRepo.instance.getContentBySelector(
         selector: selector,
+        customUser: user,
         pageContext: effectivePageContext,
         options: options,
         contentSetting: contentSettings,
@@ -489,6 +490,7 @@ class GravitySDK {
 
     final content = await GravityRepo.instance.getContentBySelector(
       selector: selector,
+      customUser: user,
       pageContext: pageContext,
       options: options,
       contentSetting: contentSettings,
@@ -518,6 +520,7 @@ class GravitySDK {
 
     final content = await GravityRepo.instance.getContentByCampaignId(
       campaignId: campaignId,
+      customUser: user,
       pageContext: pageContext,
       options: options,
       contentSetting: contentSettings,
@@ -547,6 +550,7 @@ class GravitySDK {
 
     final content = await GravityRepo.instance.getContentByGroup(
       group: group,
+      customUser: user,
       pageContext: pageContext,
       options: options,
       contentSetting: contentSettings,
@@ -577,6 +581,7 @@ class GravitySDK {
 
     final response = await GravityRepo.instance.getContentBySelectorWithDetails(
       selector: selector,
+      customUser: user,
       pageContext: pageContext,
       options: options,
       contentSetting: contentSettings,
@@ -610,6 +615,7 @@ class GravitySDK {
     final response = await GravityRepo.instance
         .getContentByCampaignIdWithDetails(
           campaignId: campaignId,
+          customUser: user,
           pageContext: pageContext,
           options: options,
           contentSetting: contentSettings,
