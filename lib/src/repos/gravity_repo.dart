@@ -104,7 +104,19 @@ class GravityRepo {
         return;
       }
 
-      final response = await _api.postEventBody(_withIdentity(body, user), deferred: true);
+      final resolved = _withIdentity(body, user);
+      if (!identical(resolved, body)) {
+        // The identity is the event's from now on: a network failure after
+        // this must not let a later reset hand the retry to someone else.
+        // A refused write is reported by the dispatcher; the send goes on.
+        await outbox.update(entry.copyWith(body: resolved));
+        if (outbox.epoch != epoch) {
+          _releaseSessionOwnership(ownership);
+          return;
+        }
+      }
+
+      final response = await _api.postEventBody(resolved, deferred: true);
       await _finalizeSession(null, response.user, ownership.completer, ownership.generation);
     } catch (error, stackTrace) {
       _handleSessionFailure(ownership.completer, error, stackTrace);
@@ -112,7 +124,12 @@ class GravityRepo {
     }
   }
 
+  /// Identity of a body already frozen as JSON.
   static bool _hasIdentity(Object? user) => user is Map && (user['uid'] != null || user['custom'] != null);
+
+  /// Identity of a live [User]. The JSON check above answers false for every
+  /// [User], so the two cannot share one predicate.
+  static bool _hasUserIdentity(User? user) => user?.uid != null || user?.custom != null;
 
   static Map<String, dynamic> _withIdentity(Map<String, dynamic> body, User? user) {
     final uid = user?.uid;
@@ -187,6 +204,10 @@ class GravityRepo {
       _sessionManager.generation,
     );
 
+    // Generation before the user snapshot: if a reset lands between the two,
+    // the stale user must carry a stale generation so saveUser skips it.
+    final raisedGen = ownership.generation;
+
     Map<String, dynamic>? frozen;
     OutboxEntry? reserved;
     // Until our own request is on the wire, any failure is someone else's
@@ -214,7 +235,11 @@ class GravityRepo {
         return const CampaignIdsResponse(user: User());
       }
 
-      final resolved = await _resolveSessionUser(customUser, ownership);
+      final resolved = await _resolveSessionUser(
+        customUser,
+        ownership,
+        keepsItsIdentity: _hasUserIdentity(known),
+      );
       // clearQueue() ran after this call began: the event was part of what
       // the caller asked to drop, and that holds whether or not it ever
       // reached the disk — a reservation the storage refused, or a queue
@@ -228,11 +253,15 @@ class GravityRepo {
         return const CampaignIdsResponse(user: User());
       }
 
-      final body = _withUser(frozen, resolved);
+      final owner = _eventOwner(known, resolved);
+      final body = _withUser(frozen, owner);
+      // Whatever has to be re-queued below is re-queued for the same user as
+      // the request on the wire.
+      frozen = body;
       // The event belongs to the user it was raised for: freeze that identity
       // before sending, or a replay after a logout would attribute it to
       // whoever is signed in by then.
-      if (reserved != null && !_sameIdentity(known, resolved)) {
+      if (reserved != null && !_sameIdentity(known, owner)) {
         reserved = reserved.copyWith(body: body);
         await outbox.update(reserved);
       }
@@ -254,7 +283,10 @@ class GravityRepo {
         customUser,
         response.user,
         ownership.completer,
-        ownership.generation,
+        // An event that already knew whose it was may not adopt a session
+        // opened after a reset or restore: the generation it was raised in
+        // makes saveUser skip exactly that case, and keep the rest.
+        _hasUserIdentity(known) ? raisedGen : ownership.generation,
       );
       if (reserved != null) await outbox.complete(reserved.id);
       return response;
@@ -309,6 +341,19 @@ class GravityRepo {
 
   static bool _sameIdentity(User? a, User? b) =>
       a?.uid == b?.uid && a?.ses == b?.ses && a?.custom == b?.custom;
+
+  /// Whose the event is. An identity known when it was raised owns it: the
+  /// session resolved later may belong to somebody else by then (a reset ran
+  /// while this call waited), and only its session id is taken over, and only
+  /// when it is the same person. Without a known identity there is nothing to
+  /// protect and the resolved one is used as it is.
+  static User? _eventOwner(User? known, User? resolved) {
+    if (!_hasUserIdentity(known)) return resolved;
+    final ses = resolved?.ses;
+    if (known!.ses != null || ses == null) return known;
+    if (resolved!.uid != known.uid || resolved.custom != known.custom) return known;
+    return User(uid: known.uid, custom: known.custom, ses: ses, attributes: known.attributes);
+  }
 
   Future<CampaignIdsResponse> visit({
     User? customUser,
@@ -484,7 +529,17 @@ class GravityRepo {
   /// [ownership] is updated in place — including when this throws — so the
   /// caller's catch and its _finalizeSession always act on the gate held at
   /// that moment and never on the one it started with.
-  Future<User?> _resolveSessionUser(User? customUser, _SessionOwnership ownership) async {
+  ///
+  /// [keepsItsIdentity] is for a request already bound to the user it was
+  /// raised for: once a reset or restore replaces that user, it goes out as
+  /// them, so it lets go of the gate and takes no part in electing the owner
+  /// of the new session — its answer will not be kept, and its failure is not
+  /// the new session's.
+  Future<User?> _resolveSessionUser(
+    User? customUser,
+    _SessionOwnership ownership, {
+    bool keepsItsIdentity = false,
+  }) async {
     var user = await _getUserForRequest(customUser, ownership.completer);
     if (customUser != null) return user;
 
@@ -496,6 +551,7 @@ class GravityRepo {
         // request goes out session-less beside the new owner.
         _releaseSessionOwnership(ownership);
         ownership.generation = _sessionManager.generation;
+        if (keepsItsIdentity) return user;
         // The gated read is required — a direct Prefs read could race the
         // reset's queued uid removal — and safe: the stored gate is not ours.
         user = await _sessionManager.getUser(null);

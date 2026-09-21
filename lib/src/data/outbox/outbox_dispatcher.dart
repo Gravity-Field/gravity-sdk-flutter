@@ -274,6 +274,14 @@ class OutboxDispatcher with WidgetsBindingObserver {
     }
   }
 
+  /// The queued entry with [id] as it stands now, or null once it is gone.
+  OutboxEntry? _storedEntry(String id) {
+    for (final entry in _store.snapshot()) {
+      if (entry.id == id) return entry;
+    }
+    return null;
+  }
+
   /// Oldest entry not owned by the online path.
   OutboxEntry? _nextEntry() {
     for (final entry in _store.snapshot()) {
@@ -328,7 +336,11 @@ class OutboxDispatcher with WidgetsBindingObserver {
               _scheduleRetry(RetryClass.transient);
               return;
             case RetryClass.server:
-              final updated = entry.copyWith(attempts: entry.attempts + 1);
+              // The sender may have written the identity it resolved onto the
+              // stored entry; count the attempt on that version, or the body
+              // just frozen would be replaced by the stale snapshot.
+              final current = _storedEntry(entry.id) ?? entry;
+              final updated = current.copyWith(attempts: current.attempts + 1);
               if (updated.attempts >= maxServerAttempts) {
                 _reportDropped(updated, 'rejected', error, stackTrace);
                 await _store.removeById(entry.id);
