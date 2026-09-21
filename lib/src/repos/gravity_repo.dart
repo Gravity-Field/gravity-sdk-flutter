@@ -221,7 +221,10 @@ class GravityRepo {
       // disk first: a process killed while this call waits for a session
       // another request is creating, or while its own request hangs, must
       // not lose the event. The drain steps over the entry until we let go.
-      final known = customUser ?? _sessionManager.getCachedUser();
+      // Taken without an await on purpose: a reset landing inside the
+      // snapshot would leave the event with nobody to name. getCachedUser is
+      // a confirmed session; the observed uid is what a cold start has.
+      final known = customUser ?? _sessionManager.getCachedUser() ?? _sessionManager.observedUser;
       final context = await _mixPageContextAttributes(pageContext);
       frozen = await _api.buildEventBody(events, known, context, options, now: raisedAt);
       final entry = _eventEntry(frozen, raisedAt);
@@ -253,7 +256,11 @@ class GravityRepo {
         return const CampaignIdsResponse(user: User());
       }
 
-      final owner = _eventOwner(known, resolved);
+      final owner = _eventOwner(
+        known,
+        resolved,
+        identityChanged: raisedGen != ownership.generation,
+      );
       final body = _withUser(frozen, owner);
       // Whatever has to be re-queued below is re-queued for the same user as
       // the request on the wire.
@@ -342,13 +349,17 @@ class GravityRepo {
   static bool _sameIdentity(User? a, User? b) =>
       a?.uid == b?.uid && a?.ses == b?.ses && a?.custom == b?.custom;
 
-  /// Whose the event is. An identity known when it was raised owns it: the
-  /// session resolved later may belong to somebody else by then (a reset ran
-  /// while this call waited), and only its session id is taken over, and only
-  /// when it is the same person. Without a known identity there is nothing to
-  /// protect and the resolved one is used as it is.
-  static User? _eventOwner(User? known, User? resolved) {
-    if (!_hasUserIdentity(known)) return resolved;
+  /// Whose the event is.
+  ///
+  /// While the app has not changed users, the server has the last word: it may
+  /// have replaced the stored uid with one of its own, and sending the event
+  /// for a user it no longer keeps would strand it. [identityChanged] says a
+  /// resetUser or restoreUserId ran between the moment the event was raised
+  /// and the moment its session resolved — then the resolved identity is
+  /// somebody else's, and the event stays with the user it was raised for,
+  /// taking over a session id only from that same person.
+  static User? _eventOwner(User? known, User? resolved, {required bool identityChanged}) {
+    if (!identityChanged || !_hasUserIdentity(known)) return resolved;
     final ses = resolved?.ses;
     if (known!.ses != null || ses == null) return known;
     if (resolved!.uid != known.uid || resolved.custom != known.custom) return known;
@@ -567,7 +578,7 @@ class GravityRepo {
     _SessionOwnership ownership, {
     bool keepsItsIdentity = false,
   }) async {
-    var user = await _getUserForRequest(customUser, ownership.completer);
+    var user = await _getUserForRequest(customUser, ownership.completer, ownership.generation);
     if (customUser != null) return user;
 
     while (true) {
@@ -618,7 +629,7 @@ class GravityRepo {
         final completer = _sessionManager.beginSessionInitialization();
         final generation = _sessionManager.generation;
         try {
-          final user = await _getUserForRequest(null, completer);
+          final user = await _getUserForRequest(null, completer, generation);
           return (completer: completer, generation: generation, user: user);
         } catch (error, stackTrace) {
           // The gate is ours from beginSessionInitialization on: a failed
@@ -643,9 +654,12 @@ class GravityRepo {
     );
   }
 
+  /// [generation] is the one the caller's gate belongs to: what the owner
+  /// reads from storage speaks for that generation and no later one.
   Future<User?> _getUserForRequest(
     User? customUser,
     Completer<void>? sessionCompleter,
+    int generation,
   ) async {
     if (sessionCompleter != null) {
       if (customUser != null) {
@@ -660,6 +674,10 @@ class GravityRepo {
 
       final readStored = storedUserIdReadOverride ?? Prefs.instance.getUserId;
       final userIdFromPrefs = await readStored();
+      // The gate owner is the one place that reads storage without going
+      // through getUser, so it hands what it learned back — for the
+      // generation its gate belongs to, which a reset may already have left.
+      _sessionManager.noteObservedUserId(userIdFromPrefs, generation);
       return User(uid: userIdFromPrefs, ses: cachedSes);
     } else {
       // Not the owner: a failure of the initialization we park behind belongs

@@ -46,6 +46,25 @@ class SessionManager {
   /// writes of one uid cannot report it twice.
   String? _notifiedUid;
 
+  /// The uid this process has seen on the device. Reading storage is neither a
+  /// session nor a change of user, so it stays out of the caches above and out
+  /// of [onUserIdChanged]; it is what a request raised before the first server
+  /// answer can still name as its user.
+  String? _observedUserId;
+
+  /// The identity the device is known to hold, without a session — null until
+  /// some read has answered in this process, and again from the moment a reset
+  /// or restore says the user is changing.
+  User? get observedUser => _observedUserId == null ? null : User(uid: _observedUserId);
+
+  /// Records a uid a read of storage returned. [capturedGeneration] is the
+  /// generation taken before that read: a reset or restore since then has
+  /// already said who the user is now, and an older answer may not undo it.
+  void noteObservedUserId(String? uid, int capturedGeneration) {
+    if (capturedGeneration != _generation) return;
+    _observedUserId = uid;
+  }
+
   /// The identity the next request must carry, after any session
   /// initialization in flight.
   ///
@@ -58,26 +77,35 @@ class SessionManager {
       return customUser;
     }
 
-    if (toleratesForeignFailure) {
-      while (true) {
-        try {
-          await _awaitSessionGate();
-          break;
-        } catch (_) {
-          // The owner reports its own failure and has already released the
-          // gate; loop to park behind its successor, if one took over.
+    while (true) {
+      // Taken before the wait: a reset or restore that lands at any point from
+      // here to the end of the read below has already said who the user is,
+      // and an answer read around it may not be kept or handed out.
+      final capturedGeneration = _generation;
+
+      if (toleratesForeignFailure) {
+        while (true) {
+          try {
+            await _awaitSessionGate();
+            break;
+          } catch (_) {
+            // The owner reports its own failure and has already released the
+            // gate; loop to park behind its successor, if one took over.
+          }
         }
+      } else {
+        await _awaitSessionGate();
       }
-    } else {
-      await _awaitSessionGate();
-    }
 
-    if (_userIdCache != null && _sessionIdCache != null) {
-      return User(uid: _userIdCache, ses: _sessionIdCache);
-    }
+      if (_userIdCache != null && _sessionIdCache != null) {
+        return User(uid: _userIdCache, ses: _sessionIdCache);
+      }
 
-    final userIdFromPrefs = await Prefs.instance.getUserId();
-    return User(uid: userIdFromPrefs, ses: _sessionIdCache);
+      final userIdFromPrefs = await Prefs.instance.getUserId();
+      if (capturedGeneration != _generation) continue;
+      noteObservedUserId(userIdFromPrefs, capturedGeneration);
+      return User(uid: userIdFromPrefs, ses: _sessionIdCache);
+    }
   }
 
   /// The server-assigned uid of the anonymous session, waiting for an
@@ -224,6 +252,7 @@ class SessionManager {
     _bumpGeneration();
     _userIdCache = null;
     _userIdOnDisk = false;
+    _observedUserId = null;
     _sessionIdCache = null;
     final resetCompleter = Completer<void>();
     _sessionInitializationFuture = resetCompleter.future;
@@ -264,6 +293,7 @@ class SessionManager {
     final capturedGeneration = _generation;
     _userIdCache = null;
     _userIdOnDisk = false;
+    _observedUserId = null;
     _sessionIdCache = null;
     final restoreCompleter = Completer<void>();
     _sessionInitializationFuture = restoreCompleter.future;
