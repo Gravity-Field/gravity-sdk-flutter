@@ -22,6 +22,11 @@ class ErrorReporter {
   @visibleForTesting
   static void Function(String section, Map<String, dynamic> payload)? observer;
 
+  /// Takes the place of the network send, so a test can see which reports
+  /// would really go out. Checked before [disableNetworkForTests].
+  @visibleForTesting
+  static void Function(Map<String, dynamic> payload)? sendOverride;
+
   static const String _endpoint = 'https://sdk-sentry.gravityfield.ai/error';
   static const int _maxErrorsPerMinute = 10;
   static const int _maxMessageLength = 1000;
@@ -67,13 +72,19 @@ class ErrorReporter {
 
       final observe = observer;
       if (observe != null) {
-        // It only watches: it may neither edit the payload on its way out nor
-        // decide, by throwing, that the report is not worth sending.
+        // It only watches: it may neither edit the report on its way out — nor
+        // the caller's own tags and extra, which it shares — nor decide, by
+        // throwing, that the report is not worth sending.
         try {
-          observe(section, Map.unmodifiable(payload));
+          observe(section, _readOnlyCopy(payload));
         } catch (_) {}
       }
 
+      final send = sendOverride;
+      if (send != null) {
+        send(payload);
+        return;
+      }
       if (disableNetworkForTests) return;
       _dio.post(_endpoint, data: payload).ignore();
     } catch (_) {}
@@ -101,6 +112,26 @@ class ErrorReporter {
       },
       tags: {'category': 'network'},
     );
+  }
+
+  /// A view of [payload] that is read-only all the way down: the nested maps
+  /// and lists are the caller's own objects, so handing them out as they are
+  /// would let a watcher rewrite what the app passed in.
+  static Map<String, dynamic> _readOnlyCopy(Map<String, dynamic> payload) =>
+      Map<String, dynamic>.unmodifiable({
+        for (final entry in payload.entries) entry.key: _readOnlyValue(entry.value),
+      });
+
+  static Object? _readOnlyValue(Object? value) {
+    if (value is Map) {
+      return Map<Object?, Object?>.unmodifiable({
+        for (final entry in value.entries) entry.key: _readOnlyValue(entry.value),
+      });
+    }
+    if (value is List) {
+      return List<Object?>.unmodifiable(value.map(_readOnlyValue));
+    }
+    return value;
   }
 
   bool _checkRateLimit() {
