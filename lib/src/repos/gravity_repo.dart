@@ -404,7 +404,10 @@ class GravityRepo {
     // Generation before the user snapshot: if a reset lands between the two,
     // the stale user must carry a stale generation so saveUser skips it.
     final capturedGen = _sessionManager.generation;
-    final finalUser = await _ensureUser(customUser);
+    // No gate is taken here: the batcher this request is handed to waits for
+    // the very same gate, so owning it would deadlock. A cold owner failing
+    // meanwhile is still not this call's failure.
+    final finalUser = await _ensureUser(customUser, toleratesForeignFailure: true);
     final finalPageContext = await _mixPageContextAttributes(pageContext);
 
     final requestData = {
@@ -435,7 +438,10 @@ class GravityRepo {
     // Generation before the user snapshot: if a reset lands between the two,
     // the stale user must carry a stale generation so saveUser skips it.
     final capturedGen = _sessionManager.generation;
-    final finalUser = await _ensureUser(customUser);
+    // No gate is taken here: the batcher this request is handed to waits for
+    // the very same gate, so owning it would deadlock. A cold owner failing
+    // meanwhile is still not this call's failure.
+    final finalUser = await _ensureUser(customUser, toleratesForeignFailure: true);
     final finalPageContext = await _mixPageContextAttributes(pageContext);
 
     final requestData = {
@@ -463,23 +469,44 @@ class GravityRepo {
     required ContentSettings contentSetting,
     List<RtRule>? rules,
   }) async {
-    // Generation before the user snapshot: if a reset lands between the two,
-    // the stale user must carry a stale generation so saveUser skips it.
-    final capturedGen = _sessionManager.generation;
-    final finalUser = await _ensureUser(customUser);
-    final finalPageContext = await _mixPageContextAttributes(pageContext);
-
-    final response = await _api.chooseByGroup(
-      group: group,
-      user: finalUser,
-      context: finalPageContext,
-      options: options,
-      contentSettings: contentSetting,
-      rules: rules,
+    // This one goes to the network on its own, so it takes the session gate
+    // like visit and event do: two calls right after a resetUser() would
+    // otherwise each open a session and the device would end up with two.
+    // The gate has to be taken before the first await, page context included.
+    final ownership = _SessionOwnership(
+      _startSessionInitializationIfFirst(customUser),
+      // Generation before the user snapshot: if a reset lands between the
+      // two, the stale user must carry a stale generation so saveUser skips
+      // it.
+      _sessionManager.generation,
     );
 
-    await _sessionManager.saveUser(customUser, response.user, capturedGen);
-    return response;
+    try {
+      final finalPageContext = await _mixPageContextAttributes(pageContext);
+      final finalUser = await _resolveSessionUser(customUser, ownership);
+
+      final response = await _api.chooseByGroup(
+        group: group,
+        user: finalUser,
+        context: finalPageContext,
+        options: options,
+        contentSettings: contentSetting,
+        rules: rules,
+      );
+
+      await _finalizeSession(customUser, response.user, ownership.completer, ownership.generation);
+      return response;
+    } catch (error, stackTrace) {
+      _handleSessionFailure(ownership.completer, error, stackTrace);
+      ErrorReporter.instance.report(
+        message: error.toString(),
+        level: errorLevel(error),
+        section: 'GravityRepo.getContentByGroup',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': categorizeError(error), 'endpoint': 'choose'},
+      );
+      rethrow;
+    }
   }
 
   Future<void> triggerEventUrls(List<String> urls) async {
@@ -554,7 +581,7 @@ class GravityRepo {
         if (keepsItsIdentity) return user;
         // The gated read is required — a direct Prefs read could race the
         // reset's queued uid removal — and safe: the stored gate is not ours.
-        user = await _sessionManager.getUser(null);
+        user = await _sessionManager.getUser(null, toleratesForeignFailure: true);
         continue;
       }
       if (ownership.completer == null && !_sessionManager.hasSession) {
@@ -600,12 +627,20 @@ class GravityRepo {
           rethrow;
         }
       }
-      // A failure of the current owner surfaces here; a failure of a
-      // superseded generation is swallowed by getUser, and we loop.
-      await _sessionManager.getUser(null);
+      try {
+        await _sessionManager.getUser(null);
+      } catch (_) {
+        // The owner we parked behind failed: that is its own call's error to
+        // report, not ours. Loop to park behind whoever takes over, or take
+        // the gate ourselves when nobody does.
+      }
     }
     final generation = _sessionManager.generation;
-    return (completer: null, generation: generation, user: await _sessionManager.getUser(null));
+    return (
+      completer: null,
+      generation: generation,
+      user: await _sessionManager.getUser(null, toleratesForeignFailure: true),
+    );
   }
 
   Future<User?> _getUserForRequest(
@@ -627,7 +662,10 @@ class GravityRepo {
       final userIdFromPrefs = await readStored();
       return User(uid: userIdFromPrefs, ses: cachedSes);
     } else {
-      return await _ensureUser(customUser);
+      // Not the owner: a failure of the initialization we park behind belongs
+      // to its own call. Surviving it is what lets us elect a new owner and
+      // get a session of our own instead of failing along with it.
+      return await _ensureUser(customUser, toleratesForeignFailure: true);
     }
   }
 
@@ -658,12 +696,12 @@ class GravityRepo {
     }
   }
 
-  Future<User?> _ensureUser(User? customUser) async {
+  Future<User?> _ensureUser(User? customUser, {bool toleratesForeignFailure = false}) async {
     if (customUser != null) {
       return customUser;
     }
 
-    return await _sessionManager.getUser(null);
+    return await _sessionManager.getUser(null, toleratesForeignFailure: toleratesForeignFailure);
   }
 
   Future<List<ContentResponse>> _executeChooseBatch(
@@ -904,24 +942,42 @@ class GravityRepo {
     required ContentSettings contentSetting,
     List<RtRule>? rules,
   }) async {
-    // Generation before the user snapshot: if a reset lands between the two,
-    // the stale user must carry a stale generation so saveUser skips it.
-    final capturedGen = _sessionManager.generation;
-    final finalUser = await _ensureUser(customUser);
-    final finalPageContext = await _mixPageContextAttributes(pageContext);
-
-    final (content, json) = await _api.chooseBySelectorWithDetails(
-      selector: selector,
-      user: finalUser,
-      context: finalPageContext,
-      options: options,
-      contentSettings: contentSetting,
-      rules: rules,
+    // Own network call, own session gate — see getContentByGroup.
+    final ownership = _SessionOwnership(
+      _startSessionInitializationIfFirst(customUser),
+      // Generation before the user snapshot: if a reset lands between the
+      // two, the stale user must carry a stale generation so saveUser skips
+      // it.
+      _sessionManager.generation,
     );
 
-    await _sessionManager.saveUser(customUser, content.user, capturedGen);
+    try {
+      final finalPageContext = await _mixPageContextAttributes(pageContext);
+      final finalUser = await _resolveSessionUser(customUser, ownership);
 
-    return GravityDataResponse(data: content, json: json);
+      final (content, json) = await _api.chooseBySelectorWithDetails(
+        selector: selector,
+        user: finalUser,
+        context: finalPageContext,
+        options: options,
+        contentSettings: contentSetting,
+        rules: rules,
+      );
+
+      await _finalizeSession(customUser, content.user, ownership.completer, ownership.generation);
+
+      return GravityDataResponse(data: content, json: json);
+    } catch (error, stackTrace) {
+      _handleSessionFailure(ownership.completer, error, stackTrace);
+      ErrorReporter.instance.report(
+        message: error.toString(),
+        level: errorLevel(error),
+        section: 'GravityRepo.getContentBySelectorWithDetails',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': categorizeError(error), 'endpoint': 'choose'},
+      );
+      rethrow;
+    }
   }
 
   Future<GravityDataResponse<ContentResponse>> getContentByCampaignIdWithDetails({
@@ -932,23 +988,41 @@ class GravityRepo {
     required ContentSettings contentSetting,
     List<RtRule>? rules,
   }) async {
-    // Generation before the user snapshot: if a reset lands between the two,
-    // the stale user must carry a stale generation so saveUser skips it.
-    final capturedGen = _sessionManager.generation;
-    final finalUser = await _ensureUser(customUser);
-    final finalPageContext = await _mixPageContextAttributes(pageContext);
-
-    final (content, json) = await _api.chooseByCampaignIdWithDetails(
-      campaignId: campaignId,
-      user: finalUser,
-      context: finalPageContext,
-      options: options,
-      contentSettings: contentSetting,
-      rules: rules,
+    // Own network call, own session gate — see getContentByGroup.
+    final ownership = _SessionOwnership(
+      _startSessionInitializationIfFirst(customUser),
+      // Generation before the user snapshot: if a reset lands between the
+      // two, the stale user must carry a stale generation so saveUser skips
+      // it.
+      _sessionManager.generation,
     );
 
-    await _sessionManager.saveUser(customUser, content.user, capturedGen);
+    try {
+      final finalPageContext = await _mixPageContextAttributes(pageContext);
+      final finalUser = await _resolveSessionUser(customUser, ownership);
 
-    return GravityDataResponse(data: content, json: json);
+      final (content, json) = await _api.chooseByCampaignIdWithDetails(
+        campaignId: campaignId,
+        user: finalUser,
+        context: finalPageContext,
+        options: options,
+        contentSettings: contentSetting,
+        rules: rules,
+      );
+
+      await _finalizeSession(customUser, content.user, ownership.completer, ownership.generation);
+
+      return GravityDataResponse(data: content, json: json);
+    } catch (error, stackTrace) {
+      _handleSessionFailure(ownership.completer, error, stackTrace);
+      ErrorReporter.instance.report(
+        message: error.toString(),
+        level: errorLevel(error),
+        section: 'GravityRepo.getContentByCampaignIdWithDetails',
+        stacktrace: stackTrace.toString(),
+        tags: {'category': categorizeError(error), 'endpoint': 'choose'},
+      );
+      rethrow;
+    }
   }
 }

@@ -295,7 +295,7 @@ void main() {
     expect((events().single['user'] as Map)['uid'], 'uid-visit', reason: 'delivered for the user who raised it');
   });
 
-  test('a permanent failure of the session request another call owns keeps the waiting event', () async {
+  test('a permanent failure of the session request another call owns does not take the waiting event with it', () async {
     holdVisit = Completer<void>();
     visitRawBody = 'not json at all';
     final visit = GravitySDK.instance.trackViewNoShow(pageContext: ctx());
@@ -310,13 +310,9 @@ void main() {
     holdVisit!.complete();
     await Future.wait([visit, event]);
 
-    expect(events(), isEmpty, reason: 'the event itself was never sent');
-    expect(await GravitySDK.instance.pendingDeliveries, 1, reason: 'it is queued, not discarded');
-
-    visitRawBody = null;
-    await GravitySDK.instance.flushQueue();
-    await waitFor(() => events().length == 1);
+    expect(events(), hasLength(1), reason: 'the waiter elects itself and opens the session instead');
     expect((events().single['data'] as List).single['type'], 'survivor-v1');
+    expect(await GravitySDK.instance.pendingDeliveries, 0, reason: 'delivered, so nothing stays queued');
   });
 
   test('an event whose own request fails stays in the queue', () async {

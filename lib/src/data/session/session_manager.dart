@@ -46,12 +46,31 @@ class SessionManager {
   /// writes of one uid cannot report it twice.
   String? _notifiedUid;
 
-  Future<User?> getUser(User? customUser) async {
+  /// The identity the next request must carry, after any session
+  /// initialization in flight.
+  ///
+  /// With [toleratesForeignFailure] the failure of an initialization this
+  /// caller does not own is not adopted as its own: the caller parks behind
+  /// whoever takes over and otherwise moves on with what is known. A failure
+  /// of the storage read below always reaches the caller.
+  Future<User?> getUser(User? customUser, {bool toleratesForeignFailure = false}) async {
     if (customUser != null) {
       return customUser;
     }
 
-    await _awaitSessionGate();
+    if (toleratesForeignFailure) {
+      while (true) {
+        try {
+          await _awaitSessionGate();
+          break;
+        } catch (_) {
+          // The owner reports its own failure and has already released the
+          // gate; loop to park behind its successor, if one took over.
+        }
+      }
+    } else {
+      await _awaitSessionGate();
+    }
 
     if (_userIdCache != null && _sessionIdCache != null) {
       return User(uid: _userIdCache, ses: _sessionIdCache);
