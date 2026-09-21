@@ -93,17 +93,52 @@ class Prefs {
 
   /// Identity keys back a promise the public API makes — resetUser() claims
   /// the uid is gone, restoreUserId() that it is stored — so a refused write
-  /// is retried once and then told to the caller. The outbox has its own
-  /// retry machinery and is deliberately not routed through here.
+  /// is retried once and then told to the caller. A write that throws counts
+  /// as refused. The outbox has its own retry machinery and is deliberately
+  /// not routed through here.
   Future<void> _writeIdentity(String key, String value) async {
-    if (await _setStringValue(key, value)) return;
-    if (await _setStringValue(key, value)) return;
+    // Read before writing: the plugin caches a value before the platform sees
+    // it, so afterwards this would answer with the refused one.
+    final previous = await _readStringValue(key);
+    Object? error;
+    StackTrace? stackTrace;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        if (await _setStringValue(key, value)) return;
+        error = null;
+      } catch (e, s) {
+        error = e;
+        stackTrace = s;
+      }
+    }
+    await _putBack(key, previous);
+    if (error != null) Error.throwWithStackTrace(error, stackTrace!);
     throw StateError('SharedPreferences rejected the write of $key');
+  }
+
+  /// Best effort: writes [previous] back over a refused value, so readers do
+  /// not answer with a uid the device does not have. Re-reading would not do:
+  /// Android's commit() changes the platform's own memory before the disk
+  /// refuses, and a reload hands the refused value back. The plugin updates
+  /// its cache before it calls the platform, so even a put-back the platform
+  /// refuses leaves this process reading [previous].
+  Future<void> _putBack(String key, String? previous) async {
+    try {
+      final prefs = await _prefs;
+      if (previous == null) {
+        await prefs.remove(key);
+      } else {
+        await prefs.setString(key, previous);
+      }
+    } catch (_) {}
   }
 
   Future<void> _removeIdentity(String key) async {
     if (await _removeValue(key)) return;
     if (await _removeValue(key)) return;
+    // Deliberately no re-read here: the caller asked for this key to be gone.
+    // The device may still hold it, but the SDK must stop using a value it was
+    // told to drop, and the throw tells the app the device is not clean.
     throw StateError('SharedPreferences rejected the removal of $key');
   }
 

@@ -25,10 +25,24 @@ class _PlatformDisk extends InMemorySharedPreferencesStore {
   int rejectUserIdWrites = 0;
   int rejectUserIdRemovals = 0;
 
+  /// Writes of the uid key that throw before the platform changes anything,
+  /// like the Android plugin refusing a value with a reserved prefix.
+  int throwUserIdWrites = 0;
+
+  /// Android's `commit()` updates the in-memory map before it tries the disk
+  /// and keeps it there when the disk says no; `getAll()` reads that map. With
+  /// this set, a rejected write changes what reads return, not what survives.
+  bool rejectedWritesStayInMemory = false;
+
   @override
   Future<bool> setValue(String valueType, String key, Object value) async {
+    if (key.endsWith('gravity_user_id') && throwUserIdWrites > 0) {
+      throwUserIdWrites--;
+      throw const _PlatformRefusal();
+    }
     if (key.endsWith('gravity_user_id') && rejectUserIdWrites > 0) {
       rejectUserIdWrites--;
+      if (rejectedWritesStayInMemory) await super.setValue(valueType, key, value);
       return false;
     }
     return super.setValue(valueType, key, value);
@@ -44,6 +58,10 @@ class _PlatformDisk extends InMemorySharedPreferencesStore {
   }
 
   Future<String?> storedUserId() async => (await getAll())['flutter.gravity_user_id'] as String?;
+}
+
+class _PlatformRefusal implements Exception {
+  const _PlatformRefusal();
 }
 
 class _InertTimer implements Timer {
@@ -67,6 +85,7 @@ void main() {
   late HttpServer server;
   late _PlatformDisk disk;
   final notified = <String?>[];
+  final recorded = <({String path, Map<String, dynamic> body})>[];
   final reports = <({String section, Map<String, dynamic> payload})>[];
   final originalRetryDelays = Api.retryDelays;
   final originalTimerFactory = OutboxDispatcher.timerFactory;
@@ -94,7 +113,8 @@ void main() {
 
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
-      await utf8.decoder.bind(request).join();
+      final body = jsonDecode(await utf8.decoder.bind(request).join()) as Map<String, dynamic>;
+      recorded.add((path: request.uri.path, body: body));
       request.response.headers.contentType = ContentType.json;
       request.response.write(jsonEncode({
         'user': {'uid': uidForVisit, 'ses': 'server-ses'},
@@ -124,6 +144,7 @@ void main() {
     await SessionManager.instance.resetSession();
     SessionManager.instance.onUserIdChanged = notified.add;
     notified.clear();
+    recorded.clear();
     reports.clear();
     ErrorReporter.observer = (section, payload) => reports.add((section: section, payload: payload));
   });
@@ -157,6 +178,11 @@ void main() {
     expect(SessionManager.instance.isInitializing, isFalse, reason: 'the restore gate must not stay open');
     expect(SessionManager.instance.userId, isNull, reason: 'nothing was stored, so nothing is cached');
     expect(await disk.storedUserId(), isNull);
+    expect(
+      await GravitySDK.instance.getUserId(),
+      isNull,
+      reason: 'the getter answers for the device, not for a write that bounced',
+    );
 
     // The serialized write queue survived the failure.
     await GravitySDK.instance.restoreUserId('second-uid');
@@ -188,6 +214,27 @@ void main() {
     expect(notified, ['server-uid'], reason: 'the write landing later is not a second change');
   });
 
+  test('a restore the device refused leaves everyone on the uid the device has', () async {
+    await GravitySDK.instance.restoreUserId('uid-a');
+    await Future<void>.delayed(Duration.zero);
+    expect(await disk.storedUserId(), 'uid-a');
+    expect(notified, ['uid-a']);
+
+    disk.rejectUserIdWrites = 2;
+    await expectLater(GravitySDK.instance.restoreUserId('uid-b'), throwsA(isA<StateError>()));
+    await Future<void>.delayed(Duration.zero);
+
+    expect(await disk.storedUserId(), 'uid-a', reason: 'the device kept the uid it had');
+    expect(await GravitySDK.instance.getUserId(), 'uid-a', reason: 'the getter must say the same');
+    expect(notified, ['uid-a'], reason: 'and so must the listener');
+    expect(SessionManager.instance.isInitializing, isFalse);
+
+    // What the app is told and what goes on the wire must be one story.
+    await GravityRepo.instance.visit(pageContext: ctx(), options: Options());
+    final visit = recorded.firstWhere((r) => r.path == '/visit').body;
+    expect((visit['user'] as Map)['uid'], 'uid-a');
+  });
+
   test('a uid known only in memory is still reported by getUserId and the listener', () async {
     disk.rejectUserIdWrites = 2;
 
@@ -201,5 +248,67 @@ void main() {
     expect(await disk.storedUserId(), isNull, reason: 'the device kept nothing');
     expect(await GravitySDK.instance.getUserId(), 'server-uid');
     expect(notified, ['server-uid'], reason: 'the two ways of learning the uid must not disagree');
+  });
+
+  test('a restore Android refused does not leave the refused uid in its memory', () async {
+    await GravitySDK.instance.restoreUserId('uid-a');
+    await Future<void>.delayed(Duration.zero);
+
+    disk.rejectedWritesStayInMemory = true;
+    disk.rejectUserIdWrites = 2;
+    await expectLater(GravitySDK.instance.restoreUserId('uid-b'), throwsA(isA<StateError>()));
+    await Future<void>.delayed(Duration.zero);
+
+    expect(await disk.storedUserId(), 'uid-a', reason: 'the platform memory is put back, not re-read');
+    expect(await GravitySDK.instance.getUserId(), 'uid-a');
+    expect(notified, ['uid-a']);
+
+    await GravityRepo.instance.visit(pageContext: ctx(), options: Options());
+    final visit = recorded.firstWhere((r) => r.path == '/visit').body;
+    expect((visit['user'] as Map)['uid'], 'uid-a');
+  });
+
+  test('a restore whose write throws leaves everyone on the uid the device has', () async {
+    await GravitySDK.instance.restoreUserId('uid-a');
+    await Future<void>.delayed(Duration.zero);
+
+    disk.throwUserIdWrites = 2;
+    await expectLater(
+      GravitySDK.instance.restoreUserId('uid-b'),
+      throwsA(isA<_PlatformRefusal>()),
+      reason: 'the platform error reaches the app as it is',
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(await disk.storedUserId(), 'uid-a');
+    expect(await GravitySDK.instance.getUserId(), 'uid-a', reason: 'the plugin cached uid-b before it threw');
+    expect(notified, ['uid-a']);
+
+    await GravityRepo.instance.visit(pageContext: ctx(), options: Options());
+    final visit = recorded.firstWhere((r) => r.path == '/visit').body;
+    expect((visit['user'] as Map)['uid'], 'uid-a');
+  });
+
+  test('a restore stays on the previous uid even when putting it back fails too', () async {
+    await GravitySDK.instance.restoreUserId('uid-a');
+    await Future<void>.delayed(Duration.zero);
+
+    disk.throwUserIdWrites = 3;
+    await expectLater(
+      GravitySDK.instance.restoreUserId('uid-b'),
+      throwsA(isA<_PlatformRefusal>()),
+      reason: 'a failed put-back must not replace the error of the write itself',
+    );
+
+    expect(await GravitySDK.instance.getUserId(), 'uid-a');
+  });
+
+  test('a write that throws once is tried again like a refused one', () async {
+    disk.throwUserIdWrites = 1;
+
+    await GravitySDK.instance.restoreUserId('uid-a');
+
+    expect(await disk.storedUserId(), 'uid-a');
+    expect(await GravitySDK.instance.getUserId(), 'uid-a');
   });
 }

@@ -54,10 +54,15 @@ class _PlatformDisk extends InMemorySharedPreferencesStore {
 
   Completer<bool>? holdNextOutboxWrite;
   Completer<void>? outboxWriteReached;
+  int refuseOutboxWrites = 0;
 
   @override
   Future<bool> setValue(String valueType, String key, Object value) async {
     if (key.endsWith('gravity_outbox')) {
+      if (refuseOutboxWrites > 0) {
+        refuseOutboxWrites--;
+        return false;
+      }
       final hold = holdNextOutboxWrite;
       if (hold != null) {
         holdNextOutboxWrite = null;
@@ -193,6 +198,7 @@ void main() {
     Api.sleep = originalSleep;
     disk.holdNextOutboxWrite = null;
     disk.outboxWriteReached = null;
+    disk.refuseOutboxWrites = 0;
     SessionManager.beforeUserIdWrite = null;
     GravitySDK.instance.setOptions(proxyUrl: live(), offlineQueue: const OfflineQueueSettings());
     await SessionManager.instance.resetSession();
@@ -207,6 +213,8 @@ void main() {
     disk.holdNextOutboxWrite?.complete(true);
     disk.holdNextOutboxWrite = null;
     disk.outboxWriteReached = null;
+    disk.refuseOutboxWrites = 0;
+    ErrorReporter.observer = null;
     Api.retryDelays = const [];
     Api.sleep = originalSleep;
     GravitySDK.instance.setOptions(proxyUrl: live(), offlineQueue: const OfflineQueueSettings());
@@ -280,37 +288,63 @@ void main() {
     expect(SessionManager.instance.isInitializing, isFalse);
   });
 
-  test('a re-queue waiting for the write chain does not bring a cleared entry back', () async {
-    final outbox = GravityRepo.instance.outbox;
+  test('a re-queue that waits for the write chain does not outlive the clear', () async {
+    // The reservation is refused, so the only thing that can still put this
+    // event on disk is the re-queue in its failure path.
+    disk.refuseOutboxWrites = 1;
+    final storeReports = <String>[];
+    ErrorReporter.observer = (section, _) => storeReports.add(section);
+    eventStatus = 503;
+    holdEvent = Completer<void>();
 
-    // Occupy the serialized write chain, so the re-queue below has to wait
-    // for its turn — the window the online path's own epoch check misses.
+    // The outcome is captured as it happens: what the caller is told is the
+    // whole point of this test, and an error nobody is listening to yet would
+    // be reported as an unhandled one.
+    Object? outcome;
+    final event = GravityRepo.instance
+        .event(
+          events: [CustomEvent(type: 'requeued-v1', name: 'requeued')],
+          pageContext: ctx(),
+          options: const Options(),
+        )
+        .then<void>((response) => outcome = response, onError: (Object error) => outcome = error);
+    await waitFor(() => events().isNotEmpty, 'the request must reach the server');
+    expect(
+      storeReports,
+      contains('OutboxDispatcher.reserve'),
+      reason: 'the reservation was refused before the request went out',
+    );
+    expect(await disk.outbox(), isEmpty);
+
+    // The event owns the session gate; failing it is the first thing its
+    // failure path does, which is how the test knows that path has begun.
+    var gateFailed = false;
+    unawaited(SessionManager.instance.getUser(null).then((_) {}, onError: (_) => gateFailed = true));
+
+    // Occupy the serialized write chain, so the re-queue has to wait its turn
+    // — the window a check made before the call cannot cover.
     final reached = Completer<void>();
     final release = Completer<bool>();
     disk.outboxWriteReached = reached;
     disk.holdNextOutboxWrite = release;
-    final occupier = outbox.enqueue(anonymousEntry('occupier'));
+    final occupier = GravityRepo.instance.outbox.enqueue(anonymousEntry('occupier'));
     await reached.future;
 
-    // What event() does when its request failed: hand the event back to the
-    // queue it was raised for.
-    final epoch = outbox.epoch;
-    final requeue = outbox.enqueue(
-      anonymousEntry('requeued'),
-      precondition: () => outbox.epoch == epoch,
-    );
-    await settle();
+    holdEvent!.complete();
+    holdEvent = null;
+    await waitFor(() => gateFailed, 'the event must reach its failure path');
 
     final clearing = GravitySDK.instance.clearQueue();
-    await settle();
     release.complete(true);
     await occupier;
 
-    expect(await requeue, isFalse, reason: 'the queue it belonged to no longer exists');
+    // Reporting it as queued would be the lie: the queue it belonged to is
+    // gone, so the caller has to hear that the event was not delivered.
+    await event;
+    expect(outcome, isA<Exception>(), reason: 'a cleared event was neither delivered nor queued');
     await clearing;
     expect(await disk.outbox(), isEmpty, reason: 'nothing came back from the write that was in flight');
     expect(await GravitySDK.instance.pendingDeliveries, 0);
-    expect(events(), isEmpty);
   });
 
   test('a clear cancels an event whose reservation the disk refused', () async {

@@ -204,10 +204,11 @@ class GravitySDK {
   /// [uid] and the server recognises that user again, with their history and
   /// segments (an unknown uid is ignored by the server, which then assigns a
   /// new one). Throws [ArgumentError] for an empty [uid], and a [StateError]
-  /// when the device refused to store [uid]: the previous session and the
-  /// custom user are already dropped by then, so the next request opens a
-  /// fresh anonymous session unless the app asks again.
-  /// Available before [initialize].
+  /// (or the platform's own error, when the write threw) when the device
+  /// refused to store [uid]: the session and the custom user
+  /// are dropped by then, while the stored uid is left as it was, so the next
+  /// request goes on with whatever uid the device already had — the previous
+  /// one, or none at all. Available before [initialize].
   Future<void> restoreUserId(String uid) async {
     if (uid.isEmpty) {
       throw ArgumentError.value(uid, 'uid', 'must not be empty');
