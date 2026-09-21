@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -6,21 +8,51 @@ class Prefs {
   static const _keyDeviceId = 'gravity_device_id';
   static const _keyOutbox = 'gravity_outbox';
 
-  Prefs._();
+  Prefs._() {
+    _startLoading();
+  }
 
-  /// A separate wrapper for tests: it calls `SharedPreferences.getInstance()`
-  /// on construction, while [instance] is a lazy singleton that keeps the
-  /// future it captured on first access — one that may have been taken before
-  /// a test's `setMockInitialValues`.
+  /// A separate wrapper for tests: it runs its own load, so a test can give it
+  /// the store its `setMockInitialValues` just installed instead of sharing
+  /// the one [instance] loaded earlier in the process. Both constructors start
+  /// loading right away, and neither remembers an attempt that failed.
   @visibleForTesting
-  Prefs.forTesting();
+  Prefs.forTesting() {
+    _startLoading();
+  }
 
   static final Prefs instance = Prefs._();
 
-  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+  /// The loaded store, or the attempt in flight. Only a successful attempt is
+  /// kept: a first failure memoised here would disable persistence for the
+  /// whole process, while the plugin itself drops its failed completer and is
+  /// willing to try again.
+  Future<SharedPreferences>? _pending;
+
+  void _startLoading() {
+    // The load begins with the object, not with the first read.
+    unawaited(_prefs.then((_) {}, onError: (_) {}));
+  }
+
+  Future<SharedPreferences> get _prefs {
+    final pending = _pending;
+    if (pending != null) return pending;
+
+    final attempt = SharedPreferences.getInstance();
+    _pending = attempt;
+    // Registered before any caller's await, so the next call already sees the
+    // slot free; it also keeps a rejection nobody waited for from surfacing as
+    // an unhandled zone error.
+    unawaited(
+      attempt.then((_) {}, onError: (_) {
+        if (identical(_pending, attempt)) _pending = null;
+      }),
+    );
+    return attempt;
+  }
 
   Future<void> setUserId(String uid) async {
-    await _setStringValue(_keyUserId, uid);
+    await _writeIdentity(_keyUserId, uid);
   }
 
   Future<String?> getUserId() async {
@@ -28,10 +60,13 @@ class Prefs {
   }
 
   Future<void> removeUserId() async {
-    final prefs = await _prefs;
-    await prefs.remove(_keyUserId);
+    await _removeIdentity(_keyUserId);
   }
 
+  /// Best effort, unlike the uid: no public call promises the device id is
+  /// stored, and every request needs one. On a refused write the plugin's
+  /// cache keeps the id, so this process goes on with it; the next launch
+  /// mints another.
   Future<void> setDeviceId(String deviceId) async {
     await _setStringValue(_keyDeviceId, deviceId);
   }
@@ -56,9 +91,30 @@ class Prefs {
     await prefs.remove(_keyOutbox);
   }
 
+  /// Identity keys back a promise the public API makes — resetUser() claims
+  /// the uid is gone, restoreUserId() that it is stored — so a refused write
+  /// is retried once and then told to the caller. The outbox has its own
+  /// retry machinery and is deliberately not routed through here.
+  Future<void> _writeIdentity(String key, String value) async {
+    if (await _setStringValue(key, value)) return;
+    if (await _setStringValue(key, value)) return;
+    throw StateError('SharedPreferences rejected the write of $key');
+  }
+
+  Future<void> _removeIdentity(String key) async {
+    if (await _removeValue(key)) return;
+    if (await _removeValue(key)) return;
+    throw StateError('SharedPreferences rejected the removal of $key');
+  }
+
   Future<bool> _setStringValue(String key, String value) async {
     final prefs = await _prefs;
     return prefs.setString(key, value);
+  }
+
+  Future<bool> _removeValue(String key) async {
+    final prefs = await _prefs;
+    return prefs.remove(key);
   }
 
   Future<String?> _readStringValue(String key) async {
