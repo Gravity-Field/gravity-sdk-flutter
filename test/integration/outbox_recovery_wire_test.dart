@@ -319,6 +319,24 @@ void main() {
     expect((events().single['data'] as List).single['type'], 'survivor-v1');
   });
 
+  test('an event whose own request fails stays in the queue', () async {
+    await GravitySDK.instance.trackViewNoShow(pageContext: ctx()); // session is already there
+    recorded.clear();
+    eventStatus = 503;
+    final event = GravitySDK.instance.triggerEventNoShow(
+      events: [CustomEvent(type: 'own-failure-v1', name: 'own')],
+      pageContext: ctx(),
+    );
+    expect(await event, isNull);
+    await waitFor(() => !GravityRepo.instance.outbox.isDraining);
+    expect(events(), isNotEmpty, reason: 'it did reach the wire on its own');
+    expect(await GravitySDK.instance.pendingDeliveries, 1, reason: 'its own failure keeps it queued');
+
+    eventStatus = 200;
+    await GravitySDK.instance.flushQueue();
+    await waitFor(() async => await GravitySDK.instance.pendingDeliveries == 0, reason: 'it is delivered later');
+  });
+
   test('clearQueue drops queued events for good', () async {
     GravitySDK.instance.setOptions(proxyUrl: dead());
     for (final type in ['drop-1', 'drop-2']) {

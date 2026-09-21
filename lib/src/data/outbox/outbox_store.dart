@@ -69,17 +69,36 @@ class OutboxStore {
   /// Not on disk means not queued: a failed write rolls the append back, so a
   /// drain never sends an entry its caller still owns.
   Future<List<OutboxEntry>> append(OutboxEntry entry, {required int maxEntries}) async {
+    final dropped = await appendIfStillWanted(
+      entry,
+      maxEntries: maxEntries,
+      stillWanted: _alwaysWanted,
+    );
+    return dropped ?? const [];
+  }
+
+  static bool _alwaysWanted() => true;
+
+  /// [append] for a caller whose entry can become obsolete while the write
+  /// waits its turn behind other mutations. [stillWanted] is asked inside the
+  /// serialized mutation, the only place where the answer cannot go stale
+  /// between the question and the write; a `no` leaves the queue untouched
+  /// and answers null.
+  Future<List<OutboxEntry>?> appendIfStillWanted(
+    OutboxEntry entry, {
+    required int maxEntries,
+    required bool Function() stillWanted,
+  }) async {
     await load();
     final limit = maxEntries < 1 ? 1 : maxEntries;
-    final dropped = await _transaction(() {
+    return _transaction(() {
       _entries.add(entry);
       final dropped = <OutboxEntry>[];
       while (_entries.length > limit) {
         dropped.add(_entries.removeAt(0));
       }
       return dropped;
-    }, rollbackOnFailure: true);
-    return dropped ?? const [];
+    }, rollbackOnFailure: true, precondition: stillWanted);
   }
 
   /// Drops the oldest entries beyond [maxEntries] and returns them; applies a
@@ -157,9 +176,16 @@ class OutboxStore {
   /// change. [mutate] returns `null` to signal "nothing changed" and skip the
   /// write. On a failed write the memory is rolled back when
   /// [rollbackOnFailure] is set, otherwise it stays ahead of the disk and is
-  /// re-written by [sync].
-  Future<T?> _transaction<T>(T? Function() mutate, {bool rollbackOnFailure = false}) {
+  /// re-written by [sync]. [precondition], when given, is asked here rather
+  /// than at the call site, where the answer could go stale while the
+  /// mutation waits its turn.
+  Future<T?> _transaction<T>(
+    T? Function() mutate, {
+    bool rollbackOnFailure = false,
+    bool Function()? precondition,
+  }) {
     final run = _writes.then((_) async {
+      if (precondition != null && !precondition()) return null;
       final before = rollbackOnFailure ? List.of(_entries) : null;
       final result = mutate();
       if (result == null) return null;

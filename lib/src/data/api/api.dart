@@ -39,11 +39,17 @@ class Api {
   /// while the next pause still fits into the retry budget — by default
   /// [GravitySDK.staleContentTimeout], the time a response stays worth
   /// acting on. [budget] overrides it for call sites with their own limit.
+  ///
+  /// [stopRetry] is asked before every repeat and again after its pause: it
+  /// reports that repeating became pointless (the queue this request belongs
+  /// to was cleared meanwhile), and the last error goes to the caller as it
+  /// is. The first attempt is never held back by it.
   Future<T> _withRetry<T>(
     Future<T> Function() send, {
     bool signalSuccess = true,
     bool retry = true,
     Duration? budget,
+    bool Function()? stopRetry,
   }) async {
     final deadline = Clock.now().add(budget ?? GravitySDK.instance.staleContentTimeout);
     var attempt = 0;
@@ -53,12 +59,16 @@ class Api {
         result = await send();
       } catch (error) {
         if (!retry) rethrow;
+        if (stopRetry != null && stopRetry()) rethrow;
         if (classifyError(error) == RetryClass.permanent) rethrow;
         if (attempt >= retryDelays.length) rethrow;
         final delay = retryDelays[attempt];
         if (Clock.now().add(delay).isAfter(deadline)) rethrow;
         attempt++;
         await sleep(delay);
+        // The pause is a suspension point of its own: what makes the repeat
+        // pointless may happen inside it.
+        if (stopRetry != null && stopRetry()) rethrow;
         continue;
       }
       // Outside the retry try/catch on purpose: a listener that throws must
@@ -274,11 +284,13 @@ class Api {
   Future<CampaignIdsResponse> postEventBody(
     Map<String, dynamic> body, {
     bool deferred = false,
+    bool Function()? stopRetry,
   }) async {
     final response = await _withRetry(
       () => _dio.post('$baseUrl/event', data: body),
       signalSuccess: !deferred,
       retry: !deferred,
+      stopRetry: stopRetry,
     );
     return CampaignIdsResponse.fromJson(response.data);
   }

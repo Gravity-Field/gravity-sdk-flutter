@@ -29,6 +29,19 @@ import '../models/external/options.dart';
 import '../models/external/user.dart';
 import '../version.dart';
 
+/// Ownership of the session gate as one request carries it: taken (or not)
+/// before the first await, possibly handed over to a new owner when a reset
+/// invalidates it, and always readable by the request's error path.
+class _SessionOwnership {
+  _SessionOwnership(this.completer, this.generation);
+
+  /// The gate this request holds, or null while somebody else owns it.
+  Completer<void>? completer;
+
+  /// The session generation the identity below belongs to.
+  int generation;
+}
+
 class GravityRepo {
   GravityRepo._() {
     Api.onRequestSucceeded = () => outbox.onRequestSucceeded();
@@ -49,9 +62,12 @@ class GravityRepo {
   /// Sends one persisted entry. Responses are used only as a success signal:
   /// campaigns are ignored.
   Future<void> sendOutboxEntry(OutboxEntry entry) async {
+    // Queue generation this delivery belongs to; a clearQueue() bumps it and
+    // everything below must stop rather than send what was just dropped.
+    final epoch = outbox.epoch;
     switch (entry.kind) {
       case OutboxKind.event:
-        await _sendDeferredEvent(entry.body!);
+        await _sendDeferredEvent(entry, epoch);
       case OutboxKind.engagement:
         await _api.triggerEventUrl(entry.url!, deferred: true);
       case OutboxKind.visit:
@@ -67,33 +83,31 @@ class GravityRepo {
   /// uid the server assigns. Sending it anonymously instead would make the
   /// server mint a throwaway user for the event, while the app's next request
   /// would be given another one.
-  Future<void> _sendDeferredEvent(Map<String, dynamic> body) async {
+  Future<void> _sendDeferredEvent(OutboxEntry entry, int epoch) async {
+    final body = entry.body!;
     if (_hasIdentity(body['user'])) {
       await _api.postEventBody(body, deferred: true);
       return;
     }
 
-    var sessionCompleter = _startSessionInitializationIfFirst(null);
-    var capturedGen = _sessionManager.generation;
+    final ownership = _SessionOwnership(
+      _startSessionInitializationIfFirst(null),
+      _sessionManager.generation,
+    );
     try {
-      var user = await _getUserForRequest(null, sessionCompleter);
-      while (capturedGen != _sessionManager.generation) {
-        capturedGen = _sessionManager.generation;
-        user = await _sessionManager.getUser(null);
+      final user = await _resolveSessionUser(null, ownership);
+      // clearQueue() ran while we waited for the session: this entry is no
+      // longer part of any queue, so nothing goes on the wire. No session
+      // will come back either, so a gate we own must not stay pending.
+      if (outbox.epoch != epoch) {
+        _releaseSessionOwnership(ownership);
+        return;
       }
-      // The gate we parked behind may have been a reset's or restore's own,
-      // which covers only the uid write: nobody owns the session request
-      // once it lifts. Elect the owner again (see _adoptSessionOwnership).
-      if (sessionCompleter == null && !_sessionManager.hasSession) {
-        final adopted = await _adoptSessionOwnership();
-        sessionCompleter = adopted.completer;
-        capturedGen = adopted.generation;
-        user = adopted.user;
-      }
+
       final response = await _api.postEventBody(_withIdentity(body, user), deferred: true);
-      await _finalizeSession(null, response.user, sessionCompleter, capturedGen);
+      await _finalizeSession(null, response.user, ownership.completer, ownership.generation);
     } catch (error, stackTrace) {
-      _handleSessionFailure(sessionCompleter, error, stackTrace);
+      _handleSessionFailure(ownership.completer, error, stackTrace);
       rethrow;
     }
   }
@@ -168,11 +182,10 @@ class GravityRepo {
 
     // The event happened now; everything below may wait for the session.
     final raisedAt = Clock.now();
-    var sessionCompleter = _startSessionInitializationIfFirst(customUser);
-
-    // Generation before the user snapshot: if a reset lands between the two,
-    // the stale user must carry a stale generation so saveUser skips it.
-    var capturedGen = _sessionManager.generation;
+    final ownership = _SessionOwnership(
+      _startSessionInitializationIfFirst(customUser),
+      _sessionManager.generation,
+    );
 
     Map<String, dynamic>? frozen;
     OutboxEntry? reserved;
@@ -191,62 +204,62 @@ class GravityRepo {
       final context = await _mixPageContextAttributes(pageContext);
       frozen = await _api.buildEventBody(events, known, context, options, now: raisedAt);
       final entry = _eventEntry(frozen, raisedAt);
-      if (await outbox.reserve(entry)) reserved = entry;
-
-      var user = await _getUserForRequest(customUser, sessionCompleter);
-      // A reset while we awaited leaves both snapshots stale: re-snapshot,
-      // generation first. The gated getUser is required — a direct Prefs
-      // read could race the reset's queued uid removal — and safe: after a
-      // reset the stored gate is no longer ours.
-      while (customUser == null && capturedGen != _sessionManager.generation) {
-        capturedGen = _sessionManager.generation;
-        user = await _sessionManager.getUser(null);
-      }
-      // The gate we parked behind may have been a reset's or restore's own,
-      // which covers only the uid write: nobody owns the session request
-      // once it lifts. Elect the owner again (see _adoptSessionOwnership).
-      if (customUser == null && sessionCompleter == null && !_sessionManager.hasSession) {
-        final adopted = await _adoptSessionOwnership();
-        sessionCompleter = adopted.completer;
-        capturedGen = adopted.generation;
-        user = adopted.user;
-      }
-      // clearQueue() ran after this call began: the event was part of what
-      // the caller asked to drop, whether its write landed before the clear
-      // (already gone) or after it (must go now, or the drain would send it).
-      if (reserved != null && outbox.epoch != epoch) {
-        await outbox.discard(reserved.id);
-        // Nothing goes on the wire, so no session will come back: a gate this
-        // call owns (taken up front or adopted above) must not stay pending.
-        // Without a session the next request elects an owner again.
-        if (sessionCompleter != null) {
-          _sessionManager.completeSessionInitialization(sessionCompleter);
-        }
+      // Asked inside the write: a clear that lands while the body is being
+      // built or while the write waits its turn keeps the event off the disk,
+      // where a restart would otherwise find it and send it.
+      if (await outbox.reserve(entry, precondition: () => outbox.epoch == epoch)) reserved = entry;
+      if (outbox.epoch != epoch) {
+        if (reserved != null) await outbox.discard(reserved.id);
+        _releaseSessionOwnership(ownership);
         return const CampaignIdsResponse(user: User());
       }
 
-      final body = _withUser(frozen, user);
+      final resolved = await _resolveSessionUser(customUser, ownership);
+      // clearQueue() ran after this call began: the event was part of what
+      // the caller asked to drop, and that holds whether or not it ever
+      // reached the disk — a reservation the storage refused, or a queue
+      // switched off, does not buy the event a way past the cancellation.
+      if (outbox.epoch != epoch) {
+        if (reserved != null) await outbox.discard(reserved.id);
+        // Nothing goes on the wire, so no session will come back: a gate this
+        // call owns (taken up front or adopted above) must not stay pending.
+        // Without a session the next request elects an owner again.
+        _releaseSessionOwnership(ownership);
+        return const CampaignIdsResponse(user: User());
+      }
+
+      final body = _withUser(frozen, resolved);
       // The event belongs to the user it was raised for: freeze that identity
       // before sending, or a replay after a logout would attribute it to
       // whoever is signed in by then.
-      if (reserved != null && !_sameIdentity(known, user)) {
+      if (reserved != null && !_sameIdentity(known, resolved)) {
         reserved = reserved.copyWith(body: body);
         await outbox.update(reserved);
       }
+      // That write is a suspension point of its own: a clear inside it takes
+      // this event with it just as one before it would.
+      if (outbox.epoch != epoch) {
+        if (reserved != null) await outbox.discard(reserved.id);
+        _releaseSessionOwnership(ownership);
+        return const CampaignIdsResponse(user: User());
+      }
 
       sent = true;
-      final response = await _api.postEventBody(body);
+      final response = await _api.postEventBody(
+        body,
+        stopRetry: () => outbox.epoch != epoch,
+      );
 
       await _finalizeSession(
         customUser,
         response.user,
-        sessionCompleter,
-        capturedGen,
+        ownership.completer,
+        ownership.generation,
       );
       if (reserved != null) await outbox.complete(reserved.id);
       return response;
     } catch (error, stackTrace) {
-      _handleSessionFailure(sessionCompleter, error, stackTrace);
+      _handleSessionFailure(ownership.completer, error, stackTrace);
 
       // A queue cleared meanwhile takes this event with it: nothing that
       // began before the clear may put itself back.
@@ -260,8 +273,12 @@ class GravityRepo {
         queued = true;
       } else if (keep && frozen != null && GravitySDK.instance.offlineQueue.enabled) {
         // Built but never reserved (storage refused, or the queue was off at
-        // the time): one more try to get it on disk.
-        queued = outbox.epoch == epoch && await outbox.enqueue(_eventEntry(frozen, raisedAt));
+        // the time): one more try to get it on disk. The epoch is checked
+        // inside the write, where a clear can no longer slip past it.
+        queued = await outbox.enqueue(
+          _eventEntry(frozen, raisedAt),
+          precondition: () => outbox.epoch == epoch,
+        );
       } else if (reserved != null) {
         await outbox.discard(reserved.id);
       }
@@ -298,43 +315,28 @@ class GravityRepo {
     required PageContext pageContext,
     required Options options,
   }) async {
-    var sessionCompleter = _startSessionInitializationIfFirst(customUser);
-
-    // Generation before the user snapshot: if a reset lands between the two,
-    // the stale user must carry a stale generation so saveUser skips it.
-    var capturedGen = _sessionManager.generation;
+    final ownership = _SessionOwnership(
+      _startSessionInitializationIfFirst(customUser),
+      // Generation before the user snapshot: if a reset lands between the
+      // two, the stale user must carry a stale generation so saveUser skips
+      // it.
+      _sessionManager.generation,
+    );
 
     try {
-      var user = await _getUserForRequest(customUser, sessionCompleter);
-      // A reset while we awaited leaves both snapshots stale: re-snapshot,
-      // generation first. The gated getUser is required — a direct Prefs
-      // read could race the reset's queued uid removal — and safe: after a
-      // reset the stored gate is no longer ours.
-      while (customUser == null && capturedGen != _sessionManager.generation) {
-        capturedGen = _sessionManager.generation;
-        user = await _sessionManager.getUser(null);
-      }
-      // The gate we parked behind may have been a reset's or restore's own,
-      // which covers only the uid write: nobody owns the session request
-      // once it lifts. Elect the owner again (see _adoptSessionOwnership).
-      if (customUser == null && sessionCompleter == null && !_sessionManager.hasSession) {
-        final adopted = await _adoptSessionOwnership();
-        sessionCompleter = adopted.completer;
-        capturedGen = adopted.generation;
-        user = adopted.user;
-      }
+      final user = await _resolveSessionUser(customUser, ownership);
       final context = await _mixPageContextAttributes(pageContext);
       final response = await _api.visit(user, context, options);
 
       await _finalizeSession(
         customUser,
         response.user,
-        sessionCompleter,
-        capturedGen,
+        ownership.completer,
+        ownership.generation,
       );
       return response;
     } catch (error, stackTrace) {
-      _handleSessionFailure(sessionCompleter, error, stackTrace);
+      _handleSessionFailure(ownership.completer, error, stackTrace);
       ErrorReporter.instance.report(
         message: error.toString(),
         level: errorLevel(error),
@@ -474,6 +476,52 @@ class GravityRepo {
       return _sessionManager.beginSessionInitialization();
     }
     return null;
+  }
+
+  /// Resolves the identity a request must carry while keeping exactly one
+  /// owner of the session gate.
+  ///
+  /// [ownership] is updated in place — including when this throws — so the
+  /// caller's catch and its _finalizeSession always act on the gate held at
+  /// that moment and never on the one it started with.
+  Future<User?> _resolveSessionUser(User? customUser, _SessionOwnership ownership) async {
+    var user = await _getUserForRequest(customUser, ownership.completer);
+    if (customUser != null) return user;
+
+    while (true) {
+      if (ownership.generation != _sessionManager.generation) {
+        // A reset or restore while we awaited leaves both snapshots stale.
+        // The gate we hold covers a session nobody will open now: complete it
+        // and drop ownership, or the election below is skipped and this
+        // request goes out session-less beside the new owner.
+        _releaseSessionOwnership(ownership);
+        ownership.generation = _sessionManager.generation;
+        // The gated read is required — a direct Prefs read could race the
+        // reset's queued uid removal — and safe: the stored gate is not ours.
+        user = await _sessionManager.getUser(null);
+        continue;
+      }
+      if (ownership.completer == null && !_sessionManager.hasSession) {
+        // The gate we parked behind may have been a reset's or restore's own,
+        // which covers only the uid write: nobody owns the session request
+        // once it lifts. Elect the owner again (see _adoptSessionOwnership).
+        final adopted = await _adoptSessionOwnership();
+        ownership.completer = adopted.completer;
+        ownership.generation = adopted.generation;
+        user = adopted.user;
+        // The adoption reads storage after taking its generation, so a reset
+        // inside that read is only visible from here.
+        continue;
+      }
+      return user;
+    }
+  }
+
+  void _releaseSessionOwnership(_SessionOwnership ownership) {
+    final completer = ownership.completer;
+    if (completer == null) return;
+    ownership.completer = null;
+    _sessionManager.completeSessionInitialization(completer);
   }
 
   /// Re-runs the owner election for an anonymous request that woke up

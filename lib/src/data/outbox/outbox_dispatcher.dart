@@ -100,8 +100,10 @@ class OutboxDispatcher with WidgetsBindingObserver {
 
   /// Persists [entry] for later delivery and wakes the drain. Returns whether
   /// the entry reached storage; a `false` means the event is not protected.
-  Future<bool> enqueue(OutboxEntry entry) async {
-    if (!await _persist(entry, 'enqueue')) return false;
+  /// [precondition] is asked inside the write itself, so a queue cleared while
+  /// this one waited its turn cannot be brought back to life by it.
+  Future<bool> enqueue(OutboxEntry entry, {bool Function()? precondition}) async {
+    if (!await _persist(entry, 'enqueue', precondition: precondition)) return false;
     _log('queued ${entry.kind.name} ${entry.id}, pending ${_store.length}');
     poke();
     return true;
@@ -109,10 +111,10 @@ class OutboxDispatcher with WidgetsBindingObserver {
 
   /// Persists [entry] on behalf of the online path that is about to send it.
   /// Drains skip it until [release], [complete] or [discard]. Returns whether
-  /// the entry reached storage.
-  Future<bool> reserve(OutboxEntry entry) async {
+  /// the entry reached storage. [precondition] works as for [enqueue].
+  Future<bool> reserve(OutboxEntry entry, {bool Function()? precondition}) async {
     _inFlight.add(entry.id);
-    if (await _persist(entry, 'reserve')) return true;
+    if (await _persist(entry, 'reserve', precondition: precondition)) return true;
     _inFlight.remove(entry.id);
     return false;
   }
@@ -150,11 +152,18 @@ class OutboxDispatcher with WidgetsBindingObserver {
     }
   }
 
-  Future<bool> _persist(OutboxEntry entry, String section) async {
+  Future<bool> _persist(OutboxEntry entry, String section, {bool Function()? precondition}) async {
     final settings = _settings();
     if (!settings.enabled) return false;
     try {
-      final dropped = await _store.append(entry, maxEntries: settings.maxEntries);
+      final dropped = precondition == null
+          ? await _store.append(entry, maxEntries: settings.maxEntries)
+          : await _store.appendIfStillWanted(
+              entry,
+              maxEntries: settings.maxEntries,
+              stillWanted: precondition,
+            );
+      if (dropped == null) return false;
       for (final e in dropped) {
         _reportDropped(e, 'overflow');
       }
