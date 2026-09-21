@@ -174,6 +174,10 @@ class GravitySDK {
     user = User(custom: userId, ses: sessionId);
   }
 
+  /// Drops the session and the custom user, and removes the stored uid.
+  /// Throws when the device refused to remove it: the session is gone from
+  /// memory, but the uid may still be on disk and the app decides whether to
+  /// ask again.
   Future<void> resetUser() async {
     user = null;
     await SessionManager.instance.resetSession();
@@ -199,7 +203,10 @@ class GravitySDK {
   /// session and any custom user set via [setUser]; the next request carries
   /// [uid] and the server recognises that user again, with their history and
   /// segments (an unknown uid is ignored by the server, which then assigns a
-  /// new one). Throws [ArgumentError] for an empty [uid].
+  /// new one). Throws [ArgumentError] for an empty [uid], and a [StateError]
+  /// when the device refused to store [uid]: the previous session and the
+  /// custom user are already dropped by then, so the next request opens a
+  /// fresh anonymous session unless the app asks again.
   /// Available before [initialize].
   Future<void> restoreUserId(String uid) async {
     if (uid.isEmpty) {

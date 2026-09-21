@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/models/external/user.dart';
 
@@ -130,6 +131,22 @@ class SessionManager {
     }
   }
 
+  /// Whether [_userIdCache] is known to match the disk. A uid learned from a
+  /// delivered response is cached even when the write failed, so waiters do
+  /// not fall back to a cold start, but the next answer carrying it must try
+  /// the write again instead of treating the cache as proof.
+  bool _userIdOnDisk = false;
+
+  void _reportStorageFailure(Object error, StackTrace stackTrace) {
+    ErrorReporter.instance.report(
+      message: error.toString(),
+      level: 'warning',
+      section: 'SessionManager.saveUser',
+      stacktrace: stackTrace.toString(),
+      tags: const {'category': 'session'},
+    );
+  }
+
   Future<void> saveUser(User? customUser, User? serverUser, int capturedGeneration) async {
     if (capturedGeneration != _generation) {
       return;
@@ -141,21 +158,40 @@ class SessionManager {
     final uid = serverUser?.uid;
     final ses = serverUser?.ses;
 
-    if (uid != null && uid != _userIdCache) {
+    if (uid != null && (uid != _userIdCache || !_userIdOnDisk)) {
       await _enqueueUserIdWrite(() async {
         if (capturedGeneration != _generation) {
           return;
         }
-        await _writeUserId(uid);
+        // The request this answers is already delivered: storage refusing the
+        // uid must not turn it into a failed call, so the failure is reported
+        // and the uid is marked as not confirmed on disk.
+        var written = true;
+        try {
+          await _writeUserId(uid);
+        } catch (error, stackTrace) {
+          written = false;
+          _reportStorageFailure(error, stackTrace);
+        }
         if (capturedGeneration != _generation) {
           // A reset landed during our write; undo it. Writes are serialized,
-          // so this cannot hit foreign data.
-          if (await Prefs.instance.getUserId() == uid) {
-            await Prefs.instance.removeUserId();
+          // so this cannot hit foreign data. A write that never landed leaves
+          // nothing to undo, which the read below sees for itself.
+          try {
+            if (await Prefs.instance.getUserId() == uid) {
+              await Prefs.instance.removeUserId();
+            }
+          } catch (error, stackTrace) {
+            _reportStorageFailure(error, stackTrace);
           }
           return;
         }
         _userIdCache = uid;
+        _userIdOnDisk = written;
+        // The listener and getUserId answer for the same thing — the uid this
+        // process is using — so a uid taken into the cache is announced even
+        // when the device refused to keep it. A repeated write of the same
+        // uid is not a second change: _noteUserId sees to that.
         _noteUserId(uid);
       });
     }
@@ -168,6 +204,7 @@ class SessionManager {
   Future<void> resetSession() async {
     _bumpGeneration();
     _userIdCache = null;
+    _userIdOnDisk = false;
     _sessionIdCache = null;
     final resetCompleter = Completer<void>();
     _sessionInitializationFuture = resetCompleter.future;
@@ -176,11 +213,17 @@ class SessionManager {
         // A uid left by a previous launch that nobody reported yet is still
         // a uid the app may hold a copy of: removing it is a change to tell.
         final stored = await Prefs.instance.getUserId();
-        await Prefs.instance.removeUserId();
-        if (stored != null) {
-          _notifiedUid ??= stored;
+        try {
+          await Prefs.instance.removeUserId();
+        } finally {
+          // The session is gone from memory whatever the disk did, so the
+          // listener hears about it either way; the caller learns from the
+          // thrown error that the device may still hold the uid.
+          if (stored != null) {
+            _notifiedUid ??= stored;
+          }
+          _noteUserId(null);
         }
-        _noteUserId(null);
       });
     } finally {
       if (identical(_sessionInitializationFuture, resetCompleter.future)) {
@@ -201,6 +244,7 @@ class SessionManager {
     _bumpGeneration();
     final capturedGeneration = _generation;
     _userIdCache = null;
+    _userIdOnDisk = false;
     _sessionIdCache = null;
     final restoreCompleter = Completer<void>();
     _sessionInitializationFuture = restoreCompleter.future;
@@ -213,6 +257,7 @@ class SessionManager {
           return;
         }
         _userIdCache = uid;
+        _userIdOnDisk = true;
         _noteUserId(uid);
       });
     } finally {

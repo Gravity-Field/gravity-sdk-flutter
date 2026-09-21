@@ -17,6 +17,11 @@ class ErrorReporter {
   @visibleForTesting
   static bool disableNetworkForTests = false;
 
+  /// Receives every report that passed the rate limit, whether or not it is
+  /// sent. Failures the SDK swallows on purpose are only observable here.
+  @visibleForTesting
+  static void Function(String section, Map<String, dynamic> payload)? observer;
+
   static const String _endpoint = 'https://sdk-sentry.gravityfield.ai/error';
   static const int _maxErrorsPerMinute = 10;
   static const int _maxMessageLength = 1000;
@@ -59,6 +64,15 @@ class ErrorReporter {
         'tags': tags ?? {},
         'stacktrace': _truncate(stacktrace ?? '', _maxStacktraceLength),
       };
+
+      final observe = observer;
+      if (observe != null) {
+        // It only watches: it may neither edit the payload on its way out nor
+        // decide, by throwing, that the report is not worth sending.
+        try {
+          observe(section, Map.unmodifiable(payload));
+        } catch (_) {}
+      }
 
       if (disableNetworkForTests) return;
       _dio.post(_endpoint, data: payload).ignore();
