@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_content.dart';
+import 'package:gravity_sdk/src/utils/identity_version.dart';
 
 class GravityInlineWidget extends StatefulWidget {
   final String selector;
@@ -47,12 +48,21 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
   }
 
   void _loadContent() async {
+    final identityVersion = IdentityVersion.current;
     try {
       final response = await GravitySDK.instance.getContentBySelector(
         selector: widget.selector,
         pageContext: widget.pageContext,
         rules: widget.rules,
       );
+
+      // The user changed while this was loading: the answer is someone
+      // else's content. Ask again for the user the app has now.
+      if (identityVersion != IdentityVersion.current) {
+        if (mounted) _loadContent();
+        return;
+      }
+
       final campaign = response.data.first;
 
       final allContents = campaign.payload.expand((payload) => payload.contents).toList();
@@ -81,6 +91,12 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
       });
       widget.onLoaded?.call();
     } catch (e, stackTrace) {
+      // The request was made for a user who is gone by now; its failure
+      // says nothing about the content of the current one.
+      if (identityVersion != IdentityVersion.current) {
+        if (mounted) _loadContent();
+        return;
+      }
       ErrorReporter.instance.report(
         message: e.toString(),
         level: 'error',

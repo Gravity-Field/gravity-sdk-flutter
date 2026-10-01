@@ -36,6 +36,7 @@ import 'ui/delivery_methods/modal/modal_content.dart';
 import 'utils/content_events_service.dart';
 import 'data/error_reporting/error_helpers.dart';
 import 'data/error_reporting/error_reporter.dart';
+import 'utils/identity_version.dart';
 import 'utils/logger.dart';
 import 'utils/step_resolver.dart';
 
@@ -55,7 +56,7 @@ class GravitySDK {
   GravityContentCallback? gravityContentCallback;
 
   //other fields
-  User? user;
+  User? _user;
   ContentSettings contentSettings = ContentSettings();
   Options options = Options();
   String? proxyUrl;
@@ -170,6 +171,22 @@ class GravitySDK {
   bool _isStale(DateTime startedAt, {Duration extra = Duration.zero}) =>
       Clock.now().difference(startedAt) > staleContentTimeout + extra;
 
+  /// The custom user every request carries, as set via [setUser].
+  User? get user => _user;
+
+  /// Replacing the user with a different one (another custom id or session)
+  /// also drops the in-app content still loading for the previous one: it is
+  /// not shown once it arrives.
+  set user(User? value) {
+    final previous = _user;
+    _user = value;
+    if (previous?.custom != value?.custom ||
+        previous?.ses != value?.ses ||
+        previous?.uid != value?.uid) {
+      IdentityVersion.bump();
+    }
+  }
+
   void setUser(String userId, String sessionId) {
     user = User(custom: userId, ses: sessionId);
   }
@@ -180,6 +197,9 @@ class GravitySDK {
   /// ask again.
   Future<void> resetUser() async {
     user = null;
+    // The anonymous session changes too, so this is a new user even when no
+    // custom one was set.
+    IdentityVersion.bump();
     await SessionManager.instance.resetSession();
   }
 
@@ -214,6 +234,7 @@ class GravitySDK {
       throw ArgumentError.value(uid, 'uid', 'must not be empty');
     }
     user = null;
+    IdentityVersion.bump();
     await SessionManager.instance.restoreUserId(uid);
   }
 
@@ -282,6 +303,21 @@ class GravitySDK {
     return true;
   }
 
+  // Like the lock, the skip is silent for the app: one log line, no error
+  // report — nothing went wrong, the moment has passed.
+  bool _skipIfNoLongerRelevant(
+    _PresentationTicket ticket,
+    BuildContext context,
+    String campaignId,
+  ) {
+    final reason = ticket.staleReason(context);
+    if (reason == null) return false;
+    if (LoggerManager.instance.isInitialized) {
+      talker.info('Content for campaign $campaignId is not shown: $reason');
+    }
+    return true;
+  }
+
   Future<void> trackView({
     required BuildContext context,
     required PageContext pageContext,
@@ -289,6 +325,9 @@ class GravitySDK {
     _checkIsInitialized();
     try {
       final startedAt = Clock.now();
+      // Before the first await: what the user sees now is what the content
+      // is being loaded for.
+      final ticket = _PresentationTicket.take(context);
       final response = await GravityRepo.instance.visit(
         customUser: user,
         pageContext: pageContext,
@@ -318,6 +357,8 @@ class GravitySDK {
         return;
       }
 
+      if (_skipIfNoLongerRelevant(ticket, context, campaignIdObj.campaignId)) return;
+
       if (_skipIfPresentationLocked(campaignIdObj.campaignId)) return;
 
       final campaign = result.data.first;
@@ -342,6 +383,7 @@ class GravitySDK {
     PageContext? pageContext,
   }) async {
     _checkIsInitialized();
+    final ticket = _PresentationTicket.take(context);
     try {
       final effectivePageContext =
           pageContext ??
@@ -357,8 +399,21 @@ class GravitySDK {
 
       if (!context.mounted) return;
 
+      // Unlike trackView and triggerEvent, which the app calls again on its
+      // next screen or event, an anchor asks once for as long as it stays
+      // mounted: if only the user changed, ask again for the new one, or
+      // their tooltip would never come.
+      if (_shouldAskAgainForNewUser(ticket, context)) {
+        return fetchAnchorContent(
+          context: context,
+          selector: selector,
+          pageContext: pageContext,
+        );
+      }
+
       final campaign = response.data.firstOrNull;
       if (campaign == null) return;
+      if (_skipIfNoLongerRelevant(ticket, context, campaign.payload.firstOrNull?.campaignId ?? selector)) return;
 
       final content = resolveRootContent(
         campaign.payload.firstOrNull?.contents ?? const [],
@@ -373,9 +428,21 @@ class GravitySDK {
         pageContext: effectivePageContext,
       );
     } catch (e, stackTrace) {
+      // The request was made for a user who is gone by now; its failure says
+      // nothing about the content of the current one.
+      if (_shouldAskAgainForNewUser(ticket, context)) {
+        return fetchAnchorContent(
+          context: context,
+          selector: selector,
+          pageContext: pageContext,
+        );
+      }
       _reportError(e, stackTrace, section: 'GravitySDK.fetchAnchorContent');
     }
   }
+
+  bool _shouldAskAgainForNewUser(_PresentationTicket ticket, BuildContext context) =>
+      context.mounted && !ticket.isSameUser && ticket.isSameScreen(context);
 
   Future<void> triggerEvent({
     required BuildContext context,
@@ -385,6 +452,9 @@ class GravitySDK {
     _checkIsInitialized();
     try {
       final startedAt = Clock.now();
+      // Before the first await: what the user sees now is what the content
+      // is being loaded for.
+      final ticket = _PresentationTicket.take(context);
       final response = await GravityRepo.instance.event(
         events: events,
         customUser: user,
@@ -414,6 +484,8 @@ class GravitySDK {
           _isStale(startedAt, extra: Duration(milliseconds: campaignIdObj.delayTime))) {
         return;
       }
+
+      if (_skipIfNoLongerRelevant(ticket, context, campaignIdObj.campaignId)) return;
 
       if (_skipIfPresentationLocked(campaignIdObj.campaignId)) return;
 
@@ -1095,5 +1167,156 @@ class GravitySDK {
         'GravitySDK is not initialized. Call initialize() first.',
       );
     }
+  }
+}
+
+/// Where a presenting context stood relative to navigation when its content
+/// was requested.
+enum _Placement {
+  /// No Navigator above it: nothing to compare but the user.
+  noNavigator,
+
+  /// A Navigator's own context (e.g. `navigatorKey.currentContext`): it
+  /// belongs to no route, so only the top of the root Navigator can tell
+  /// whether the screen changed.
+  navigatorItself,
+
+  /// Inside a route.
+  inRoute,
+}
+
+/// What the user saw when in-app content was requested: the identity it was
+/// requested for and the screen it was requested on. The answer can take
+/// seconds (plus the campaign's own delay), and by then the app may have
+/// switched users or moved to another screen, which the context being still
+/// mounted does not reveal — a covered route stays mounted.
+class _PresentationTicket {
+  _PresentationTicket._(
+    this._identityVersion,
+    this._placement,
+    this._visibleAtStart,
+    this._topsAtStart,
+  );
+
+  /// Must run synchronously in the calling frame, before any await. Uses
+  /// only lookups that register no dependency on [context], so it is safe
+  /// from initState, where hosts commonly start tracking a screen.
+  factory _PresentationTicket.take(BuildContext context) {
+    final version = IdentityVersion.current;
+    if (!context.mounted) {
+      return _PresentationTicket._(version, _Placement.noNavigator, false, const []);
+    }
+    final root = Navigator.maybeOf(context, rootNavigator: true);
+    if (root == null) {
+      return _PresentationTicket._(version, _Placement.noNavigator, false, const []);
+    }
+    final nearest = Navigator.maybeOf(context)!;
+    final placement = identical(nearest.context, context)
+        ? _Placement.navigatorItself
+        : _Placement.inRoute;
+    return _PresentationTicket._(
+      version,
+      placement,
+      placement == _Placement.inRoute && _isVisible(context),
+      _topsOfChain(context),
+    );
+  }
+
+  final int _identityVersion;
+  final _Placement _placement;
+  final bool _visibleAtStart;
+  // The top route of every Navigator from the one nearest to the context up
+  // to the root one.
+  final List<Route<dynamic>?> _topsAtStart;
+
+  /// Whether the user the content was requested for is still the current
+  /// one.
+  bool get isSameUser => _identityVersion == IdentityVersion.current;
+
+  /// Whether the screen the content was requested on is still in front, as
+  /// far as [context] can tell. [context] must be mounted.
+  bool isSameScreen(BuildContext context) {
+    switch (_placement) {
+      case _Placement.noNavigator:
+        return true;
+      case _Placement.navigatorItself:
+        return _topsUnchanged(context);
+      case _Placement.inRoute:
+        if (_isVisible(context)) return true;
+        // A context that was on screen must still be. One that was already
+        // covered (the app called from under its own dialog) keeps its
+        // chance as long as nothing moved since.
+        return !_visibleAtStart && _topsUnchanged(context);
+    }
+  }
+
+  /// Why content requested under this ticket may no longer be shown through
+  /// [context], or null when it still may. [context] must be mounted.
+  String? staleReason(BuildContext context) {
+    if (!isSameUser) return 'the user changed while it was loading';
+    if (!isSameScreen(context)) return 'the screen changed while it was loading';
+    return null;
+  }
+
+  /// Whether no Navigator between [context] and the root one has changed
+  /// its top route: a nested Navigator (a shell's, say) can move on by
+  /// itself while the root one stays put, e.g. under a dialog.
+  bool _topsUnchanged(BuildContext context) {
+    final tops = _topsOfChain(context);
+    if (tops.length != _topsAtStart.length) return false;
+    for (var i = 0; i < tops.length; i++) {
+      if (!identical(tops[i], _topsAtStart[i])) return false;
+    }
+    return true;
+  }
+
+  static List<Route<dynamic>?> _topsOfChain(BuildContext context) {
+    final tops = <Route<dynamic>?>[];
+    var navigator = Navigator.maybeOf(context);
+    while (navigator != null) {
+      tops.add(_topRoute(navigator));
+      navigator = navigator.context.findAncestorStateOfType<NavigatorState>();
+    }
+    return tops;
+  }
+
+  /// Whether [context] is in the topmost route of its Navigator, and that
+  /// Navigator in turn in the topmost route of its own, up to the root one:
+  /// the SDK presents through the root Navigator, so a screen pushed there
+  /// covers a nested one whose own top route did not change.
+  static bool _isVisible(BuildContext context) {
+    var current = context;
+    var navigator = Navigator.maybeOf(current);
+    if (navigator == null || identical(navigator.context, current)) return false;
+    while (navigator != null) {
+      final top = _topRoute(navigator);
+      final page = top is ModalRoute ? top.subtreeContext : null;
+      if (page == null || !_isWithin(current, page)) return false;
+      current = navigator.context;
+      navigator = current.findAncestorStateOfType<NavigatorState>();
+    }
+    return true;
+  }
+
+  /// The topmost route of [navigator] that is not on its way out. Navigator
+  /// has no getter for it; popUntil hands the routes to its predicate from
+  /// the top down and pops nothing when the first answer is true.
+  static Route<dynamic>? _topRoute(NavigatorState navigator) {
+    Route<dynamic>? top;
+    navigator.popUntil((route) {
+      top = route;
+      return true;
+    });
+    return top;
+  }
+
+  static bool _isWithin(BuildContext context, BuildContext ancestor) {
+    if (identical(context, ancestor)) return true;
+    var found = false;
+    context.visitAncestorElements((element) {
+      found = identical(element, ancestor);
+      return !found;
+    });
+    return found;
   }
 }
