@@ -46,7 +46,9 @@ RetryClass classifyError(Object error) {
           : RetryClass.permanent;
     // Newer dio versions add exception types (e.g. `transformTimeout` in
     // 5.10.0). Treat anything unknown as non-retryable so the SDK keeps
-    // compiling against every dio 5.x.
+    // compiling against every dio 5.x. On older dio the analyzer sees every
+    // case covered, hence the ignore.
+    // ignore: unreachable_switch_default
     default:
       return RetryClass.permanent;
   }
