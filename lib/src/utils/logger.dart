@@ -9,7 +9,12 @@ class LoggerManager {
 
   static final LoggerManager instance = LoggerManager._();
 
-  late talker_lib.Talker _talker;
+  // One instance for the life of the process: the HTTP logger of Api holds
+  // on to it from the moment the repository is built, so a later configure()
+  // must retune this very instance rather than replace it.
+  final talker_lib.Talker _talker = talker_lib.Talker(
+    settings: talker_lib.TalkerSettings(enabled: false),
+  );
 
   bool _isInitialized = false;
 
@@ -23,15 +28,21 @@ class LoggerManager {
   bool get isInitialized => _isInitialized;
 
   void initDefault() {
-    _talker = talker_lib.Talker(settings: talker_lib.TalkerSettings(enabled: kDebugMode));
+    _talker.configure(
+      settings: talker_lib.TalkerSettings(enabled: kDebugMode),
+      filter: _AcceptAllFilter(),
+    );
     _isInitialized = true;
   }
 
   void configure(LogLevel logLevel) {
     if (logLevel == LogLevel.none) {
-      _talker = talker_lib.Talker(settings: talker_lib.TalkerSettings(enabled: false));
+      _talker.configure(
+        settings: talker_lib.TalkerSettings(enabled: false),
+        filter: _AcceptAllFilter(),
+      );
     } else {
-      _talker = talker_lib.Talker(
+      _talker.configure(
         settings: talker_lib.TalkerSettings(enabled: true),
         filter: _LogLevelFilter(logLevel),
       );
@@ -48,6 +59,13 @@ talker_lib.LogLevel _mapToTalkerLevel(LogLevel level) {
     LogLevel.debug => talker_lib.LogLevel.debug,
     LogLevel.none => talker_lib.LogLevel.verbose,
   };
+}
+
+// Talker.configure keeps the previous filter when given none, so the levels
+// that need no filter pass this one explicitly.
+class _AcceptAllFilter extends talker_lib.TalkerFilter {
+  @override
+  bool filter(talker_lib.TalkerData data) => true;
 }
 
 class _LogLevelFilter extends talker_lib.TalkerFilter {

@@ -101,6 +101,9 @@ class Api {
             printResponseHeaders: true,
             printResponseMessage: true,
             printResponseData: true,
+            // The API key travels in this header; debug logs end up in bug
+            // reports and screen recordings, so it is never printed.
+            hiddenHeaders: {'authorization'},
           ),
         ),
       );
