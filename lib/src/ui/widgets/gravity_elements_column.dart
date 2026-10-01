@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart' hide Action, Element;
 
 import '../../data/error_reporting/error_reporter.dart';
@@ -93,11 +95,7 @@ class GravityElementsColumn extends StatelessWidget {
           switchOutCurve: Curves.easeIn,
           transitionBuilder: (child, animation) => FadeTransition(
             opacity: animation,
-            child: SizeTransition(
-              sizeFactor: animation,
-              alignment: AlignmentDirectional.topCenter,
-              child: child,
-            ),
+            child: VisibilitySizeTransition(sizeFactor: animation, child: child),
           ),
           child: visible ? _elementWidget(element, visibleElements) : const SizedBox.shrink(),
         );
@@ -161,4 +159,29 @@ bool shouldAutoCloseOnClick(OnClick onClick) {
 /// dismiss on any clickable element — they use [shouldAutoCloseOnClick].
 bool shouldAutoPopOnClick(Element element, OnClick onClick) {
   return element.type == ElementType.button && shouldAutoCloseOnClick(onClick);
+}
+
+/// Vertical size transition that grows from the top and keeps the child
+/// horizontally centred — what `SizeTransition(alignment:
+/// AlignmentDirectional.topCenter)` does. That parameter only exists from
+/// Flutter 3.44, and the older `axisAlignment` pins the child to the start
+/// edge, so the transition is built the same way SizeTransition builds it.
+class VisibilitySizeTransition extends AnimatedWidget {
+  const VisibilitySizeTransition({super.key, required Animation<double> sizeFactor, this.child})
+    : super(listenable: sizeFactor);
+
+  final Widget? child;
+
+  Animation<double> get sizeFactor => listenable as Animation<double>;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: Align(
+        alignment: AlignmentDirectional.topCenter,
+        heightFactor: math.max(sizeFactor.value, 0.0),
+        child: child,
+      ),
+    );
+  }
 }

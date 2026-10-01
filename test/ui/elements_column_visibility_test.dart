@@ -164,11 +164,11 @@ void main() {
 
     // Mid-animation: the element is already mounted but still growing.
     expect(find.text('Visible after rating'), findsOneWidget);
-    final growing = tester.widget<SizeTransition>(
+    final growing = tester.widget<VisibilitySizeTransition>(
       find
           .ancestor(
             of: find.text('Visible after rating'),
-            matching: find.byType(SizeTransition),
+            matching: find.byType(VisibilitySizeTransition),
           )
           .first,
     );
@@ -238,7 +238,7 @@ void main() {
     expect(
       find.ancestor(
         of: find.text('Отправить'),
-        matching: find.byType(SizeTransition),
+        matching: find.byType(VisibilitySizeTransition),
       ),
       findsNothing,
     );
