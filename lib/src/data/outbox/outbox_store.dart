@@ -37,10 +37,23 @@ class OutboxStore {
       try {
         final decoded = jsonDecode(raw);
         if (decoded is! List) throw const FormatException('Expected outbox array');
+        var droppedLegacyModal = false;
         for (final item in decoded) {
           if (item is! Map<String, dynamic>) continue;
           final entry = OutboxEntry.fromJson(item);
-          if (entry != null) _entries.add(entry);
+          if (entry != null) {
+            _entries.add(entry);
+          } else if (item['body'] is Map &&
+              item['body']['modalImpression'] == true) {
+            droppedLegacyModal = true;
+          }
+        }
+        // Scrub legacy credentials even when there is nothing left to drain.
+        // load() precedes every mutation, so this write cannot race append.
+        if (droppedLegacyModal) {
+          await _prefs.setOutbox(
+            jsonEncode(_entries.map((e) => e.toJson()).toList()),
+          );
         }
       } on FormatException {
         // Unreadable queue: start over rather than fail every send.

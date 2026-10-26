@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:gravity_sdk/src/utils/in_app_presentation_gate.dart';
 
 import 'package:flutter/foundation.dart';
@@ -82,13 +83,25 @@ class GravityRepo {
       case OutboxKind.engagement:
         if (entry.isModalImpression) {
           final body = entry.body!;
-          for (final url in (body['urls'] as List).cast<String>()) {
+          final urls = body['urls'];
+          if (urls is! List ||
+              urls.isEmpty ||
+              urls.any((url) => url is! String) ||
+              body['scope'] is! String ||
+              body['campaignId'] is! String) {
+            throw const FormatException('Invalid modal impression entry');
+          }
+          for (final url in urls.cast<String>()) {
             if (outbox.epoch != epoch) return;
-            await _api.triggerEventUrl(
-              url,
-              deferred: true,
-              apiKey: body['apiKey'] as String?,
-            );
+            // Never keep or restore a credential from disk. Recheck before
+            // each URL because initialize() can change the key during a send.
+            final apiKey = GravitySDK.instance.apiKey;
+            if (body['apiKeyFingerprint'] != _fingerprint(apiKey)) {
+              throw const FormatException(
+                'Modal impression API key changed or fingerprint missing',
+              );
+            }
+            await _api.triggerEventUrl(url, deferred: true, apiKey: apiKey);
           }
           if (outbox.epoch != epoch) return;
           InAppPresentationGate.instance.acknowledged(
@@ -550,11 +563,19 @@ class GravityRepo {
   }
 
   /// Stable across process restarts; user/session generations remain separate
-  /// in the presentation gate. Tracking URLs themselves retain server identity.
-  static String impressionScope(String section, User? user) => jsonEncode([
-    section,
-    user?.custom != null ? 'custom:${user!.custom}' : 'uid:${user?.uid ?? ''}',
-  ]);
+  /// in the presentation gate. Hash the scope to avoid duplicating user IDs
+  /// in storage; tracking URLs themselves retain the required server identity.
+  static String impressionScope(String section, User? user) => _fingerprint(
+    jsonEncode([
+      section,
+      user?.custom != null
+          ? 'custom:${user!.custom}'
+          : 'uid:${user?.uid ?? ''}',
+    ]),
+  );
+
+  static String _fingerprint(String value) =>
+      sha256.convert(utf8.encode(value)).toString();
 
   bool hasPendingImpression(String scope, String campaignId) => outbox.snapshot.any(
     (entry) =>
@@ -572,6 +593,7 @@ class GravityRepo {
     required String section,
     required String apiKey,
     String? reservationToken,
+    VoidCallback? onEnqueued,
   }) async {
     if (urls.isEmpty) return false;
     final epoch = outbox.epoch;
@@ -587,13 +609,12 @@ class GravityRepo {
           'scope': scope,
           'campaignId': campaignId,
           'reservationToken': reservationToken,
-          'user': user?.toJson(),
-          'section': section,
-          'apiKey': apiKey,
+          'apiKeyFingerprint': _fingerprint(apiKey),
           'urls': List<String>.of(urls),
         },
       ),
       precondition: () => outbox.epoch == epoch,
+      onEnqueued: onEnqueued,
     );
   }
 

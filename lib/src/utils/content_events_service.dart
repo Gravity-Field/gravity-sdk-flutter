@@ -51,6 +51,9 @@ class ContentEventsService {
               section: 'ContentEventsService',
               tags: const {'category': 'tracking'},
             );
+            sdk.gravityEventCallback?.call(
+              ContentVisibleImpressionEvent(content, campaign),
+            );
             return;
           }
           await GravityRepo.instance.queueModalImpression(
@@ -61,9 +64,9 @@ class ContentEventsService {
             section: section,
             apiKey: apiKey,
             reservationToken: reservation?.token,
-          );
-          sdk.gravityEventCallback?.call(
-            ContentVisibleImpressionEvent(content, campaign),
+            onEnqueued: () => sdk.gravityEventCallback?.call(
+              ContentVisibleImpressionEvent(content, campaign),
+            ),
           );
         } catch (error, stackTrace) {
           ErrorReporter.instance.report(

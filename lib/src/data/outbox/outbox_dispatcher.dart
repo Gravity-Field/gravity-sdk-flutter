@@ -134,10 +134,21 @@ class OutboxDispatcher with WidgetsBindingObserver {
   /// The first modal attempt uses the existing reserve/complete online path,
   /// independent of an older request's backoff. On failed persistence it still
   /// makes one best-effort send, with the same immutable URL/user context.
-  Future<bool> deliverModal(OutboxEntry entry, {bool Function()? precondition}) async {
+  Future<bool> deliverModal(
+    OutboxEntry entry, {
+    bool Function()? precondition,
+    void Function()? onEnqueued,
+  }) async {
     assert(entry.isModalImpression);
     final epoch = _epoch;
     final persisted = await reserve(entry, precondition: precondition);
+    // Appearance is independent of HTTP latency, rejection or retry. Notify
+    // after the durable write (or its best-effort failure), before sending.
+    try {
+      onEnqueued?.call();
+    } catch (error, stackTrace) {
+      _reportStoreError('modalCallback', error, stackTrace);
+    }
     if (_epoch != epoch || (precondition != null && !precondition())) {
       _inFlight.remove(entry.id);
       return false;
@@ -171,8 +182,14 @@ class OutboxDispatcher with WidgetsBindingObserver {
 
   Future<void> _deferModal(OutboxEntry entry, Object error, StackTrace stackTrace) async {
     if (_storedEntry(entry.id) == null) return;
-    if (classifyError(error) == RetryClass.permanent || entry.isExpired(_settings().maxAge, Clock.now())) {
-      _reportDropped(entry, 'rejected', error, stackTrace);
+    final expired = entry.isExpired(_settings().maxAge, Clock.now());
+    if (classifyError(error) == RetryClass.permanent || expired) {
+      _reportDropped(
+        entry,
+        expired ? 'expired' : 'rejected',
+        error,
+        stackTrace,
+      );
       await _store.removeById(entry.id);
       return;
     }

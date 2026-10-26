@@ -1209,6 +1209,7 @@ class GravitySDK {
       ).then((_) {
         if (!session.consumeStepTransition()) {
           impression?.closed();
+          if (impression?.closedBeforeAppearance == true) return;
           session.finish(
             FormCloseReason.dismiss,
             content: content,
@@ -1260,6 +1261,7 @@ class GravitySDK {
       ).whenComplete(() {
         if (!session.consumeStepTransition()) {
           impression?.closed();
+          if (impression?.closedBeforeAppearance == true) return;
           session.finish(
             FormCloseReason.dismiss,
             content: content,
@@ -1295,6 +1297,7 @@ class GravitySDK {
           .then((_) {
             if (!session.consumeStepTransition()) {
               impression?.closed();
+              if (impression?.closedBeforeAppearance == true) return;
               session.finish(
                 FormCloseReason.dismiss,
                 content: content,

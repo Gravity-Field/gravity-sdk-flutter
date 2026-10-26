@@ -96,6 +96,17 @@ class OutboxEntry {
         if (url is! String) return null;
     }
 
+    // Pre-fingerprint modal entries stored credentials and redundant user
+    // data. Drop them rather than retain or replay that insecure format.
+    if (kind == OutboxKind.engagement &&
+        body is Map<String, dynamic> &&
+        body['modalImpression'] == true &&
+        (body.containsKey('apiKey') ||
+            body.containsKey('user') ||
+            body.containsKey('section'))) {
+      return null;
+    }
+
     final attempts = json['attempts'];
     return OutboxEntry(
       id: id,

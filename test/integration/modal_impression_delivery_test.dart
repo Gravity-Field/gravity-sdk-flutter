@@ -17,7 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test(
-    'WRIMP persists before send, retries beyond five failures, reloads and keeps original user/key',
+    'WRIMP persists before send, retries beyond five failures, reloads and keeps original user with matching current key',
     () async {
       TestWidgetsFlutterBinding.ensureInitialized();
       HttpOverrides.global = null;
@@ -130,11 +130,11 @@ void main() {
       await reloaded.load();
       expect(reloaded.snapshot().single.url, url);
       expect(
-        reloaded.snapshot().single.body!['user']['custom'],
-        'original-user',
+        reloaded.snapshot().single.body!.containsKey('user'),
+        isFalse,
       );
       await sdk.initialize(
-        apiKey: 'new-key',
+        apiKey: 'original-key',
         section: 'new-section',
         logLevel: LogLevel.none,
       );

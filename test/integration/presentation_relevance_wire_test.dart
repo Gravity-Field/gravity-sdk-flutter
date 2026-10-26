@@ -464,6 +464,37 @@ void main() {
           if (r.path == '/choose') r.body,
       ];
 
+      for (final trigger in [false, true]) {
+        testWidgets(
+          'anchor modal survives ${trigger ? 'triggerEvent' : 'trackView'} starting while loading',
+          (tester) async {
+            await pumpHost(tester);
+            holdNextChoose = true;
+            holdTriggers = true;
+            await tester.runAsync(() async {
+              final anchor = GravitySDK.instance.fetchAnchorContent(
+                context: hostContext,
+                selector: 'anchor',
+              );
+              await waitFor(
+                () => held.length == 1,
+                'anchor choose did not arrive',
+              );
+              final automatic = trigger ? triggerEvent() : trackView();
+              // beginRequest runs synchronously, even when session ownership
+              // makes the automatic HTTP request wait for the anchor response.
+              held.first.complete();
+              await anchor;
+              final anchorShown = shownBySdk();
+              holdTriggers = false;
+              releaseHeld();
+              await automatic;
+              expect(anchorShown, isTrue);
+            });
+          },
+        );
+      }
+
       testWidgets('asks again for the user set while it was loading', (tester) async {
         await pumpHost(tester);
         await fetchAnchor(tester, () => GravitySDK.instance.setUser('user-b', 'ses-b'));

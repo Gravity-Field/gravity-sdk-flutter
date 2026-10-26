@@ -333,6 +333,86 @@ void main() {
   );
 
   testWidgets(
+    'inactive before appearance waits for resumed without cancelling',
+    (tester) async {
+      var events = 0;
+      var releases = 0;
+      final opening = ModalImpression(
+        onVisible: () async {
+          events++;
+        },
+        onUnshownClose: () => releases++,
+      );
+      late BuildContext host;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              host = context;
+              return const Scaffold(body: Text('Host'));
+            },
+          ),
+        ),
+      );
+      final c = campaign();
+      showDialog<void>(
+        context: host,
+        builder: (_) => ModalContent(
+          content: c.payload.first.contents.first,
+          campaign: c,
+          impression: opening,
+        ),
+      );
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pumpAndSettle();
+      expect(releases, 0);
+      expect(events, 0);
+      expect(find.byType(ModalContent), findsOneWidget);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      expect(events, 1);
+      Navigator.of(host).pop();
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets('Back at zero opacity never confirms a modal impression', (
+    tester,
+  ) async {
+    var events = 0;
+    final opening = ModalImpression(
+      onVisible: () async {
+        events++;
+      },
+    );
+    late BuildContext host;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            host = context;
+            return const Scaffold(body: Text('Host'));
+          },
+        ),
+      ),
+    );
+    final c = campaign();
+    showDialog<void>(
+      context: host,
+      builder: (_) => ModalContent(
+        content: c.payload.first.contents.first,
+        campaign: c,
+        impression: opening,
+      ),
+    );
+    await tester.pump();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(events, 0);
+    expect(opening.closedBeforeAppearance, isTrue);
+  });
+
+  testWidgets(
     'backgrounding before appearance cancels the window and cannot show it untracked on resume',
     (tester) async {
       var events = 0;
@@ -365,7 +445,7 @@ void main() {
       );
       await tester
           .pump(); // Dialog is created, but its transition is at opacity 0.
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       await tester.pump();
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();

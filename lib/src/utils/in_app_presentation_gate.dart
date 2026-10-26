@@ -5,7 +5,8 @@ class PresentationRequest {
   const PresentationRequest(this.sequence, this.generation, this.screen);
   final int sequence;
   final int generation;
-  final int screen;
+  /// Null for anchors, whose relevance comes from their host route.
+  final int? screen;
 }
 
 class PresentationReservation extends PresentationRequest {
@@ -34,11 +35,11 @@ class InAppPresentationGate {
   /// Product policy shared across SDKs; the outbox timestamp survives restart.
   static const pendingDeliveryProtection = Duration(hours: 24);
 
-  /// Anchors observe the current screen; fetching inline/tooltip content must
-  /// never act as a navigation notification (including without pageContext).
+  /// Anchors use route relevance instead of the automatic screen counter.
+  /// They neither advance that counter nor become stale when it advances.
   PresentationRequest currentRequest(int generation) {
     _updateGeneration(generation);
-    return PresentationRequest(++_sequence, generation, _screen);
+    return PresentationRequest(++_sequence, generation, null);
   }
 
   void _updateGeneration(int generation) {
@@ -68,12 +69,17 @@ class InAppPresentationGate {
       _screen++;
       _location = location;
       // Visible deliveries are protected by the outbox, independent of UI.
-      _pending.removeWhere((_, reservation) => !_visible.contains(reservation));
+      _pending.removeWhere(
+        (_, reservation) =>
+            reservation.screen != null && !_visible.contains(reservation),
+      );
     }
     return PresentationRequest(++_sequence, generation, _screen);
   }
 
-  bool isCurrent(PresentationRequest request) => request.generation == _generation && request.screen == _screen;
+  bool isCurrent(PresentationRequest request) =>
+      request.generation == _generation &&
+      (request.screen == null || request.screen == _screen);
 
   PresentationReservation? reserve(
     String scope,
@@ -93,7 +99,7 @@ class InAppPresentationGate {
     final reservation = PresentationReservation(
       ++_sequence,
       _generation,
-      _screen,
+      request.screen,
       scope,
       campaignId,
       _now().add(protectionTimeout),

@@ -58,6 +58,21 @@ void main() {
     expect(gate.isCurrent(tracked), isTrue);
     expect(gate.owns(pending), isTrue);
   });
+  test(
+    'anchor request and unshown reservation survive automatic screen changes',
+    () {
+      final gate = InAppPresentationGate();
+      final anchor = gate.currentRequest(1);
+      gate.beginRequest('/home', 1, newScreen: true);
+      final reservation = gate.reserve('section/user', 'anchor', anchor);
+      expect(reservation, isNotNull);
+      gate.beginRequest('/event-location', 1);
+      expect(gate.owns(reservation!), isTrue);
+      gate.beginRequest('/home', 2, newScreen: true);
+      expect(gate.owns(reservation), isFalse);
+      expect(gate.reserve('section/user', 'anchor', anchor), isNull);
+    },
+  );
   test('an old delivery cannot release a newer opening after protection timeout', () {
     var now = DateTime(2026);
     final gate = InAppPresentationGate(now: () => now);

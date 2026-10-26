@@ -60,11 +60,11 @@ class _ModalAppearanceState extends State<ModalAppearance>
 
   void _confirmFrame({bool explicitClose = false}) {
     final route = ModalRoute.of(context);
+    if ((route?.animation?.value ?? 1) == 0) return;
     if (!explicitClose &&
         route != null &&
         (!route.isCurrent ||
-            route.animation?.status == AnimationStatus.reverse ||
-            (route.animation?.value ?? 1) == 0)) {
+            route.animation?.status == AnimationStatus.reverse)) {
       return;
     }
     final box = context.findRenderObject();
@@ -93,7 +93,10 @@ class _ModalAppearanceState extends State<ModalAppearance>
       // inactive -> resumed need not schedule a new frame. Confirm the already
       // painted content synchronously, before a hardware Back can pop it.
       if (_paintConfirmed && !widget.impression.fired) _checkFrame();
-    } else if (!widget.impression.fired) {
+    } else if (!widget.impression.fired &&
+        (state == AppLifecycleState.paused ||
+            state == AppLifecycleState.hidden ||
+            state == AppLifecycleState.detached)) {
       _cancelUnshown();
     }
   }
