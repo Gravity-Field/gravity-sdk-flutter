@@ -40,12 +40,10 @@ class ContentEventsService {
         <String>[];
     return ModalImpression(
       isValid: isValid,
-      onUnshownClose: reservation == null
-          ? null
-          : () => sdk.presentationGate.cancel(reservation),
+      onUnshownClose: reservation == null ? null : () => InAppPresentationGate.instance.cancel(reservation),
       onVisible: () async {
         try {
-          if (reservation != null) sdk.presentationGate.visible(reservation);
+          if (reservation != null) InAppPresentationGate.instance.visible(reservation);
           if (urls.isEmpty) {
             ErrorReporter.instance.report(
               message: 'Modal visible_impression has no tracking URLs',
@@ -62,6 +60,7 @@ class ContentEventsService {
             user: user,
             section: section,
             apiKey: apiKey,
+            reservationToken: reservation?.token,
           );
           sdk.gravityEventCallback?.call(
             ContentVisibleImpressionEvent(content, campaign),
@@ -171,9 +170,7 @@ class ContentEventsService {
       // Unknown actions must not match unknown event types such as `click`.
       if (action.action == Action.unknown) return;
 
-      final event = content.events?.firstWhereOrNull(
-        (event) => event.type == action.action,
-      );
+      final event = content.events?.firstWhereOrNull((event) => event.type == action.action);
 
       if (event == null) return;
 
@@ -185,10 +182,7 @@ class ContentEventsService {
         final event = switch (action.action) {
           Action.load => ContentLoadEvent(content, campaign),
           Action.impression => ContentImpressionEvent(content, campaign),
-          Action.visibleImpression => ContentVisibleImpressionEvent(
-            content,
-            campaign,
-          ),
+          Action.visibleImpression => ContentVisibleImpressionEvent(content, campaign),
           Action.close => ContentCloseEvent(content, campaign),
           _ => null,
         };

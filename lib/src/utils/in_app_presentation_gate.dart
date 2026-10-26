@@ -1,4 +1,5 @@
 import 'package:gravity_sdk/src/utils/clock.dart';
+import 'package:uuid/uuid.dart';
 
 class PresentationRequest {
   const PresentationRequest(this.sequence, this.generation, this.screen);
@@ -18,14 +19,36 @@ class PresentationReservation extends PresentationRequest {
   );
   final String scope;
   final String campaignId;
-  final DateTime expiresAt;
+  DateTime expiresAt;
+  final String token = const Uuid().v4();
 }
 
 /// The bridge from /choose to durable WRIMP delivery. It is not a frequency cap.
 /// All decisions happen synchronously on Flutter's UI isolate.
 class InAppPresentationGate {
-  InAppPresentationGate({DateTime Function()? now})
-    : _now = now ?? (() => Clock.now());
+  static final instance = InAppPresentationGate();
+
+  /// Emergency in-memory bridge for an unpersisted/missing event.
+  static const protectionTimeout = Duration(seconds: 60);
+
+  /// Product policy shared across SDKs; the outbox timestamp survives restart.
+  static const pendingDeliveryProtection = Duration(hours: 24);
+
+  /// Anchors observe the current screen; fetching inline/tooltip content must
+  /// never act as a navigation notification (including without pageContext).
+  PresentationRequest currentRequest(int generation) {
+    _updateGeneration(generation);
+    return PresentationRequest(++_sequence, generation, _screen);
+  }
+
+  void _updateGeneration(int generation) {
+    if (_generation == generation) return;
+    _generation = generation;
+    _pending.removeWhere((_, reservation) => !_visible.contains(reservation));
+    _location = null;
+  }
+
+  InAppPresentationGate({DateTime Function()? now}) : _now = now ?? (() => Clock.now());
   final DateTime Function() _now;
   int _sequence = 0;
   int _generation = -1;
@@ -40,13 +63,7 @@ class InAppPresentationGate {
     int generation, {
     bool newScreen = false,
   }) {
-    if (_generation != generation) {
-      _generation = generation;
-      _pending.removeWhere((_, reservation) => !_visible.contains(reservation));
-      // Keep visible reservations across user switches while their durable
-      // append waits for storage; scope keys isolate them from the new user.
-      _location = null;
-    }
+    _updateGeneration(generation);
     if (newScreen || location != _location) {
       _screen++;
       _location = location;
@@ -56,8 +73,7 @@ class InAppPresentationGate {
     return PresentationRequest(++_sequence, generation, _screen);
   }
 
-  bool isCurrent(PresentationRequest request) =>
-      request.generation == _generation && request.screen == _screen;
+  bool isCurrent(PresentationRequest request) => request.generation == _generation && request.screen == _screen;
 
   PresentationReservation? reserve(
     String scope,
@@ -80,7 +96,7 @@ class InAppPresentationGate {
       _screen,
       scope,
       campaignId,
-      _now().add(const Duration(seconds: 60)),
+      _now().add(protectionTimeout),
     );
     _pending[key] = reservation;
     return reservation;
@@ -93,8 +109,15 @@ class InAppPresentationGate {
         reservation,
       );
 
-  void visible(PresentationReservation reservation) =>
-      _visible.add(reservation);
+  void visible(PresentationReservation reservation) {
+    reservation.expiresAt = _now().add(protectionTimeout);
+    _visible.add(reservation);
+  }
+
+  void rejected(String scope, String campaignId, String? token) {
+    final reservation = _pending[(scope, campaignId)];
+    if (reservation != null && reservation.token == token) cancel(reservation);
+  }
 
   void cancel(PresentationReservation reservation) {
     _visible.remove(reservation);
@@ -102,12 +125,16 @@ class InAppPresentationGate {
     if (identical(_pending[key], reservation)) _pending.remove(key);
   }
 
-  void acknowledged(String scope, String campaignId) {
+  void acknowledged(String scope, String campaignId, {String? token}) {
     final key = (scope, campaignId);
     _confirmedThrough[key] = _sequence;
-    _visible.remove(_pending.remove(key));
+    // An older delivery must not release an already visible newer opening.
+    // Unshown work started before this ack is stale, even after bridge expiry.
+    if (token == null || _pending[key]?.token == token || !_visible.contains(_pending[key])) {
+      _visible.remove(_pending.remove(key));
+    }
     if (_confirmedThrough.length > 512) {
-      _confirmedThrough.remove(_confirmedThrough.keys.first);
+      _confirmedThrough.remove(_confirmedThrough.entries.reduce((a, b) => a.value <= b.value ? a : b).key);
     }
   }
 }

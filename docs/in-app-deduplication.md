@@ -1,69 +1,101 @@
-# Modal visible impressions and repeat presentation
+# Модальные visible impressions и повторный показ
 
-For bottom sheets, dialogs/modals and full screen in-app windows,
-`visible_impression` / WRIMP means **the window content actually appeared**:
-the first confirmed painted frame intersecting the screen while the app is
-active. There is no minimum viewing duration or visibility percentage.
-Creating a widget, `/choose`, loading content and painting only the scrim do
-not qualify. The content paint check follows the opening animation, including
-frames where retained layers move without repainting their children.
+Для bottom sheet, dialog/modal и fullscreen `visible_impression` / WRIMP
+означает «содержимое окна фактически появилось»: первый подтверждённый кадр,
+пересекающий экран, при активном приложении. Минимальной длительности просмотра
+и порога видимого процента нет. Создание виджета, `/choose`, загрузка контента
+и только scrim показом не считаются. Маркер проверяет именно содержимое окна
+и учитывает анимацию, включая перемещение retained layers без нового paint.
 
-Explicit close (swipe, X, Back, dismiss/“Not now”) shares the same synchronous
-once flag as the paint check. It cannot lose a confirmed appearance or create
-a second event. Navigation disposal, backgrounding and cancellation before
-appearance never infer an impression. An opening that never appeared releases
-its reservation. `OPEN_STEP`, including form-driven steps, retains the opening
-and its root tracking URLs; step-specific content IDs do not create new WRIMP.
-The backend `visible_impression` event is used even without a custom
-`onVisibleImpression` action.
+Явные X, Back, swipe и dismiss/«Не сейчас» используют тот же объект открытия
+и синхронный флаг fired, что и детектор. Перед явным закрытием можно подтвердить
+уже отрисованный кадр геометрической проверкой; создание окна без paint не
+подходит. При inactive → resumed уже нарисованное содержимое проверяется сразу,
+поскольку embedder может не запланировать новый кадр. Background и навигационный
+dispose не подразумевают просмотр. Отменённое до появления окно освобождает
+резерв и не остаётся на экране для последующего неотслеживаемого показа.
 
-Automatic `trackView` and `triggerEvent` reserve by section, user and campaign
-ID before `/choose`; modal anchor presentations also use this gate. Requests
-capture the user and screen generation, reusing the SDK's stale route/user
-guard. Parallel requests cannot both present. Responses begun before the WRIMP
-acknowledgement cannot reopen the campaign after that acknowledgement.
-Unshown reservations expire after 60 seconds and are invalidated by a newer
-screen/user. A visible reservation bridges the asynchronous durable write;
-its own timeout is 60 seconds if no usable event was recorded.
+OPEN_STEP, включая переходы форм, сохраняет общий объект открытия и исходные
+root URLs. Поздний dispose старого шага не отменяет новый. WRIMP и
+`ContentVisibleImpressionEvent` формируются один раз на открытие, а не на шаг.
+Используются все backend `events` типа `visible_impression`, даже без custom
+`onVisibleImpression`. Отсутствие tracking URLs даёт warning в error-reporting.
 
-Before network delivery, all WRIMP URLs from an opening are saved together as
-one `OutboxKind.engagement` entry in the existing SharedPreferences outbox.
-The entry includes the original user snapshot, section, API key, campaign ID
-and unmodified URLs. The URLs already bind server user/event identity; delivery
-never resolves the current user or appends new user data. After a user or SDK
-configuration change, old entries are **sent with their original URLs and API
-key**, so a real prior impression is retained without attributing it to the
-new user. No new endpoint or server schema is required.
+## Резерв и серверная частота
 
-The durable entry protects the campaign across screens, UI destruction and
-process restarts until all URLs return HTTP 2xx. Network errors and HTTP
-408/429/5xx use the existing outbox backoff, resumed on app start, foreground,
-a successful online request or `flushQueue()`. Unlike optional offline events,
-modal WRIMP is always persisted and drained even when
-`OfflineQueueSettings.enabled` is false. Server failures are retried until the
-queue's `maxAge` rather than dropped after five failures. The existing
-`maxAge` (default seven days), `maxEntries` (default 500), permanent rejection
-and explicit `clearQueue()` policy still apply. Missing URLs and storage
-failures are reported; they do not count as successful delivery. A lost or
-expired event cannot suppress a campaign forever.
+Автоматические trackView/triggerEvent резервируют кампанию до `/choose`.
+Ключ — секция, стабильная личность и campaign ID. Запросы фиксируют поколение
+пользователя/экрана и используют прежний guard устаревших route/user ответов.
+GravityAnchor получает snapshot текущего gate: отсутствие или другая location
+в его pageContext не означает переход экрана. Непоказанные inline/tooltip
+запросы не отменяют загружающийся modal. Модальные anchor-показы тоже используют
+резерв, а только anchors с немодальным результатом его не занимают.
 
-After successful delivery, fresh requests use server frequency caps. There
-is no permanent or session-long local cap, preserving “no limit” and “every
-page view” behavior. Section and user keys are independent. Retrying a group
-can repeat an already accepted URL if another URL failed; URLs/event IDs stay
-the same, but exactly-once server analytics is not guaranteed.
+Параллельные запросы не открывают одну кампанию дважды. Ack watermark запрещает
+показ из ответов, начатых до подтверждения WRIMP. Поколение открытия и token
+защищают новый показ от завершения старой доставки. Повторный `initialize()`
+инвалидирует старую конфигурацию показа; inline/anchor могут запросить контент
+заново. Внутренний gate не является частью публичного GravitySDK API.
 
-Inline-block and product-card detectors/tracking are unchanged. Snackbar and
-tooltip use separate detector paths and are unchanged.
+**Локальная защита действует до HTTP 2xx, но максимум 24 часа от показа**,
+по единой политике Android/iOS/Flutter, согласованной владельцем продукта. Повторы доставки не продлевают этот срок;
+после рестарта срок вычисляется из времени записи. Это сознательный компромисс:
+потерянный/долго недоставляемый WRIMP не блокирует кампанию на весь срок
+доставки или всю сессию. После истечения bridge свежие запросы снова полагаются на сервер;
+до успешной доставки сервер ещё может разрешить повтор. Permanent 4xx,
+ошибочный URL, expiry или eviction снимают резерв соответствующего открытия
+сразу. Непоказанный резерв освобождается при закрытии/отмене, также есть
+60-секундный аварийный timeout для in-memory резерва без устойчивой записи. После ack нет постоянного или сессионного бана:
+«без ограничений» и «каждый просмотр страницы» продолжают работать.
 
-## Verification
+## Одна устойчивая очередь
 
-Run `flutter test` and `flutter analyze`. Regression tests cover animated
-appearance, 100–400 ms close paths, duplicate signals, unshown/background
-content, steps, parallel/stale responses, durable enqueue before HTTP, retry
-and queue reload with the original identity and authorization.
+Перед первой HTTP-попыткой все WRIMP URLs открытия сохраняются одной записью
+`OutboxKind.engagement` существующего OutboxStore/OutboxDispatcher. Запись
+содержит неизменные URL, user snapshot, секцию, campaign ID, token открытия и
+исходный API key. User и section сохраняются как контекст записи; транспорт
+использует исходные URL (они уже связывают серверного пользователя/event ID)
+и Authorization с исходным ключом. API key хранится в SharedPreferences
+**в незашифрованном виде**, как часть устойчивого контекста доставки.
 
-Before release, verify swipe/Back and the first animation frame on physical
-Android/iOS devices, then test a monthly-capped campaign against a staging
-Gateway while offline and after reconnecting. Widget and local HTTP tests do
-not verify Gateway cap persistence or device compositor output.
+После смены пользователя выбрана политика **доставить от исходного пользователя**,
+чтобы сохранить реальный предыдущий показ. Текущая личность и новый ключ
+не подмешиваются; новые параметры к URL не добавляются. UI не владеет доставкой:
+закрытие окна, переход шага и dispose не отменяют её. Ошибка чтения outbox не
+мешает загрузке кампаний: остаётся защита in-memory gate. При ошибке сохранения
+перед HTTP SDK сообщает о проблеме и делает best-effort отправку; пережить
+перезапуск без работающего хранилища такая попытка не может.
+
+Первая попытка использует reserve/complete online-путь той же очереди и не ждёт
+backoff другой записи. Неуспешный WRIMP получает собственный сохранённый retryAt
+в общей очереди; drain пропускает его до этого времени и продолжает обычные
+события по FIFO. Отдельной очереди/службы доставки нет. Сетевая ошибка и HTTP
+408/429/5xx повторяются с прежним backoff; foreground и flush разрешают новую
+попытку, успешный online request пробивает сетевую паузу, но не server backoff.
+После запуска retryAt восстанавливается из store.
+
+**Срок доставки WRIMP — семь дней независимо от offlineQueue.maxAge**,
+отдельно от 24-часовой защиты кампании. На границе 24 часов запись не удаляется
+и продолжает повторяться до ack, permanent drop или семидневного TTL. Обычные записи сохраняют прежний maxAge
+(по умолчанию семь дней) и лимит server attempts. Модальный WRIMP сохраняется
+и отправляется даже при `offlineQueue.enabled: false`; обычные события при
+этом не буферизуются и не дренируются. Общий maxEntries по умолчанию 500:
+при overflow сначала удаляются самые старые необязательные записи, затем,
+если остались только WRIMP, самый старый WRIMP. Явный clearQueue сохраняет
+прежнюю epoch-защиту и удаляет очередь; resetUser её не очищает.
+
+Если один URL группы принят, а другой нет, повтор может снова отправить тот же
+принятый URL. Исходный event ID сохраняется, exactly-once analytics SDK не
+гарантирует. Битый JSON outbox отмечается диагностикой без содержимого файла.
+Новых endpoint, серверных схем или зависимостей нет. Inline/product detectors,
+product tracking, snackbar и tooltip detectors не изменены.
+
+## Проверки
+
+`flutter test` покрывает короткий показ и close-пути, inactive/resumed без
+промежуточного кадра, дубли и шаги, no appearance, anchor без pageContext,
+parallel/stale responses, HTTP retry и очередь после store reload, исходную
+личность/Authorization, storage failures, overflow priority, неблокирующие
+повторы WRIMP и разные сроки защиты/доставки. `flutter analyze` проверяет код.
+Перед релизом остаётся QA физического первого кадра/Back/swipe на устройствах
+и monthly-cap кампания на staging Gateway с offline/reconnect/restart.

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:gravity_sdk/src/utils/in_app_presentation_gate.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:gravity_sdk/gravity_sdk.dart' show GravitySDK;
@@ -58,6 +59,15 @@ class GravityRepo {
     store: OutboxStore(),
     sender: sendOutboxEntry,
     settings: () => GravitySDK.instance.offlineQueue,
+    onDropped: (entry) {
+      if (!entry.isModalImpression) return;
+      final scope = entry.body?['scope'];
+      final campaign = entry.body?['campaignId'];
+      if (scope is String && campaign is String) {
+        final token = entry.body?['reservationToken'];
+        InAppPresentationGate.instance.rejected(scope, campaign, token is String ? token : null);
+      }
+    },
   );
 
   /// Sends one persisted entry. Responses are used only as a success signal:
@@ -81,9 +91,10 @@ class GravityRepo {
             );
           }
           if (outbox.epoch != epoch) return;
-          GravitySDK.instance.presentationGate.acknowledged(
+          InAppPresentationGate.instance.acknowledged(
             body['scope'] as String,
             body['campaignId'] as String,
+            token: body['reservationToken'] as String? ?? '',
           );
         } else {
           await _api.triggerEventUrl(entry.url!, deferred: true);
@@ -550,7 +561,7 @@ class GravityRepo {
         entry.isModalImpression &&
         entry.body?['scope'] == scope &&
         entry.body?['campaignId'] == campaignId &&
-        Clock.now().difference(entry.createdAt) <= GravitySDK.instance.offlineQueue.maxAge,
+        Clock.now().difference(entry.createdAt) < InAppPresentationGate.pendingDeliveryProtection,
   );
 
   Future<bool> queueModalImpression({
@@ -560,11 +571,12 @@ class GravityRepo {
     required User? user,
     required String section,
     required String apiKey,
+    String? reservationToken,
   }) async {
     if (urls.isEmpty) return false;
     final epoch = outbox.epoch;
     triggerEventUrlsObserver?.call(List.unmodifiable(urls));
-    return outbox.enqueue(
+    return outbox.deliverModal(
       OutboxEntry(
         id: const Uuid().v4(),
         kind: OutboxKind.engagement,
@@ -574,6 +586,7 @@ class GravityRepo {
           'modalImpression': true,
           'scope': scope,
           'campaignId': campaignId,
+          'reservationToken': reservationToken,
           'user': user?.toJson(),
           'section': section,
           'apiKey': apiKey,

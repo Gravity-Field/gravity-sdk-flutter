@@ -80,4 +80,26 @@ void main() {
     expect(events, 0);
     binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   });
+  test('explicit close confirms painted visibility before the detector emits', () {
+    var events = 0;
+    var contentWasPainted = false;
+    late ModalImpression opening;
+    opening = ModalImpression(
+      onVisible: () async {
+        events++;
+      },
+    );
+    opening.attach(
+      confirmClose: () {
+        if (contentWasPainted) opening.appeared();
+      },
+    );
+    opening.explicitClose();
+    expect(events, 0);
+    contentWasPainted = true;
+    opening.explicitClose();
+    opening.appeared();
+    opening.explicitClose();
+    expect(events, 1);
+  });
 }

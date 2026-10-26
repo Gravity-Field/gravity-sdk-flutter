@@ -11,6 +11,8 @@ import 'package:gravity_sdk/src/data/outbox/outbox_entry.dart';
 import 'package:gravity_sdk/src/data/outbox/outbox_store.dart';
 import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/repos/gravity_repo.dart';
+import 'package:gravity_sdk/src/utils/in_app_presentation_gate.dart';
+import 'package:gravity_sdk/src/utils/clock.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -29,8 +31,7 @@ void main() {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       server.listen((request) async {
         final stored = await Prefs.instance.getOutbox();
-        sawPersistedBeforeSend =
-            stored != null && (jsonDecode(stored) as List).isNotEmpty;
+        sawPersistedBeforeSend = stored != null && (jsonDecode(stored) as List).isNotEmpty;
         requests.add((
           url: request.uri.toString(),
           auth: request.headers.value('authorization'),
@@ -66,8 +67,7 @@ void main() {
       );
       sdk.setUser('original-user', 'session');
       final scope = GravityRepo.impressionScope(sdk.section, sdk.user);
-      final url =
-          'http://127.0.0.1:${server.port}/engagement?type=WRIMP&user=original-user&eventId=frozen';
+      final url = 'http://127.0.0.1:${server.port}/engagement?type=WRIMP&user=original-user&eventId=frozen';
       expect(
         await repo.queueModalImpression(
           urls: [url],
@@ -86,7 +86,25 @@ void main() {
       expect(requests.length, greaterThanOrEqualTo(6));
       expect(repo.hasPendingImpression(scope, 'campaign'), isTrue);
       expect(await sdk.pendingDeliveries, 1);
-      final gate = sdk.presentationGate;
+      final originalNow = Clock.now;
+      Clock.now = () => originalNow().add(const Duration(hours: 23));
+      expect(
+        repo.hasPendingImpression(scope, 'campaign'),
+        isTrue,
+        reason: 'persisted protection lasts until ack or 24h',
+      );
+      Clock.now = () => originalNow().add(const Duration(hours: 24, seconds: 1));
+      try {
+        expect(
+          repo.hasPendingImpression(scope, 'campaign'),
+          isFalse,
+          reason: 'durable retry cannot extend local protection past 24 hours',
+        );
+      } finally {
+        Clock.now = originalNow;
+      }
+
+      final gate = InAppPresentationGate.instance;
       final pendingRequest = gate.beginRequest('/a', 1);
       expect(
         gate.reserve(

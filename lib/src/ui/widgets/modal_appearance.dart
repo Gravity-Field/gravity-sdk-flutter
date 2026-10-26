@@ -24,7 +24,7 @@ class _ModalAppearanceState extends State<ModalAppearance>
   @override
   void initState() {
     super.initState();
-    _attachment = widget.impression.attach();
+    _attachment = widget.impression.attach(confirmClose: _confirmExplicitClose);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -51,8 +51,17 @@ class _ModalAppearanceState extends State<ModalAppearance>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _paintConfirmed) _checkFrame();
     });
+    _confirmFrame();
+  }
+
+  void _confirmExplicitClose() {
+    if (mounted && _paintConfirmed) _confirmFrame(explicitClose: true);
+  }
+
+  void _confirmFrame({bool explicitClose = false}) {
     final route = ModalRoute.of(context);
-    if (route != null &&
+    if (!explicitClose &&
+        route != null &&
         (!route.isCurrent ||
             route.animation?.status == AnimationStatus.reverse ||
             (route.animation?.value ?? 1) == 0)) {
@@ -80,7 +89,11 @@ class _ModalAppearanceState extends State<ModalAppearance>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed && !widget.impression.fired) {
+    if (state == AppLifecycleState.resumed) {
+      // inactive -> resumed need not schedule a new frame. Confirm the already
+      // painted content synchronously, before a hardware Back can pop it.
+      if (_paintConfirmed && !widget.impression.fired) _checkFrame();
+    } else if (!widget.impression.fired) {
       _cancelUnshown();
     }
   }
@@ -108,33 +121,42 @@ class _ModalAppearanceState extends State<ModalAppearance>
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) widget.impression.explicitClose();
         },
-        child: _PaintConfirmation(onPaint: _painted, child: widget.child),
+        child: _PaintConfirmation(
+          onPaint: _painted,
+          shouldConfirm: () => !widget.impression.fired && !widget.impression.closedBeforeAppearance,
+          child: widget.child,
+        ),
       ),
     );
   }
 }
 
 class _PaintConfirmation extends SingleChildRenderObjectWidget {
-  const _PaintConfirmation({required this.onPaint, required super.child});
+  const _PaintConfirmation({required this.onPaint, required this.shouldConfirm, required super.child});
+  final bool Function() shouldConfirm;
   final VoidCallback onPaint;
   @override
-  RenderObject createRenderObject(BuildContext context) =>
-      _PaintConfirmationBox(onPaint);
+  RenderObject createRenderObject(BuildContext context) => _PaintConfirmationBox(onPaint, shouldConfirm);
   @override
   void updateRenderObject(
     BuildContext context,
     _PaintConfirmationBox renderObject,
-  ) => renderObject.onPaint = onPaint;
+  ) {
+    renderObject.onPaint = onPaint;
+    renderObject.shouldConfirm = shouldConfirm;
+  }
 }
 
 class _PaintConfirmationBox extends RenderProxyBox {
-  _PaintConfirmationBox(this.onPaint);
+  _PaintConfirmationBox(this.onPaint, this.shouldConfirm);
+  bool Function() shouldConfirm;
   VoidCallback onPaint;
   @override
   void paint(PaintingContext context, Offset offset) {
     super.paint(context, offset);
+    if (!shouldConfirm()) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (attached) onPaint();
+      if (attached && shouldConfirm()) onPaint();
     });
   }
 }

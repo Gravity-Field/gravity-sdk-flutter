@@ -50,4 +50,38 @@ void main() {
       isNotNull,
     );
   });
+  test('anchor snapshot cannot change a tracked screen or its reservation', () {
+    final gate = InAppPresentationGate();
+    final tracked = gate.beginRequest('/home', 1, newScreen: true);
+    final pending = gate.reserve('s/u', 'modal', tracked)!;
+    gate.currentRequest(1);
+    expect(gate.isCurrent(tracked), isTrue);
+    expect(gate.owns(pending), isTrue);
+  });
+  test('an old delivery cannot release a newer opening after protection timeout', () {
+    var now = DateTime(2026);
+    final gate = InAppPresentationGate(now: () => now);
+    final old = gate.reserve('s/u', 'campaign', gate.beginRequest('/home', 1))!;
+    gate.visible(old);
+    now = now.add(const Duration(seconds: 61));
+    final current = gate.reserve('s/u', 'campaign', gate.beginRequest('/home', 1))!;
+    gate.visible(current);
+    gate.rejected('s/u', 'campaign', old.token);
+    gate.acknowledged('s/u', 'campaign', token: old.token);
+    expect(gate.owns(current), isTrue);
+    gate.rejected('s/u', 'campaign', current.token);
+    expect(gate.owns(current), isFalse);
+  });
+  test('ack watermark cache evicts the least recent value rather than insertion order', () {
+    final gate = InAppPresentationGate();
+    final old = gate.beginRequest('/a', 1);
+    gate.acknowledged('scope', 'updated');
+    for (var i = 0; i < 511; i++) {
+      gate.acknowledged('scope', 'other-$i');
+    }
+    gate.beginRequest('/a', 1);
+    gate.acknowledged('scope', 'updated');
+    gate.acknowledged('scope', 'overflow');
+    expect(gate.reserve('scope', 'updated', old), isNull);
+  });
 }

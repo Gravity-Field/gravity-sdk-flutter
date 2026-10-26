@@ -15,6 +15,7 @@ class OfflineQueueSettings {
   /// Maximum number of queued requests; the oldest is dropped on overflow.
   final int maxEntries;
 
-  /// Queued requests older than this are dropped instead of being sent.
+  /// Optional queued requests older than this are dropped instead of sent.
+  /// Mandatory modal WRIMP uses the cross-platform delivery TTL of seven days.
   final Duration maxAge;
 }

@@ -59,7 +59,7 @@ class GravitySDK {
 
   //other fields
   User? _user;
-  final presentationGate = InAppPresentationGate();
+  final _presentationGate = InAppPresentationGate.instance;
   ContentSettings contentSettings = ContentSettings();
   Options options = Options();
   String? proxyUrl;
@@ -329,7 +329,7 @@ class GravitySDK {
     _checkIsInitialized();
     PresentationReservation? reservation;
     var handedOff = false;
-    final request = presentationGate.beginRequest(
+    final request = _presentationGate.beginRequest(
       pageContext.location,
       IdentityVersion.current,
       newScreen: true,
@@ -351,7 +351,7 @@ class GravitySDK {
         campaigns: response.campaigns,
         pageContext: pageContext,
         fetchContent: (id, ctx) async {
-          if (reservation != null) presentationGate.cancel(reservation!);
+          if (reservation != null) _presentationGate.cancel(reservation!);
           await GravityRepo.instance.outbox.load();
           final scope = GravityRepo.impressionScope(
             section,
@@ -359,7 +359,7 @@ class GravitySDK {
                 SessionManager.instance.getCachedUser() ??
                 SessionManager.instance.observedUser,
           );
-          reservation = presentationGate.reserve(
+          reservation = _presentationGate.reserve(
             scope,
             id,
             request,
@@ -389,7 +389,7 @@ class GravitySDK {
         return;
       }
 
-      if (reservation == null || !presentationGate.owns(reservation!)) return;
+      if (reservation == null || !_presentationGate.owns(reservation!)) return;
       if (_skipIfNoLongerRelevant(ticket, context, campaignIdObj.campaignId)) {
         return;
       }
@@ -410,8 +410,7 @@ class GravitySDK {
               content: root,
               campaign: campaign,
               reservation: reservation,
-              isValid: () =>
-                  ticket.isSameUser && presentationGate.owns(reservation!),
+              isValid: () => ticket.isSameUser && _presentationGate.owns(reservation!),
             )
           : null;
       handedOff = modal;
@@ -426,7 +425,7 @@ class GravitySDK {
       _reportError(e, stackTrace, section: 'GravitySDK.trackView');
     } finally {
       if (!handedOff && reservation != null) {
-        presentationGate.cancel(reservation!);
+        _presentationGate.cancel(reservation!);
       }
     }
   }
@@ -438,10 +437,7 @@ class GravitySDK {
   }) async {
     _checkIsInitialized();
     final ticket = _PresentationTicket.take(context);
-    final request = presentationGate.beginRequest(
-      pageContext?.location ?? '',
-      IdentityVersion.current,
-    );
+    final request = _presentationGate.currentRequest(IdentityVersion.current);
     PresentationReservation? reservation;
     var handedOff = false;
     try {
@@ -497,7 +493,7 @@ class GravitySDK {
           user ?? response.user,
         );
         final id = campaign.payload.first.campaignId;
-        reservation = presentationGate.reserve(
+        reservation = _presentationGate.reserve(
           scope,
           id,
           request,
@@ -508,8 +504,7 @@ class GravitySDK {
           content: content,
           campaign: campaign,
           reservation: reservation,
-          isValid: () =>
-              ticket.isSameUser && presentationGate.owns(reservation!),
+          isValid: () => ticket.isSameUser && _presentationGate.owns(reservation!),
         );
         handedOff = true;
       }
@@ -534,7 +529,7 @@ class GravitySDK {
       _reportError(e, stackTrace, section: 'GravitySDK.fetchAnchorContent');
     } finally {
       if (!handedOff && reservation != null) {
-        presentationGate.cancel(reservation);
+        _presentationGate.cancel(reservation);
       }
     }
   }
@@ -550,7 +545,7 @@ class GravitySDK {
     _checkIsInitialized();
     PresentationReservation? reservation;
     var handedOff = false;
-    final request = presentationGate.beginRequest(
+    final request = _presentationGate.beginRequest(
       pageContext.location,
       IdentityVersion.current,
       newScreen: false,
@@ -573,7 +568,7 @@ class GravitySDK {
         campaigns: response.campaigns,
         pageContext: pageContext,
         fetchContent: (id, ctx) async {
-          if (reservation != null) presentationGate.cancel(reservation!);
+          if (reservation != null) _presentationGate.cancel(reservation!);
           await GravityRepo.instance.outbox.load();
           final scope = GravityRepo.impressionScope(
             section,
@@ -581,7 +576,7 @@ class GravitySDK {
                 SessionManager.instance.getCachedUser() ??
                 SessionManager.instance.observedUser,
           );
-          reservation = presentationGate.reserve(
+          reservation = _presentationGate.reserve(
             scope,
             id,
             request,
@@ -611,7 +606,7 @@ class GravitySDK {
         return;
       }
 
-      if (reservation == null || !presentationGate.owns(reservation!)) return;
+      if (reservation == null || !_presentationGate.owns(reservation!)) return;
       if (_skipIfNoLongerRelevant(ticket, context, campaignIdObj.campaignId)) {
         return;
       }
@@ -632,8 +627,7 @@ class GravitySDK {
               content: root,
               campaign: campaign,
               reservation: reservation,
-              isValid: () =>
-                  ticket.isSameUser && presentationGate.owns(reservation!),
+              isValid: () => ticket.isSameUser && _presentationGate.owns(reservation!),
             )
           : null;
       handedOff = modal;
@@ -648,7 +642,7 @@ class GravitySDK {
       _reportError(e, stackTrace, section: 'GravitySDK.triggerEvent');
     } finally {
       if (!handedOff && reservation != null) {
-        presentationGate.cancel(reservation!);
+        _presentationGate.cancel(reservation!);
       }
     }
   }

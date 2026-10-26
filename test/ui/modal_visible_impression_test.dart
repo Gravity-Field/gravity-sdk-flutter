@@ -255,6 +255,42 @@ void main() {
     },
   );
 
+  testWidgets('an already painted inactive window resumes and closes via Back without a detector frame', (
+    tester,
+  ) async {
+    var events = 0;
+    final opening = ModalImpression(
+      onVisible: () async {
+        events++;
+      },
+    );
+    late BuildContext host;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            host = context;
+            return const Scaffold(body: Text('Host'));
+          },
+        ),
+      ),
+    );
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    final c = campaign();
+    showDialog<void>(
+      context: host,
+      builder: (_) => ModalContent(content: c.payload.first.contents.first, campaign: c, impression: opening),
+    );
+    await tester.pumpAndSettle();
+    expect(events, 0);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    // No pump between resume and Back: an embedder need not produce a frame.
+    await tester.binding.handlePopRoute();
+    expect(events, 1);
+    await tester.pumpAndSettle();
+    expect(events, 1);
+  });
+
   testWidgets(
     'user or screen invalidated before first frame cancels without WRIMP',
     (tester) async {

@@ -14,6 +14,7 @@ class OutboxEntry {
   });
 
   static const int schemaVersion = 1;
+  static const modalDeliveryMaxAge = Duration(days: 7);
 
   final String id;
   final OutboxKind kind;
@@ -21,10 +22,12 @@ class OutboxEntry {
   /// UTC time the request was originally attempted.
   final DateTime createdAt;
 
-  /// Number of server-side failures (408/429/5xx) seen so far.
+  /// Failures used for backoff: server failures for ordinary entries, all
+  /// retryable failures for modal WRIMP.
   final int attempts;
 
-  /// Frozen request body for [OutboxKind.event] and [OutboxKind.visit].
+  /// Frozen request body for events/visits; captured context and retry
+  /// metadata for modal engagements (their URLs and identity stay frozen).
   final Map<String, dynamic>? body;
 
   /// Engagement URL for [OutboxKind.engagement].
@@ -33,6 +36,16 @@ class OutboxEntry {
   /// Modal WRIMP uses the same engagement queue, including when optional
   /// offline event buffering is disabled. Its URL already binds the user.
   bool get isModalImpression => kind == OutboxKind.engagement && body?['modalImpression'] == true;
+
+  /// Retry metadata lives alongside the frozen modal request, in schema v1.
+  DateTime? get modalRetryAt =>
+      isModalImpression && body?['retryAt'] is String ? DateTime.tryParse(body!['retryAt'] as String)?.toUtc() : null;
+  bool get modalRetryOnNetworkRestore => body?['retryOnNetworkRestore'] == true;
+
+  Duration effectiveMaxAge(Duration configured) => isModalImpression ? modalDeliveryMaxAge : configured;
+
+  bool isExpired(Duration maxAge, DateTime now) =>
+      isModalImpression ? now.difference(createdAt) >= effectiveMaxAge(maxAge) : now.difference(createdAt) > maxAge;
 
   OutboxEntry copyWith({int? attempts, Map<String, dynamic>? body}) => OutboxEntry(
     id: id,

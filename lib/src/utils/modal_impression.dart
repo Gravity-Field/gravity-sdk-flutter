@@ -8,11 +8,11 @@ class ModalImpression {
   final Future<void> Function() onVisible;
   final VoidCallback? onUnshownClose;
   final bool Function()? isValid;
-  bool _appeared = false;
   bool _fired = false;
   bool _closed = false;
   bool _stepTransition = false;
   int _attachment = 0;
+  VoidCallback? _confirmExplicitClose;
 
   bool get fired => _fired;
   bool get valid => isValid?.call() != false;
@@ -23,12 +23,11 @@ class ModalImpression {
 
   void appeared() {
     if (_closed || !active || !valid) return;
-    _appeared = true;
     _fire();
   }
 
   void explicitClose() {
-    if (_appeared && active) _fire();
+    if (!_closed && !_fired && active && valid) _confirmExplicitClose?.call();
   }
 
   void _fire() {
@@ -38,7 +37,8 @@ class ModalImpression {
   }
 
   void beginStep() => _stepTransition = true;
-  int attach() {
+  int attach({VoidCallback? confirmClose}) {
+    _confirmExplicitClose = confirmClose;
     _stepTransition = false;
     return ++_attachment;
   }
@@ -47,6 +47,7 @@ class ModalImpression {
     if (attachment != null && attachment != _attachment) return;
     if (_stepTransition || _closed) return;
     _closed = true;
+    _confirmExplicitClose = null;
     if (!_fired) onUnshownClose?.call();
   }
 }

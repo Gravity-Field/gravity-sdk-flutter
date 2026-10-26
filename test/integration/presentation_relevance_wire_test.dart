@@ -125,25 +125,29 @@ void main() {
       if (isChoose) {
         final custom = (body['user'] as Map?)?['custom'] ?? 'anonymous';
         final items = (body['data'] as List).cast<Map<String, dynamic>>();
-        request.response.write(jsonEncode({
-          'user': {'uid': 'server-uid', 'ses': 'server-ses'},
-          'data': [
-            for (final item in items)
-              if (item['campaignId'] != null)
-                campaign(null, content('modal-for-$custom', 'modal'))
-              else if (item['selector'] == 'anchor')
-                campaign('anchor', content('anchor-for-$custom', 'modal'))
-              else
-                campaign(item['selector'] as String?, content('inline-for-$custom', 'inline')),
-          ],
-        }));
+        request.response.write(
+          jsonEncode({
+            'user': {'uid': 'server-uid', 'ses': 'server-ses'},
+            'data': [
+              for (final item in items)
+                if (item['campaignId'] != null)
+                  campaign(null, content('modal-for-$custom', 'modal'))
+                else if (item['selector'] == 'anchor')
+                  campaign('anchor', content('anchor-for-$custom', 'modal'))
+                else
+                  campaign(item['selector'] as String?, content('inline-for-$custom', 'inline')),
+            ],
+          }),
+        );
       } else {
-        request.response.write(jsonEncode({
-          'user': {'uid': 'server-uid', 'ses': 'server-ses'},
-          'campaigns': [
-            {'campaignId': 'camp-1', 'trigger': 'view', 'priority': 1, 'delayTime': delayTime},
-          ],
-        }));
+        request.response.write(
+          jsonEncode({
+            'user': {'uid': 'server-uid', 'ses': 'server-ses'},
+            'campaigns': [
+              {'campaignId': 'camp-1', 'trigger': 'view', 'priority': 1, 'delayTime': delayTime},
+            ],
+          }),
+        );
       }
       await request.response.close();
       if (isChoose) chooseAnswered = true;
@@ -183,13 +187,32 @@ void main() {
     late BuildContext hostContext;
     // Routes the test pushes itself; any other dialog was opened by the SDK.
     late Set<Route<dynamic>> ownRoutes;
+    var includeAnchor = false;
+    late StateSetter updateHost;
 
     bool shownBySdk() => pushLog.pushed.any((r) => r is DialogRoute && !ownRoutes.contains(r));
 
     Widget hostPage() => Builder(
       builder: (context) {
         hostContext = context;
-        return const Text('Host route');
+        return StatefulBuilder(
+          builder: (context, setState) {
+            updateHost = setState;
+            return Column(
+              children: [
+                const Text('Host route'),
+                if (includeAnchor)
+                  GravityAnchor(
+                    selector: 'inline-anchor',
+                    builder: (context, onReady) {
+                      onReady();
+                      return const Text('Anchor');
+                    },
+                  ),
+              ],
+            );
+          },
+        );
       },
     );
 
@@ -198,6 +221,7 @@ void main() {
       nestedKey = GlobalKey<NavigatorState>();
       pushLog = _PushLog();
       ownRoutes = {};
+      includeAnchor = false;
       // Drops the app, the SDK's dialog included, even when the test failed.
       addTearDown(() => tester.pumpWidget(const SizedBox()));
       await tester.pumpWidget(
@@ -205,7 +229,10 @@ void main() {
           navigatorKey: rootKey,
           navigatorObservers: [pushLog],
           home: nested
-              ? Navigator(key: nestedKey, onGenerateRoute: (_) => MaterialPageRoute<void>(builder: (_) => hostPage()))
+              ? Navigator(
+                  key: nestedKey,
+                  onGenerateRoute: (_) => MaterialPageRoute<void>(builder: (_) => hostPage()),
+                )
               : Scaffold(body: hostPage()),
         ),
       );
@@ -247,6 +274,47 @@ void main() {
       events: [CustomEvent(type: 'custom-v1', name: 'relevance')],
       pageContext: ctx(),
     );
+
+    for (final trigger in [false, true]) {
+      for (final duringDelay in [false, true]) {
+        testWidgets(
+          '${trigger ? 'triggerEvent' : 'trackView'} survives a GravityAnchor without pageContext during ${duringDelay ? 'delay' : 'loading'}',
+          (tester) async {
+            await pumpHost(tester);
+            holdTriggers = !duringDelay;
+            if (duringDelay) delayTime = 400;
+            late Future<void> pending;
+            var done = false;
+            await tester.runAsync(() async {
+              pending = trigger ? triggerEvent() : trackView();
+              unawaited(
+                pending.then((_) {
+                  done = true;
+                }),
+              );
+              await waitFor(
+                () => duringDelay ? chooseAnswered : held.isNotEmpty,
+                'request did not reach expected phase',
+              );
+            });
+            updateHost(() {
+              includeAnchor = true;
+            });
+            await tester.pump(); // onReady schedules fetchAnchorContent at frame end.
+            holdTriggers = false;
+            releaseHeld();
+            for (var i = 0; i < 100 && !done; i++) {
+              await tester.pump(const Duration(milliseconds: 20));
+              await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 5)));
+            }
+            expect(done, isTrue);
+            expect(shownBySdk(), isTrue);
+            await tester.pumpWidget(const SizedBox());
+            await tester.pump(const Duration(seconds: 30));
+          },
+        );
+      }
+    }
 
     group('trackView', () {
       testWidgets('shows the campaign when nothing changed meanwhile', (tester) async {
