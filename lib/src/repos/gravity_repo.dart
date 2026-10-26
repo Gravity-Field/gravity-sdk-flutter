@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:gravity_sdk/gravity_sdk.dart' show GravitySDK;
@@ -69,7 +70,24 @@ class GravityRepo {
       case OutboxKind.event:
         await _sendDeferredEvent(entry, epoch);
       case OutboxKind.engagement:
-        await _api.triggerEventUrl(entry.url!, deferred: true);
+        if (entry.isModalImpression) {
+          final body = entry.body!;
+          for (final url in (body['urls'] as List).cast<String>()) {
+            if (outbox.epoch != epoch) return;
+            await _api.triggerEventUrl(
+              url,
+              deferred: true,
+              apiKey: body['apiKey'] as String?,
+            );
+          }
+          if (outbox.epoch != epoch) return;
+          GravitySDK.instance.presentationGate.acknowledged(
+            body['scope'] as String,
+            body['campaignId'] as String,
+          );
+        } else {
+          await _api.triggerEventUrl(entry.url!, deferred: true);
+        }
       case OutboxKind.visit:
         throw UnsupportedError('visit entries are not delivered by this version');
     }
@@ -518,6 +536,52 @@ class GravityRepo {
       );
       rethrow;
     }
+  }
+
+  /// Stable across process restarts; user/session generations remain separate
+  /// in the presentation gate. Tracking URLs themselves retain server identity.
+  static String impressionScope(String section, User? user) => jsonEncode([
+    section,
+    user?.custom != null ? 'custom:${user!.custom}' : 'uid:${user?.uid ?? ''}',
+  ]);
+
+  bool hasPendingImpression(String scope, String campaignId) => outbox.snapshot.any(
+    (entry) =>
+        entry.isModalImpression &&
+        entry.body?['scope'] == scope &&
+        entry.body?['campaignId'] == campaignId &&
+        Clock.now().difference(entry.createdAt) <= GravitySDK.instance.offlineQueue.maxAge,
+  );
+
+  Future<bool> queueModalImpression({
+    required List<String> urls,
+    required String scope,
+    required String campaignId,
+    required User? user,
+    required String section,
+    required String apiKey,
+  }) async {
+    if (urls.isEmpty) return false;
+    final epoch = outbox.epoch;
+    triggerEventUrlsObserver?.call(List.unmodifiable(urls));
+    return outbox.enqueue(
+      OutboxEntry(
+        id: const Uuid().v4(),
+        kind: OutboxKind.engagement,
+        createdAt: Clock.now().toUtc(),
+        url: urls.first,
+        body: {
+          'modalImpression': true,
+          'scope': scope,
+          'campaignId': campaignId,
+          'user': user?.toJson(),
+          'section': section,
+          'apiKey': apiKey,
+          'urls': List<String>.of(urls),
+        },
+      ),
+      precondition: () => outbox.epoch == epoch,
+    );
   }
 
   Future<void> triggerEventUrls(List<String> urls) async {

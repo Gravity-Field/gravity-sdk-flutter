@@ -1,3 +1,5 @@
+import 'utils/in_app_presentation_gate.dart';
+import 'utils/modal_impression.dart';
 import 'package:flutter/material.dart' hide Action;
 import 'package:gravity_sdk/src/models/internal/delivery_type.dart';
 import 'package:gravity_sdk/src/models/internal/template_system_name.dart';
@@ -57,6 +59,7 @@ class GravitySDK {
 
   //other fields
   User? _user;
+  final presentationGate = InAppPresentationGate();
   ContentSettings contentSettings = ContentSettings();
   Options options = Options();
   String? proxyUrl;
@@ -86,6 +89,7 @@ class GravitySDK {
     GravityContentCallback? gravityContentCallback,
     LogLevel logLevel = LogLevel.info,
   }) async {
+    IdentityVersion.bump();
     this.apiKey = apiKey;
     this.section = section;
     this.productWidgetBuilder = productWidgetBuilder;
@@ -135,7 +139,7 @@ class GravitySDK {
   /// Sends queued requests now (e.g. from the app's own connectivity
   /// listener). Completes when the queue is empty or blocked by a failure.
   ///
-  /// A no-op while [offlineQueue] is disabled: nothing is ever queued then.
+  /// With [offlineQueue] disabled, only mandatory modal WRIMP is drained.
   /// A queued event without identity waits for the session initialisation that
   /// is already in flight, so the call can take as long as the network
   /// timeouts of that request allow.
@@ -250,8 +254,8 @@ class GravitySDK {
   /// showing its own dialog, onboarding or paywall.
   ///
   /// While locked, content is still loaded and resolved but not shown — the
-  /// choose request and contentLoaded events are sent, so server-side
-  /// frequency caps are consumed even though nothing is presented. Already
+  /// choose request and contentLoaded events are sent. Modal WRIMP and
+  /// its frequency cap are recorded only if window content actually appears. Already
   /// presented content is not dismissed, and the other presentation paths are
   /// not gated: [fetchAnchorContent] (including auto-fetch from GravityAnchor),
   /// step navigation of open content, and the noShow/getContentBy* APIs.
@@ -323,6 +327,13 @@ class GravitySDK {
     required PageContext pageContext,
   }) async {
     _checkIsInitialized();
+    PresentationReservation? reservation;
+    var handedOff = false;
+    final request = presentationGate.beginRequest(
+      pageContext.location,
+      IdentityVersion.current,
+      newScreen: true,
+    );
     try {
       final startedAt = Clock.now();
       // Before the first await: what the user sees now is what the content
@@ -339,8 +350,29 @@ class GravitySDK {
       final resolved = await _resolveHighestPriority<ContentResponse>(
         campaigns: response.campaigns,
         pageContext: pageContext,
-        fetchContent: (id, ctx) =>
-            getContentByCampaignId(campaignId: id, pageContext: ctx),
+        fetchContent: (id, ctx) async {
+          if (reservation != null) presentationGate.cancel(reservation!);
+          await GravityRepo.instance.outbox.load();
+          final scope = GravityRepo.impressionScope(
+            section,
+            user ??
+                SessionManager.instance.getCachedUser() ??
+                SessionManager.instance.observedUser,
+          );
+          reservation = presentationGate.reserve(
+            scope,
+            id,
+            request,
+            deliveryPending: GravityRepo.instance.hasPendingImpression(
+              scope,
+              id,
+            ),
+          );
+          if (reservation == null) {
+            return ContentResponse(user: user ?? const User());
+          }
+          return getContentByCampaignId(campaignId: id, pageContext: ctx);
+        },
         extractCampaigns: (result) => result.data,
         section: 'GravitySDK.trackView',
       );
@@ -357,7 +389,10 @@ class GravitySDK {
         return;
       }
 
-      if (_skipIfNoLongerRelevant(ticket, context, campaignIdObj.campaignId)) return;
+      if (reservation == null || !presentationGate.owns(reservation!)) return;
+      if (_skipIfNoLongerRelevant(ticket, context, campaignIdObj.campaignId)) {
+        return;
+      }
 
       if (_skipIfPresentationLocked(campaignIdObj.campaignId)) return;
 
@@ -366,14 +401,33 @@ class GravitySDK {
         campaign.payload.firstOrNull?.contents ?? const [],
       );
       if (root == null) return;
+      final modal =
+          root.deliveryMethod == DeliveryMethod.modal ||
+          root.deliveryMethod == DeliveryMethod.bottomSheet ||
+          root.deliveryMethod == DeliveryMethod.fullScreen;
+      final impression = modal
+          ? ContentEventsService.instance.createModalImpression(
+              content: root,
+              campaign: campaign,
+              reservation: reservation,
+              isValid: () =>
+                  ticket.isSameUser && presentationGate.owns(reservation!),
+            )
+          : null;
+      handedOff = modal;
       _showBackendContent(
         context,
         root,
         campaign,
         pageContext: pageContext,
+        impression: impression,
       );
     } catch (e, stackTrace) {
       _reportError(e, stackTrace, section: 'GravitySDK.trackView');
+    } finally {
+      if (!handedOff && reservation != null) {
+        presentationGate.cancel(reservation!);
+      }
     }
   }
 
@@ -384,6 +438,12 @@ class GravitySDK {
   }) async {
     _checkIsInitialized();
     final ticket = _PresentationTicket.take(context);
+    final request = presentationGate.beginRequest(
+      pageContext?.location ?? '',
+      IdentityVersion.current,
+    );
+    PresentationReservation? reservation;
+    var handedOff = false;
     try {
       final effectivePageContext =
           pageContext ??
@@ -420,12 +480,46 @@ class GravitySDK {
       );
       if (content == null) return;
 
+      final modal =
+          content.deliveryMethod == DeliveryMethod.modal ||
+          content.deliveryMethod == DeliveryMethod.bottomSheet ||
+          content.deliveryMethod == DeliveryMethod.fullScreen;
+      ModalImpression? impression;
+      if (modal) {
+        await GravityRepo.instance.outbox.load();
+        if (!context.mounted ||
+            !ticket.isSameUser ||
+            !ticket.isSameScreen(context)) {
+          return;
+        }
+        final scope = GravityRepo.impressionScope(
+          section,
+          user ?? response.user,
+        );
+        final id = campaign.payload.first.campaignId;
+        reservation = presentationGate.reserve(
+          scope,
+          id,
+          request,
+          deliveryPending: GravityRepo.instance.hasPendingImpression(scope, id),
+        );
+        if (reservation == null) return;
+        impression = ContentEventsService.instance.createModalImpression(
+          content: content,
+          campaign: campaign,
+          reservation: reservation,
+          isValid: () =>
+              ticket.isSameUser && presentationGate.owns(reservation!),
+        );
+        handedOff = true;
+      }
       _showBackendContent(
         context,
         content,
         campaign,
         selector: selector,
         pageContext: effectivePageContext,
+        impression: impression,
       );
     } catch (e, stackTrace) {
       // The request was made for a user who is gone by now; its failure says
@@ -438,6 +532,10 @@ class GravitySDK {
         );
       }
       _reportError(e, stackTrace, section: 'GravitySDK.fetchAnchorContent');
+    } finally {
+      if (!handedOff && reservation != null) {
+        presentationGate.cancel(reservation);
+      }
     }
   }
 
@@ -450,6 +548,13 @@ class GravitySDK {
     required PageContext pageContext,
   }) async {
     _checkIsInitialized();
+    PresentationReservation? reservation;
+    var handedOff = false;
+    final request = presentationGate.beginRequest(
+      pageContext.location,
+      IdentityVersion.current,
+      newScreen: false,
+    );
     try {
       final startedAt = Clock.now();
       // Before the first await: what the user sees now is what the content
@@ -467,8 +572,29 @@ class GravitySDK {
       final resolved = await _resolveHighestPriority<ContentResponse>(
         campaigns: response.campaigns,
         pageContext: pageContext,
-        fetchContent: (id, ctx) =>
-            getContentByCampaignId(campaignId: id, pageContext: ctx),
+        fetchContent: (id, ctx) async {
+          if (reservation != null) presentationGate.cancel(reservation!);
+          await GravityRepo.instance.outbox.load();
+          final scope = GravityRepo.impressionScope(
+            section,
+            user ??
+                SessionManager.instance.getCachedUser() ??
+                SessionManager.instance.observedUser,
+          );
+          reservation = presentationGate.reserve(
+            scope,
+            id,
+            request,
+            deliveryPending: GravityRepo.instance.hasPendingImpression(
+              scope,
+              id,
+            ),
+          );
+          if (reservation == null) {
+            return ContentResponse(user: user ?? const User());
+          }
+          return getContentByCampaignId(campaignId: id, pageContext: ctx);
+        },
         extractCampaigns: (result) => result.data,
         section: 'GravitySDK.triggerEvent',
       );
@@ -485,7 +611,10 @@ class GravitySDK {
         return;
       }
 
-      if (_skipIfNoLongerRelevant(ticket, context, campaignIdObj.campaignId)) return;
+      if (reservation == null || !presentationGate.owns(reservation!)) return;
+      if (_skipIfNoLongerRelevant(ticket, context, campaignIdObj.campaignId)) {
+        return;
+      }
 
       if (_skipIfPresentationLocked(campaignIdObj.campaignId)) return;
 
@@ -494,14 +623,33 @@ class GravitySDK {
         campaign.payload.firstOrNull?.contents ?? const [],
       );
       if (root == null) return;
+      final modal =
+          root.deliveryMethod == DeliveryMethod.modal ||
+          root.deliveryMethod == DeliveryMethod.bottomSheet ||
+          root.deliveryMethod == DeliveryMethod.fullScreen;
+      final impression = modal
+          ? ContentEventsService.instance.createModalImpression(
+              content: root,
+              campaign: campaign,
+              reservation: reservation,
+              isValid: () =>
+                  ticket.isSameUser && presentationGate.owns(reservation!),
+            )
+          : null;
+      handedOff = modal;
       _showBackendContent(
         context,
         root,
         campaign,
         pageContext: pageContext,
+        impression: impression,
       );
     } catch (e, stackTrace) {
       _reportError(e, stackTrace, section: 'GravitySDK.triggerEvent');
+    } finally {
+      if (!handedOff && reservation != null) {
+        presentationGate.cancel(reservation!);
+      }
     }
   }
 
@@ -866,6 +1014,7 @@ class GravitySDK {
     required CampaignContent currentContent,
     required Campaign campaign,
     FormSession? session,
+    ModalImpression? impression,
   }) {
     session?.beginStepTransition();
 
@@ -902,6 +1051,8 @@ class GravitySDK {
       return;
     }
 
+    impression ??= ModalImpressionScope.maybeOf(context);
+    impression?.beginStep();
     final presentationContext = Navigator.of(context).context;
     _dismissCurrentInApp(context, currentContent);
     _showBackendContent(
@@ -909,6 +1060,7 @@ class GravitySDK {
       stepContent,
       campaign,
       session: session,
+      impression: impression,
     );
   }
 
@@ -939,8 +1091,19 @@ class GravitySDK {
     String? selector,
     PageContext? pageContext,
     FormSession? session,
+    ModalImpression? impression,
   }) {
     try {
+      final modal =
+          content.deliveryMethod == DeliveryMethod.modal ||
+          content.deliveryMethod == DeliveryMethod.bottomSheet ||
+          content.deliveryMethod == DeliveryMethod.fullScreen;
+      if (modal) {
+        impression ??= ContentEventsService.instance.createModalImpression(
+          content: content,
+          campaign: campaign,
+        );
+      }
       switch (content.deliveryMethod) {
         case DeliveryMethod.modal:
           _showModalContent(
@@ -948,6 +1111,7 @@ class GravitySDK {
             content,
             campaign,
             session ?? _createFormSession(pageContext, campaign),
+            impression,
           );
         case DeliveryMethod.bottomSheet:
           _showBottomSheetContent(
@@ -955,6 +1119,7 @@ class GravitySDK {
             content,
             campaign,
             session ?? _createFormSession(pageContext, campaign),
+            impression,
           );
         case DeliveryMethod.fullScreen:
           _showFullScreenContent(
@@ -962,6 +1127,7 @@ class GravitySDK {
             content,
             campaign,
             session ?? _createFormSession(pageContext, campaign),
+            impression,
           );
         case DeliveryMethod.snackBar:
           _showSnackBar(context, content, campaign);
@@ -974,6 +1140,7 @@ class GravitySDK {
         default:
       }
     } catch (e, stackTrace) {
+      impression?.closed();
       ErrorReporter.instance.report(
         message: e.toString(),
         level: 'error',
@@ -1030,12 +1197,14 @@ class GravitySDK {
     CampaignContent content,
     Campaign campaign,
     FormSession session,
+    ModalImpression? impression,
   ) {
     if (context.mounted) {
       final modal = ModalContent(
         content: content,
         campaign: campaign,
         session: session,
+        impression: impression,
       );
 
       showDialog<void>(
@@ -1045,6 +1214,7 @@ class GravitySDK {
         },
       ).then((_) {
         if (!session.consumeStepTransition()) {
+          impression?.closed();
           session.finish(
             FormCloseReason.dismiss,
             content: content,
@@ -1060,12 +1230,14 @@ class GravitySDK {
     CampaignContent content,
     Campaign campaign,
     FormSession session,
+    ModalImpression? impression,
   ) {
     if (context.mounted) {
       final bottomSheet = BottomSheetContent(
         content: content,
         campaign: campaign,
         session: session,
+        impression: impression,
       );
 
       final frameUi = content.variables.frameUI!;
@@ -1093,6 +1265,7 @@ class GravitySDK {
         },
       ).whenComplete(() {
         if (!session.consumeStepTransition()) {
+          impression?.closed();
           session.finish(
             FormCloseReason.dismiss,
             content: content,
@@ -1108,12 +1281,14 @@ class GravitySDK {
     CampaignContent content,
     Campaign campaign,
     FormSession session,
+    ModalImpression? impression,
   ) {
     if (context.mounted) {
       final fullScreen = FullScreenContent(
         content: content,
         campaign: campaign,
         session: session,
+        impression: impression,
       );
       Navigator.of(context)
           .push<void>(
@@ -1125,6 +1300,7 @@ class GravitySDK {
           )
           .then((_) {
             if (!session.consumeStepTransition()) {
+              impression?.closed();
               session.finish(
                 FormCloseReason.dismiss,
                 content: content,

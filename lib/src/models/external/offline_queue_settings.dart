@@ -7,8 +7,9 @@ class OfflineQueueSettings {
     this.maxAge = const Duration(days: 7),
   }) : assert(maxEntries > 0, 'maxEntries must be positive');
 
-  /// When false nothing is queued and nothing is sent from the queue.
-  /// Entries already on disk are kept and delivered once re-enabled.
+  /// When false optional offline events are neither queued nor drained.
+  /// Their existing entries are kept until re-enabled. Modal WRIMP tracking
+  /// always uses the durable engagement queue to protect frequency caps.
   final bool enabled;
 
   /// Maximum number of queued requests; the oldest is dropped on overflow.

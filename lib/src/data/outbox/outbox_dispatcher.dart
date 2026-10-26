@@ -34,7 +34,8 @@ class OutboxDispatcher with WidgetsBindingObserver {
        _sender = sender,
        _settings = settings;
 
-  /// Server-side failures (408/429/5xx) tolerated per entry before it is dropped.
+  /// Server-side failures tolerated for optional events. Modal WRIMP retries
+  /// until queue expiry, so an outage cannot discard its frequency-cap event.
   static const int maxServerAttempts = 5;
 
   @visibleForTesting
@@ -64,6 +65,12 @@ class OutboxDispatcher with WidgetsBindingObserver {
   /// "the network is back", which only matters after a network failure: a
   /// server that just answered 5xx is not helped by an early retry.
   RetryClass? _pausedAfter;
+
+  List<OutboxEntry> get snapshot => _store.snapshot();
+
+  Future<void> load() => _store.load();
+
+  bool get _canDrain => _settings().enabled || _store.snapshot().any((e) => e.isModalImpression);
 
   /// Entries the online path is sending right now; drains step over them.
   final Set<String> _inFlight = {};
@@ -154,7 +161,7 @@ class OutboxDispatcher with WidgetsBindingObserver {
 
   Future<bool> _persist(OutboxEntry entry, String section, {bool Function()? precondition}) async {
     final settings = _settings();
-    if (!settings.enabled) return false;
+    if (!settings.enabled && !entry.isModalImpression) return false;
     try {
       final dropped = precondition == null
           ? await _store.append(entry, maxEntries: settings.maxEntries)
@@ -178,7 +185,7 @@ class OutboxDispatcher with WidgetsBindingObserver {
   /// ticking, or there is nothing to send. A drain already running picks the
   /// request up when it finishes.
   void poke() {
-    if (!_settings().enabled) return;
+    if (!_canDrain) return;
     if (_draining != null) {
       _pokeRequested = true;
       return;
@@ -214,9 +221,9 @@ class OutboxDispatcher with WidgetsBindingObserver {
   /// fresh attempt follows it unless that drain sent something after the call
   /// anyway. Never throws.
   Future<void> flush() async {
-    // Documented as a no-op while disabled: do not even wait for a send that
-    // was begun before the queue was switched off.
-    if (!_settings().enabled) return;
+    // Optional buffering may be disabled while mandatory WRIMP still drains.
+    // With no mandatory entries, preserve the disabled queue's no-op behavior.
+    if (!_canDrain) return;
 
     // A send already on the wire was begun before the caller learned the
     // network is back, so waiting for it is not the attempt this flush asks
@@ -285,7 +292,7 @@ class OutboxDispatcher with WidgetsBindingObserver {
   /// Oldest entry not owned by the online path.
   OutboxEntry? _nextEntry() {
     for (final entry in _store.snapshot()) {
-      if (!_inFlight.contains(entry.id)) return entry;
+      if (!_inFlight.contains(entry.id) && (_settings().enabled || entry.isModalImpression)) return entry;
     }
     return null;
   }
@@ -310,7 +317,7 @@ class OutboxDispatcher with WidgetsBindingObserver {
 
       while (true) {
         phase = 'queue';
-        if (!_settings().enabled) return;
+        if (!_canDrain) return;
         final entry = _nextEntry();
         if (entry == null) return;
 
@@ -341,7 +348,7 @@ class OutboxDispatcher with WidgetsBindingObserver {
               // just frozen would be replaced by the stale snapshot.
               final current = _storedEntry(entry.id) ?? entry;
               final updated = current.copyWith(attempts: current.attempts + 1);
-              if (updated.attempts >= maxServerAttempts) {
+              if (!entry.isModalImpression && updated.attempts >= maxServerAttempts) {
                 _reportDropped(updated, 'rejected', error, stackTrace);
                 await _store.removeById(entry.id);
                 continue;

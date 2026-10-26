@@ -30,6 +30,10 @@ class OutboxEntry {
   /// Engagement URL for [OutboxKind.engagement].
   final String? url;
 
+  /// Modal WRIMP uses the same engagement queue, including when optional
+  /// offline event buffering is disabled. Its URL already binds the user.
+  bool get isModalImpression => kind == OutboxKind.engagement && body?['modalImpression'] == true;
+
   OutboxEntry copyWith({int? attempts, Map<String, dynamic>? body}) => OutboxEntry(
     id: id,
     kind: kind,

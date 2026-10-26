@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart' hide Options;
+import 'package:dio/dio.dart' as dio show Options;
 import 'package:flutter/foundation.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/api/gravity_interceptor.dart';
@@ -298,9 +299,16 @@ class Api {
     return CampaignIdsResponse.fromJson(response.data);
   }
 
-  Future<void> triggerEventUrl(String url, {bool deferred = false}) async {
+  Future<void> triggerEventUrl(
+    String url, {
+    bool deferred = false,
+    String? apiKey,
+  }) async {
     await _withRetry(
-      () => _dio.get(url),
+      () => _dio.get(
+        url,
+        options: apiKey == null ? null : dio.Options(headers: {'Authorization': 'Bearer $apiKey'}),
+      ),
       signalSuccess: false,
       retry: !deferred,
       budget: const Duration(seconds: 10),

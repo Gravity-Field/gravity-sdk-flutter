@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:gravity_sdk/src/utils/modal_impression.dart';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
@@ -19,11 +20,13 @@ class OnClickHandler {
   final CampaignContent content;
   final Campaign campaign;
   final FormSession? session;
+  final ModalImpression? impression;
 
   const OnClickHandler({
     required this.content,
     required this.campaign,
     this.session,
+    this.impression,
   });
 
   void _callbackTrackingEvent(TrackingEvent event) {
@@ -36,6 +39,9 @@ class OnClickHandler {
     bool explicitClose = false,
   }) {
     try {
+      if (explicitClose) {
+        (impression ?? ModalImpressionScope.maybeOf(context))?.explicitClose();
+      }
       // Unknown never matches: content.events entries with unrecognized types
       // also parse to Action.unknown, and a dead (demoted) button must not
       // fire someone else's tracking URL (spec §3.8).
@@ -79,6 +85,7 @@ class OnClickHandler {
             currentContent: content,
             campaign: campaign,
             session: session,
+            impression: impression,
           );
         case Action.submitForm:
           final formSession = session;
