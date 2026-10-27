@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:gravity_sdk/src/data/outbox/outbox_entry.dart';
 import 'package:gravity_sdk/src/data/prefs/prefs.dart';
+import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 
 /// FIFO persistence for [OutboxEntry] on top of SharedPreferences.
 ///
@@ -35,15 +36,34 @@ class OutboxStore {
       if (raw == null) return;
       try {
         final decoded = jsonDecode(raw);
-        if (decoded is! List) return;
+        if (decoded is! List) throw const FormatException('Expected outbox array');
+        var droppedLegacyModal = false;
         for (final item in decoded) {
           if (item is! Map<String, dynamic>) continue;
           final entry = OutboxEntry.fromJson(item);
-          if (entry != null) _entries.add(entry);
+          if (entry != null) {
+            _entries.add(entry);
+          } else if (item['body'] is Map &&
+              item['body']['modalImpression'] == true) {
+            droppedLegacyModal = true;
+          }
+        }
+        // Scrub legacy credentials even when there is nothing left to drain.
+        // load() precedes every mutation, so this write cannot race append.
+        if (droppedLegacyModal) {
+          await _prefs.setOutbox(
+            jsonEncode(_entries.map((e) => e.toJson()).toList()),
+          );
         }
       } on FormatException {
         // Unreadable queue: start over rather than fail every send.
         _entries.clear();
+        ErrorReporter.instance.report(
+          message: 'Unreadable outbox JSON; queued requests could not be recovered',
+          level: 'warning',
+          section: 'OutboxStore.load',
+          tags: const {'category': 'delivery', 'outcome': 'corrupt_store'},
+        );
       }
     } catch (_) {
       // Storage itself is unavailable: forget the memoised attempt so the
@@ -63,8 +83,10 @@ class OutboxStore {
   List<OutboxEntry> snapshot() => List.unmodifiable(_entries);
 
   /// Appends [entry]; when the queue exceeds [maxEntries] the oldest entries
-  /// are dropped and returned. A [maxEntries] below 1 is treated as 1, so an
-  /// invalid setting never drops the entry that was just appended.
+  /// are dropped and returned, optional entries before modal WRIMP. With only
+  /// WRIMP remaining, the oldest WRIMP is evicted. An incoming optional entry
+  /// may itself be dropped when all capacity is occupied by modal WRIMP.
+  /// A [maxEntries] below 1 is treated as 1.
   ///
   /// Not on disk means not queued: a failed write rolls the append back, so a
   /// drain never sends an entry its caller still owns.
@@ -91,14 +113,18 @@ class OutboxStore {
   }) async {
     await load();
     final limit = maxEntries < 1 ? 1 : maxEntries;
-    return _transaction(() {
-      _entries.add(entry);
-      final dropped = <OutboxEntry>[];
-      while (_entries.length > limit) {
-        dropped.add(_entries.removeAt(0));
-      }
-      return dropped;
-    }, rollbackOnFailure: true, precondition: stillWanted);
+    return _transaction(
+      () {
+        _entries.add(entry);
+        final dropped = <OutboxEntry>[];
+        while (_entries.length > limit) {
+          dropped.add(_removeOverflowEntry());
+        }
+        return dropped;
+      },
+      rollbackOnFailure: true,
+      precondition: stillWanted,
+    );
   }
 
   /// Drops the oldest entries beyond [maxEntries] and returns them; applies a
@@ -108,11 +134,18 @@ class OutboxStore {
     final limit = maxEntries < 1 ? 1 : maxEntries;
     final dropped = await _transaction(() {
       if (_entries.length <= limit) return null;
-      final dropped = _entries.sublist(0, _entries.length - limit);
-      _entries.removeRange(0, dropped.length);
+      final dropped = <OutboxEntry>[];
+      while (_entries.length > limit) {
+        dropped.add(_removeOverflowEntry());
+      }
       return dropped;
     });
     return dropped ?? const [];
+  }
+
+  OutboxEntry _removeOverflowEntry() {
+    final optional = _entries.indexWhere((entry) => !entry.isModalImpression);
+    return _entries.removeAt(optional == -1 ? 0 : optional);
   }
 
   Future<void> removeById(String id) async {
@@ -141,7 +174,7 @@ class OutboxStore {
   Future<List<OutboxEntry>> pruneExpired({required Duration maxAge, required DateTime now}) async {
     await load();
     final dropped = await _transaction(() {
-      final dropped = _entries.where((e) => now.difference(e.createdAt) > maxAge).toList();
+      final dropped = _entries.where((e) => e.isExpired(maxAge, now)).toList();
       if (dropped.isEmpty) return null;
       _entries.removeWhere(dropped.contains);
       return dropped;

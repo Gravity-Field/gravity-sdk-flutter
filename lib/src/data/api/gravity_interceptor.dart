@@ -6,7 +6,7 @@ class GravityInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final apiKey = GravitySDK.instance.apiKey;
-    options.headers['Authorization'] = 'Bearer $apiKey';
+    options.headers.putIfAbsent('Authorization', () => 'Bearer $apiKey');
     super.onRequest(options, handler);
   }
 

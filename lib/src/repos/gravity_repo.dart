@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'package:gravity_sdk/src/utils/in_app_presentation_gate.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:gravity_sdk/gravity_sdk.dart' show GravitySDK;
@@ -57,6 +60,15 @@ class GravityRepo {
     store: OutboxStore(),
     sender: sendOutboxEntry,
     settings: () => GravitySDK.instance.offlineQueue,
+    onDropped: (entry) {
+      if (!entry.isModalImpression) return;
+      final scope = entry.body?['scope'];
+      final campaign = entry.body?['campaignId'];
+      if (scope is String && campaign is String) {
+        final token = entry.body?['reservationToken'];
+        InAppPresentationGate.instance.rejected(scope, campaign, token is String ? token : null);
+      }
+    },
   );
 
   /// Sends one persisted entry. Responses are used only as a success signal:
@@ -69,7 +81,37 @@ class GravityRepo {
       case OutboxKind.event:
         await _sendDeferredEvent(entry, epoch);
       case OutboxKind.engagement:
-        await _api.triggerEventUrl(entry.url!, deferred: true);
+        if (entry.isModalImpression) {
+          final body = entry.body!;
+          final urls = body['urls'];
+          if (urls is! List ||
+              urls.isEmpty ||
+              urls.any((url) => url is! String) ||
+              body['scope'] is! String ||
+              body['campaignId'] is! String) {
+            throw const FormatException('Invalid modal impression entry');
+          }
+          for (final url in urls.cast<String>()) {
+            if (outbox.epoch != epoch) return;
+            // Never keep or restore a credential from disk. Recheck before
+            // each URL because initialize() can change the key during a send.
+            final apiKey = GravitySDK.instance.apiKey;
+            if (body['apiKeyFingerprint'] != _fingerprint(apiKey)) {
+              throw const FormatException(
+                'Modal impression API key changed or fingerprint missing',
+              );
+            }
+            await _api.triggerEventUrl(url, deferred: true, apiKey: apiKey);
+          }
+          if (outbox.epoch != epoch) return;
+          InAppPresentationGate.instance.acknowledged(
+            body['scope'] as String,
+            body['campaignId'] as String,
+            token: body['reservationToken'] as String? ?? '',
+          );
+        } else {
+          await _api.triggerEventUrl(entry.url!, deferred: true);
+        }
       case OutboxKind.visit:
         throw UnsupportedError('visit entries are not delivered by this version');
     }
@@ -518,6 +560,62 @@ class GravityRepo {
       );
       rethrow;
     }
+  }
+
+  /// Stable across process restarts; user/session generations remain separate
+  /// in the presentation gate. Hash the scope to avoid duplicating user IDs
+  /// in storage; tracking URLs themselves retain the required server identity.
+  static String impressionScope(String section, User? user) => _fingerprint(
+    jsonEncode([
+      section,
+      user?.custom != null
+          ? 'custom:${user!.custom}'
+          : 'uid:${user?.uid ?? ''}',
+    ]),
+  );
+
+  static String _fingerprint(String value) =>
+      sha256.convert(utf8.encode(value)).toString();
+
+  bool hasPendingImpression(String scope, String campaignId) => outbox.snapshot.any(
+    (entry) =>
+        entry.isModalImpression &&
+        entry.body?['scope'] == scope &&
+        entry.body?['campaignId'] == campaignId &&
+        Clock.now().difference(entry.createdAt) < InAppPresentationGate.pendingDeliveryProtection,
+  );
+
+  Future<bool> queueModalImpression({
+    required List<String> urls,
+    required String scope,
+    required String campaignId,
+    required User? user,
+    required String section,
+    required String apiKey,
+    String? reservationToken,
+    VoidCallback? onEnqueued,
+  }) async {
+    if (urls.isEmpty) return false;
+    final epoch = outbox.epoch;
+    triggerEventUrlsObserver?.call(List.unmodifiable(urls));
+    return outbox.deliverModal(
+      OutboxEntry(
+        id: const Uuid().v4(),
+        kind: OutboxKind.engagement,
+        createdAt: Clock.now().toUtc(),
+        url: urls.first,
+        body: {
+          'modalImpression': true,
+          'scope': scope,
+          'campaignId': campaignId,
+          'reservationToken': reservationToken,
+          'apiKeyFingerprint': _fingerprint(apiKey),
+          'urls': List<String>.of(urls),
+        },
+      ),
+      precondition: () => outbox.epoch == epoch,
+      onEnqueued: onEnqueued,
+    );
   }
 
   Future<void> triggerEventUrls(List<String> urls) async {

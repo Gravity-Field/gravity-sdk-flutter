@@ -1,4 +1,7 @@
 import 'package:collection/collection.dart';
+import 'package:gravity_sdk/src/utils/modal_impression.dart';
+import 'package:gravity_sdk/src/utils/in_app_presentation_gate.dart';
+import 'package:gravity_sdk/src/data/session/session_manager.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/repos/gravity_repo.dart';
@@ -9,6 +12,74 @@ class ContentEventsService {
   static const contentClickEventType = 'click';
 
   static final ContentEventsService instance = ContentEventsService._();
+
+  ModalImpression createModalImpression({
+    required CampaignContent content,
+    required Campaign campaign,
+    PresentationReservation? reservation,
+    bool Function()? isValid,
+  }) {
+    final sdk = GravitySDK.instance;
+    final user =
+        sdk.user ??
+        SessionManager.instance.getCachedUser() ??
+        SessionManager.instance.observedUser;
+    final section = sdk.section;
+    final apiKey = sdk.apiKey;
+    final scope =
+        reservation?.scope ?? GravityRepo.impressionScope(section, user);
+    final campaignId =
+        reservation?.campaignId ?? campaign.payload.first.campaignId;
+    // Snapshot root URLs before OPEN_STEP can replace the content.
+    final urls =
+        content.events
+            ?.where((e) => e.type == Action.visibleImpression)
+            .expand((e) => e.urls)
+            .toSet()
+            .toList() ??
+        <String>[];
+    return ModalImpression(
+      isValid: isValid,
+      onUnshownClose: reservation == null ? null : () => InAppPresentationGate.instance.cancel(reservation),
+      onVisible: () async {
+        try {
+          if (reservation != null) InAppPresentationGate.instance.visible(reservation);
+          if (urls.isEmpty) {
+            ErrorReporter.instance.report(
+              message: 'Modal visible_impression has no tracking URLs',
+              level: 'warning',
+              section: 'ContentEventsService',
+              tags: const {'category': 'tracking'},
+            );
+            sdk.gravityEventCallback?.call(
+              ContentVisibleImpressionEvent(content, campaign),
+            );
+            return;
+          }
+          await GravityRepo.instance.queueModalImpression(
+            urls: urls,
+            scope: scope,
+            campaignId: campaignId,
+            user: user,
+            section: section,
+            apiKey: apiKey,
+            reservationToken: reservation?.token,
+            onEnqueued: () => sdk.gravityEventCallback?.call(
+              ContentVisibleImpressionEvent(content, campaign),
+            ),
+          );
+        } catch (error, stackTrace) {
+          ErrorReporter.instance.report(
+            message: error.toString(),
+            level: 'warning',
+            section: 'ContentEventsService.modalVisibleImpression',
+            stacktrace: stackTrace.toString(),
+            tags: const {'category': 'tracking'},
+          );
+        }
+      },
+    );
+  }
 
   void sendContentLoaded({
     required CampaignContent content,

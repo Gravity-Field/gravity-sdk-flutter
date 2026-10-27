@@ -13,8 +13,8 @@ import 'package:gravity_sdk/src/utils/logger.dart';
 
 typedef OutboxSender = Future<void> Function(OutboxEntry entry);
 
-/// Drains the outbox strictly FIFO, one entry at a time, and decides when to
-/// try again. Wake-up signals: app start, return to foreground, any
+/// Drains ordinary entries FIFO. Modal retries have their own persisted retry
+/// times in the same store, so a failed WRIMP cannot block later entries. Wake-up signals: app start, return to foreground, any
 /// successful online request, a backoff timer, the queue being switched on,
 /// and an explicit flush.
 ///
@@ -30,11 +30,14 @@ class OutboxDispatcher with WidgetsBindingObserver {
     required OutboxStore store,
     required OutboxSender sender,
     required OfflineQueueSettings Function() settings,
+    void Function(OutboxEntry entry)? onDropped,
   }) : _store = store,
        _sender = sender,
-       _settings = settings;
+       _settings = settings,
+       _onDropped = onDropped;
 
-  /// Server-side failures (408/429/5xx) tolerated per entry before it is dropped.
+  /// Server-side failures tolerated for optional events. Modal WRIMP retries
+  /// until queue expiry, so an outage cannot discard its frequency-cap event.
   static const int maxServerAttempts = 5;
 
   @visibleForTesting
@@ -52,6 +55,9 @@ class OutboxDispatcher with WidgetsBindingObserver {
   final OutboxSender _sender;
   final OfflineQueueSettings Function() _settings;
 
+  final void Function(OutboxEntry entry)? _onDropped;
+  Timer? _modalTimer;
+  final Set<String> _modalRetryOverrides = {};
   Timer? _timer;
   int _backoffLevel = 0;
   Future<void>? _draining;
@@ -64,6 +70,22 @@ class OutboxDispatcher with WidgetsBindingObserver {
   /// "the network is back", which only matters after a network failure: a
   /// server that just answered 5xx is not helped by an early retry.
   RetryClass? _pausedAfter;
+
+  List<OutboxEntry> get snapshot => _store.snapshot();
+
+  /// Presentation remains available when storage cannot be read. In-memory
+  /// reservations still protect concurrent requests until storage recovers.
+  Future<bool> load() async {
+    try {
+      await _store.load();
+      return true;
+    } catch (error, stackTrace) {
+      _reportStoreError('load', error, stackTrace);
+      return false;
+    }
+  }
+
+  bool get _canDrain => _settings().enabled || _store.snapshot().any((e) => e.isModalImpression);
 
   /// Entries the online path is sending right now; drains step over them.
   final Set<String> _inFlight = {};
@@ -107,6 +129,82 @@ class OutboxDispatcher with WidgetsBindingObserver {
     _log('queued ${entry.kind.name} ${entry.id}, pending ${_store.length}');
     poke();
     return true;
+  }
+
+  /// The first modal attempt uses the existing reserve/complete online path,
+  /// independent of an older request's backoff. On failed persistence it still
+  /// makes one best-effort send, with the same immutable URL/user context.
+  Future<bool> deliverModal(
+    OutboxEntry entry, {
+    bool Function()? precondition,
+    void Function()? onEnqueued,
+  }) async {
+    assert(entry.isModalImpression);
+    final epoch = _epoch;
+    final persisted = await reserve(entry, precondition: precondition);
+    // Appearance is independent of HTTP latency, rejection or retry. Notify
+    // after the durable write (or its best-effort failure), before sending.
+    try {
+      onEnqueued?.call();
+    } catch (error, stackTrace) {
+      _reportStoreError('modalCallback', error, stackTrace);
+    }
+    if (_epoch != epoch || (precondition != null && !precondition())) {
+      _inFlight.remove(entry.id);
+      return false;
+    }
+    try {
+      await _sender(entry);
+      if (_epoch == epoch && persisted) await complete(entry.id);
+      return true;
+    } catch (error, stackTrace) {
+      if (_epoch != epoch) {
+        _inFlight.remove(entry.id);
+        return persisted;
+      }
+      if (persisted) {
+        try {
+          await _deferModal(entry, error, stackTrace);
+        } catch (storeError, storeTrace) {
+          _reportStoreError('modalRetry', storeError, storeTrace);
+        }
+      } else if (classifyError(error) == RetryClass.permanent) {
+        _reportDropped(entry, 'rejected', error, stackTrace);
+      } else {
+        _reportStoreError('modalBestEffort', error, stackTrace);
+      }
+      return persisted;
+    } finally {
+      _inFlight.remove(entry.id);
+      poke();
+    }
+  }
+
+  Future<void> _deferModal(OutboxEntry entry, Object error, StackTrace stackTrace) async {
+    if (_storedEntry(entry.id) == null) return;
+    final expired = entry.isExpired(_settings().maxAge, Clock.now());
+    if (classifyError(error) == RetryClass.permanent || expired) {
+      _reportDropped(
+        entry,
+        expired ? 'expired' : 'rejected',
+        error,
+        stackTrace,
+      );
+      await _store.removeById(entry.id);
+      return;
+    }
+    final current = _storedEntry(entry.id)!;
+    final delay = Backoff.delayFor(current.attempts, random: jitter());
+    await _store.replace(
+      current.copyWith(
+        attempts: current.attempts + 1,
+        body: {
+          ...?current.body,
+          'retryAt': Clock.now().add(delay).toUtc().toIso8601String(),
+          'retryOnNetworkRestore': classifyError(error) == RetryClass.transient,
+        },
+      ),
+    );
   }
 
   /// Persists [entry] on behalf of the online path that is about to send it.
@@ -154,7 +252,7 @@ class OutboxDispatcher with WidgetsBindingObserver {
 
   Future<bool> _persist(OutboxEntry entry, String section, {bool Function()? precondition}) async {
     final settings = _settings();
-    if (!settings.enabled) return false;
+    if (!settings.enabled && !entry.isModalImpression) return false;
     try {
       final dropped = precondition == null
           ? await _store.append(entry, maxEntries: settings.maxEntries)
@@ -167,7 +265,7 @@ class OutboxDispatcher with WidgetsBindingObserver {
       for (final e in dropped) {
         _reportDropped(e, 'overflow');
       }
-      return true;
+      return !dropped.any((e) => e.id == entry.id);
     } catch (error, stackTrace) {
       _reportStoreError(section, error, stackTrace);
       return false;
@@ -178,15 +276,18 @@ class OutboxDispatcher with WidgetsBindingObserver {
   /// ticking, or there is nothing to send. A drain already running picks the
   /// request up when it finishes.
   void poke() {
-    if (!_settings().enabled) return;
+    if (!_canDrain) return;
     if (_draining != null) {
       _pokeRequested = true;
       return;
     }
-    if (_timer != null) return;
-    if (_nextEntry() == null) return;
+    if (_nextEntry() == null) {
+      _armModalTimer();
+      return;
+    }
     _draining = _drain().whenComplete(() {
       _draining = null;
+      _armModalTimer();
       if (_pokeRequested) {
         _pokeRequested = false;
         poke();
@@ -197,13 +298,19 @@ class OutboxDispatcher with WidgetsBindingObserver {
   /// A request elsewhere just succeeded: the network is back. Pierces a pause
   /// caused by a network failure; a pause after a server error keeps ticking.
   void onRequestSucceeded() {
-    if (_timer != null && _pausedAfter == RetryClass.server) return;
-    _resetBackoff();
+    _modalRetryOverrides.addAll(
+      _store
+          .snapshot()
+          .where((entry) => entry.isModalImpression && entry.modalRetryOnNetworkRestore)
+          .map((entry) => entry.id),
+    );
+    if (_timer == null || _pausedAfter != RetryClass.server) _resetBackoff();
     poke();
   }
 
   /// The queue was switched on (or its limits changed): look at the disk now.
   void onSettingsChanged() {
+    _wakeModalRetries();
     _resetBackoff();
     poke();
   }
@@ -214,9 +321,9 @@ class OutboxDispatcher with WidgetsBindingObserver {
   /// fresh attempt follows it unless that drain sent something after the call
   /// anyway. Never throws.
   Future<void> flush() async {
-    // Documented as a no-op while disabled: do not even wait for a send that
-    // was begun before the queue was switched off.
-    if (!_settings().enabled) return;
+    // Optional buffering may be disabled while mandatory WRIMP still drains.
+    // With no mandatory entries, preserve the disabled queue's no-op behavior.
+    if (!_canDrain) return;
 
     // A send already on the wire was begun before the caller learned the
     // network is back, so waiting for it is not the attempt this flush asks
@@ -229,6 +336,7 @@ class OutboxDispatcher with WidgetsBindingObserver {
     _resetBackoff();
     try {
       await _store.load();
+      _wakeModalRetries();
       // A removal whose write failed earlier is retried now that the caller
       // says storage or network is back; otherwise a delivered entry would
       // return from disk on the next launch.
@@ -253,6 +361,9 @@ class OutboxDispatcher with WidgetsBindingObserver {
   /// online path still owns while the clear waits behind an earlier write.
   Future<void> clear() async {
     _epoch++;
+    _modalRetryOverrides.clear();
+    _modalTimer?.cancel();
+    _modalTimer = null;
     _resetBackoff();
     try {
       await _store.clear();
@@ -282,16 +393,53 @@ class OutboxDispatcher with WidgetsBindingObserver {
     return null;
   }
 
-  /// Oldest entry not owned by the online path.
+  /// Oldest eligible entry not owned by the online path; skip deferred WRIMP.
   OutboxEntry? _nextEntry() {
+    final now = Clock.now();
     for (final entry in _store.snapshot()) {
-      if (!_inFlight.contains(entry.id)) return entry;
+      if (_inFlight.contains(entry.id)) continue;
+      if (entry.isModalImpression) {
+        if (entry.isExpired(_settings().maxAge, now) ||
+            _modalRetryOverrides.contains(entry.id) ||
+            entry.modalRetryAt == null ||
+            !entry.modalRetryAt!.isAfter(now)) {
+          return entry;
+        }
+      } else if (_settings().enabled && _timer == null) {
+        return entry;
+      }
     }
     return null;
   }
 
+  void _wakeModalRetries() =>
+      _modalRetryOverrides.addAll(_store.snapshot().where((entry) => entry.isModalImpression).map((entry) => entry.id));
+
+  /// A single timer wakes eligible WRIMP retries in this same dispatcher.
+  /// Retry timestamps are persisted, so restart does not reset server backoff.
+  void _armModalTimer() {
+    _modalTimer?.cancel();
+    _modalTimer = null;
+    DateTime? earliest;
+    final now = Clock.now();
+    for (final entry in _store.snapshot()) {
+      if (!entry.isModalImpression || _inFlight.contains(entry.id)) continue;
+      var retry = entry.modalRetryAt;
+      if (retry == null) continue;
+      final expiry = entry.createdAt.add(entry.effectiveMaxAge(_settings().maxAge));
+      if (expiry.isBefore(retry)) retry = expiry;
+      if (!retry.isAfter(now)) continue;
+      if (earliest == null || retry.isBefore(earliest)) earliest = retry;
+    }
+    if (earliest != null) {
+      _modalTimer = timerFactory(earliest.difference(now), () {
+        _modalTimer = null;
+        poke();
+      });
+    }
+  }
+
   Future<void> _drain() async {
-    _cancelTimer();
     // Names the storage step a failure came from: a write that fails right
     // after a delivery may leave the entry queued and send it twice, which is
     // a very different problem from a queue that cannot be read at all.
@@ -310,12 +458,12 @@ class OutboxDispatcher with WidgetsBindingObserver {
 
       while (true) {
         phase = 'queue';
-        if (!_settings().enabled) return;
+        if (!_canDrain) return;
         final entry = _nextEntry();
         if (entry == null) return;
 
         // A slow delivery ahead of it may have aged this entry past maxAge.
-        if (Clock.now().difference(entry.createdAt) > _settings().maxAge) {
+        if (entry.isExpired(_settings().maxAge, Clock.now())) {
           _reportDropped(entry, 'expired');
           await _store.removeById(entry.id);
           continue;
@@ -323,6 +471,7 @@ class OutboxDispatcher with WidgetsBindingObserver {
 
         // Only the send is classified; every drop is reported before the store
         // is touched, so a failing write cannot swallow the report.
+        _modalRetryOverrides.remove(entry.id);
         _sendAttempts++;
         final epoch = _epoch;
         try {
@@ -331,6 +480,10 @@ class OutboxDispatcher with WidgetsBindingObserver {
           // The queue was cleared while this was on the wire: nothing to
           // retry, and no pause for whatever gets queued next.
           if (epoch != _epoch) return;
+          if (entry.isModalImpression) {
+            await _deferModal(entry, error, stackTrace);
+            continue;
+          }
           switch (classifyError(error)) {
             case RetryClass.transient:
               _scheduleRetry(RetryClass.transient);
@@ -360,7 +513,7 @@ class OutboxDispatcher with WidgetsBindingObserver {
         phase = 'after_delivery';
         if (epoch != _epoch) return;
         await _store.removeById(entry.id);
-        _backoffLevel = 0;
+        if (!entry.isModalImpression) _backoffLevel = 0;
         _log('delivered ${entry.kind.name} ${entry.id}, pending ${_store.length}');
       }
     } catch (error, stackTrace) {
@@ -404,11 +557,14 @@ class OutboxDispatcher with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.resumed:
+        _wakeModalRetries();
         _resetBackoff();
         poke();
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:
         _cancelTimer();
+        _modalTimer?.cancel();
+        _modalTimer = null;
       case AppLifecycleState.inactive:
       case AppLifecycleState.hidden:
         break;
@@ -416,6 +572,8 @@ class OutboxDispatcher with WidgetsBindingObserver {
   }
 
   void _reportDropped(OutboxEntry entry, String reason, [Object? error, StackTrace? stackTrace]) {
+    _onDropped?.call(entry);
+    _modalRetryOverrides.remove(entry.id);
     _log('dropped ${entry.kind.name} ${entry.id}: $reason');
     ErrorReporter.instance.report(
       message: 'Outbox entry dropped: $reason${error == null ? '' : ' ($error)'}',

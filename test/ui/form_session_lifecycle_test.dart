@@ -14,6 +14,7 @@ import 'package:gravity_sdk/src/models/internal/campaign_content.dart';
 import 'package:gravity_sdk/src/repos/gravity_repo.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/bottom_sheet/bottom_sheet_content.dart';
 import 'package:gravity_sdk/src/utils/logger.dart';
+import 'package:gravity_sdk/src/utils/modal_impression.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 const _pageContext = PageContext(
@@ -166,6 +167,53 @@ void main() {
     GravitySDK.instance.gravityEventCallback = null;
     GravityRepo.triggerEventUrlsObserver = null;
   });
+
+  for (final format in ['modal', 'bottom_sheet', 'full_screen']) {
+    testWidgets(
+      '$format cancelled before appearance does not dismiss form or track close',
+      (tester) async {
+        final campaign = _campaign([
+          _content('root', deliveryMethod: 'inline'),
+          _content(
+            'step-1',
+            step: 1,
+            deliveryMethod: format,
+            trackClose: true,
+            elements: [
+              {'type': 'text-input', 'attributeName': 'feedback', 'style': {}},
+            ],
+          ),
+        ]);
+        final session = _SpyFormSession();
+        var closeEvents = 0;
+        var trackingCalls = 0;
+        GravitySDK.instance.gravityEventCallback = (event) {
+          if (event is ContentCloseEvent) closeEvents++;
+        };
+        GravityRepo.triggerEventUrlsObserver = (_) => trackingCalls++;
+        final context = await _pumpHost(tester);
+        final opening = ModalImpression(
+          onVisible: () async {},
+          isValid: () => false,
+        );
+        GravitySDK.instance.openStep(
+          context: context,
+          onClick: OnClick(action: Action.openStep, step: 1),
+          currentContent: _contentById(campaign, 'root'),
+          campaign: campaign,
+          session: session,
+          impression: opening,
+        );
+        // The inline source has no route completion to consume its transition.
+        session.consumeStepTransition();
+        await tester.pumpAndSettle();
+        expect(opening.closedBeforeAppearance, isTrue);
+        expect(session.attemptedReasons, isEmpty);
+        expect(closeEvents, 0);
+        expect(trackingCalls, 0);
+      },
+    );
+  }
 
   testWidgets('bottom-sheet swipe dismiss finishes once with dismiss', (
     tester,
