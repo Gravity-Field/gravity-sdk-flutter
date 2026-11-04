@@ -4,10 +4,14 @@ import 'package:flutter/widgets.dart';
 
 /// One flag for every detector, close callback and step in one opening.
 class ModalImpression {
-  ModalImpression({required this.onVisible, this.onUnshownClose, this.isValid});
+  ModalImpression({required this.onVisible, this.onUnshownClose, this.isValid, this.isValidWhileAttached, this.onAttached, this.onDetached});
   final Future<void> Function() onVisible;
   final VoidCallback? onUnshownClose;
+  final VoidCallback? onAttached;
+  final VoidCallback? onDetached;
   final bool Function()? isValid;
+  // Attached snackbars outlive screen reservations, but never user changes.
+  final bool Function()? isValidWhileAttached;
   bool _fired = false;
   bool _closed = false;
   bool _stepTransition = false;
@@ -15,7 +19,7 @@ class ModalImpression {
   VoidCallback? _confirmExplicitClose;
 
   bool get fired => _fired;
-  bool get valid => isValid?.call() != false;
+  bool get valid => (_attachment > 0 ? isValidWhileAttached ?? isValid : isValid)?.call() != false;
   bool get closedBeforeAppearance => _closed && !_fired;
   bool get active =>
       WidgetsBinding.instance.lifecycleState == null ||
@@ -40,6 +44,7 @@ class ModalImpression {
   int attach({VoidCallback? confirmClose}) {
     _confirmExplicitClose = confirmClose;
     _stepTransition = false;
+    onAttached?.call();
     return ++_attachment;
   }
 
@@ -48,6 +53,7 @@ class ModalImpression {
     if (_stepTransition || _closed) return;
     _closed = true;
     _confirmExplicitClose = null;
+    onDetached?.call();
     if (!_fired) onUnshownClose?.call();
   }
 }

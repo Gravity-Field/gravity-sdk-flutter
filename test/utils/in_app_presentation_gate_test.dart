@@ -2,6 +2,41 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gravity_sdk/src/utils/in_app_presentation_gate.dart';
 
 void main() {
+  test('attached showing survives screen changes and bridge expiry until close', () {
+    var now = DateTime(2026);
+    final gate = InAppPresentationGate(now: () => now);
+    final showing = gate.reserve('s/u', 'campaign', gate.beginRequest('/a', 1))!;
+    gate.attached(showing);
+    final next = gate.beginRequest('/b', 1, newScreen: true);
+    expect(gate.owns(showing), isTrue);
+    expect(gate.reserve('s/u', 'campaign', next), isNull);
+    now = now.add(const Duration(minutes: 2));
+    expect(gate.reserve('s/u', 'campaign', gate.beginRequest('/b', 1)), isNull);
+    gate.detached(showing);
+    gate.cancel(showing);
+    expect(gate.reserve('s/u', 'campaign', gate.beginRequest('/b', 1)), isNotNull);
+  });
+
+  test('acknowledgement does not release an attached showing; close does', () {
+    final gate = InAppPresentationGate();
+    final showing = gate.reserve('s/u', 'campaign', gate.beginRequest('/a', 1))!;
+    gate.attached(showing);
+    gate.visible(showing);
+    gate.acknowledged('s/u', 'campaign', token: showing.token);
+    expect(gate.reserve('s/u', 'campaign', gate.beginRequest('/b', 1)), isNull);
+    gate.detached(showing);
+    expect(gate.reserve('s/u', 'campaign', gate.beginRequest('/b', 1)), isNotNull);
+  });
+
+  test('user generation change invalidates attached pre-WRIMP protection', () {
+    final gate = InAppPresentationGate();
+    final showing = gate.reserve('s/u', 'campaign', gate.beginRequest('/a', 1))!;
+    gate.attached(showing);
+    final next = gate.beginRequest('/a', 2);
+    expect(gate.owns(showing), isFalse);
+    expect(gate.reserve('s/u', 'campaign', next), isNotNull);
+  });
+
   test(
     'parallel requests reserve once and stale responses stay rejected after ack',
     () {

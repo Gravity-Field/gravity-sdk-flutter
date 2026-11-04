@@ -1,3 +1,4 @@
+import 'package:gravity_sdk/src/utils/identity_version.dart';
 import 'package:collection/collection.dart';
 import 'package:gravity_sdk/src/utils/modal_impression.dart';
 import 'package:gravity_sdk/src/utils/in_app_presentation_gate.dart';
@@ -20,6 +21,7 @@ class ContentEventsService {
     bool Function()? isValid,
   }) {
     final sdk = GravitySDK.instance;
+    final identity = IdentityVersion.current;
     final user =
         sdk.user ??
         SessionManager.instance.getCachedUser() ??
@@ -38,8 +40,14 @@ class ContentEventsService {
             .toSet()
             .toList() ??
         <String>[];
+    final attachedSnackbar = reservation != null && content.deliveryMethod == DeliveryMethod.snackBar;
     return ModalImpression(
+      onAttached: attachedSnackbar ? () => InAppPresentationGate.instance.attached(reservation) : null,
+      onDetached: attachedSnackbar ? () => InAppPresentationGate.instance.detached(reservation) : null,
       isValid: isValid,
+      isValidWhileAttached: content.deliveryMethod == DeliveryMethod.snackBar
+          ? () => identity == IdentityVersion.current
+          : null,
       onUnshownClose: reservation == null ? null : () => InAppPresentationGate.instance.cancel(reservation),
       onVisible: () async {
         try {
@@ -127,6 +135,7 @@ class ContentEventsService {
     required CampaignContent content,
     required Campaign campaign,
     bool callbackTrackingEvent = true,
+    bool fallbackToCloseEvent = false,
   }) {
     final onClose = content.variables.onClose;
     _trackEvent(
@@ -135,6 +144,16 @@ class ContentEventsService {
       campaign: campaign,
       callbackTrackingEvent: callbackTrackingEvent,
     );
+    // Only a close control supplies this flag. Automatic dismissal never
+    // sends a button's close URL when onClose is absent or unknown.
+    if (fallbackToCloseEvent && onClose?.action != Action.close) {
+      _trackEvent(
+        action: const ContentAction(action: Action.close),
+        content: content,
+        campaign: campaign,
+        callbackTrackingEvent: callbackTrackingEvent,
+      );
+    }
   }
 
   /// `click` deliberately has no [Action] member: [OnClickHandler] treats

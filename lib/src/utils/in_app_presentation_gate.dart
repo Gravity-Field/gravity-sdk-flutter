@@ -45,6 +45,7 @@ class InAppPresentationGate {
   void _updateGeneration(int generation) {
     if (_generation == generation) return;
     _generation = generation;
+    _attached.clear();
     _pending.removeWhere((_, reservation) => !_visible.contains(reservation));
     _location = null;
   }
@@ -57,6 +58,8 @@ class InAppPresentationGate {
   String? _location;
   final _pending = <(String, String), PresentationReservation>{};
   final _visible = <PresentationReservation>{};
+  // Attachment starts before WRIMP and ends only on close or user change.
+  final _attached = <PresentationReservation>{};
   final _confirmedThrough = <(String, String), int>{};
 
   PresentationRequest beginRequest(
@@ -68,10 +71,13 @@ class InAppPresentationGate {
     if (newScreen || location != _location) {
       _screen++;
       _location = location;
-      // Visible deliveries are protected by the outbox, independent of UI.
+      // Attached UI survives screen changes before its WRIMP is persisted.
+      // Visible deliveries also retain their existing outbox protection.
       _pending.removeWhere(
         (_, reservation) =>
-            reservation.screen != null && !_visible.contains(reservation),
+            reservation.screen != null &&
+            !_visible.contains(reservation) &&
+            !_attached.contains(reservation),
       );
     }
     return PresentationRequest(++_sequence, generation, _screen);
@@ -87,12 +93,14 @@ class InAppPresentationGate {
     PresentationRequest request, {
     bool deliveryPending = false,
   }) {
-    _pending.removeWhere((_, value) => !value.expiresAt.isAfter(_now()));
+    _pending.removeWhere((_, value) =>
+        !_attached.contains(value) && !value.expiresAt.isAfter(_now()));
     _visible.removeWhere((value) => !_pending.containsValue(value));
     final key = (scope, campaignId);
     if (!isCurrent(request) ||
         deliveryPending ||
         _pending.containsKey(key) ||
+        _attached.any((value) => value.scope == scope && value.campaignId == campaignId) ||
         request.sequence <= (_confirmedThrough[key] ?? 0)) {
       return null;
     }
@@ -109,11 +117,22 @@ class InAppPresentationGate {
   }
 
   bool owns(PresentationReservation reservation) =>
-      isCurrent(reservation) &&
+      (isCurrent(reservation) ||
+          (reservation.generation == _generation && _attached.contains(reservation))) &&
       identical(
         _pending[(reservation.scope, reservation.campaignId)],
         reservation,
       );
+
+  void attached(PresentationReservation reservation) {
+    if (owns(reservation)) {
+      _attached.add(reservation);
+    }
+  }
+
+  void detached(PresentationReservation reservation) {
+    _attached.remove(reservation);
+  }
 
   void visible(PresentationReservation reservation) {
     reservation.expiresAt = _now().add(protectionTimeout);
@@ -126,6 +145,7 @@ class InAppPresentationGate {
   }
 
   void cancel(PresentationReservation reservation) {
+    _attached.remove(reservation);
     _visible.remove(reservation);
     final key = (reservation.scope, reservation.campaignId);
     if (identical(_pending[key], reservation)) _pending.remove(key);

@@ -404,11 +404,12 @@ class GravitySDK {
         campaign.payload.firstOrNull?.contents ?? const [],
       );
       if (root == null) return;
-      final modal =
+      final tracksAppearance =
           root.deliveryMethod == DeliveryMethod.modal ||
           root.deliveryMethod == DeliveryMethod.bottomSheet ||
-          root.deliveryMethod == DeliveryMethod.fullScreen;
-      final impression = modal
+          root.deliveryMethod == DeliveryMethod.fullScreen ||
+          root.deliveryMethod == DeliveryMethod.snackBar;
+      final impression = tracksAppearance
           ? ContentEventsService.instance.createModalImpression(
               content: root,
               campaign: campaign,
@@ -416,7 +417,7 @@ class GravitySDK {
               isValid: () => ticket.isSameUser && _presentationGate.owns(reservation!),
             )
           : null;
-      handedOff = modal;
+      handedOff = tracksAppearance;
       _showBackendContent(
         context,
         root,
@@ -479,12 +480,13 @@ class GravitySDK {
       );
       if (content == null) return;
 
-      final modal =
+      final tracksAppearance =
           content.deliveryMethod == DeliveryMethod.modal ||
           content.deliveryMethod == DeliveryMethod.bottomSheet ||
-          content.deliveryMethod == DeliveryMethod.fullScreen;
+          content.deliveryMethod == DeliveryMethod.fullScreen ||
+          content.deliveryMethod == DeliveryMethod.snackBar;
       ModalImpression? impression;
-      if (modal) {
+      if (tracksAppearance) {
         await GravityRepo.instance.outbox.load();
         if (!context.mounted ||
             !ticket.isSameUser ||
@@ -622,11 +624,12 @@ class GravitySDK {
         campaign.payload.firstOrNull?.contents ?? const [],
       );
       if (root == null) return;
-      final modal =
+      final tracksAppearance =
           root.deliveryMethod == DeliveryMethod.modal ||
           root.deliveryMethod == DeliveryMethod.bottomSheet ||
-          root.deliveryMethod == DeliveryMethod.fullScreen;
-      final impression = modal
+          root.deliveryMethod == DeliveryMethod.fullScreen ||
+          root.deliveryMethod == DeliveryMethod.snackBar;
+      final impression = tracksAppearance
           ? ContentEventsService.instance.createModalImpression(
               content: root,
               campaign: campaign,
@@ -634,7 +637,7 @@ class GravitySDK {
               isValid: () => ticket.isSameUser && _presentationGate.owns(reservation!),
             )
           : null;
-      handedOff = modal;
+      handedOff = tracksAppearance;
       _showBackendContent(
         context,
         root,
@@ -1224,11 +1227,12 @@ class GravitySDK {
     ModalImpression? impression,
   }) {
     try {
-      final modal =
+      final tracksAppearance =
           content.deliveryMethod == DeliveryMethod.modal ||
           content.deliveryMethod == DeliveryMethod.bottomSheet ||
-          content.deliveryMethod == DeliveryMethod.fullScreen;
-      if (modal) {
+          content.deliveryMethod == DeliveryMethod.fullScreen ||
+          content.deliveryMethod == DeliveryMethod.snackBar;
+      if (tracksAppearance) {
         impression ??= ContentEventsService.instance.createModalImpression(
           content: content,
           campaign: campaign,
@@ -1260,7 +1264,7 @@ class GravitySDK {
             impression,
           );
         case DeliveryMethod.snackBar:
-          _showSnackBar(context, content, campaign);
+          _showSnackBar(context, content, campaign, impression);
         case DeliveryMethod.tooltip:
           if (selector != null) {
             _showTooltipContent(context, content, campaign, selector);
@@ -1448,10 +1452,12 @@ class GravitySDK {
     BuildContext context,
     CampaignContent content,
     Campaign campaign,
+    ModalImpression? impression,
   ) {
     final template = content.templateSystemName;
 
     if (template == null || template == TemplateSystemName.unknown) {
+      impression?.closed();
       return;
     }
 
@@ -1465,8 +1471,11 @@ class GravitySDK {
       SnackBarContent.show(
         context: context,
         snackBarContent: snackBarContent,
+        impression: impression,
         durationSeconds: content.variables.frameUI?.params?.duration ?? 4,
       );
+    } else {
+      impression?.closed();
     }
   }
 

@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Action;
+import '../../../models/actions/action.dart';
 import 'package:gravity_sdk/src/ui/widgets/gravity_elements_column.dart';
 
 import '../../../models/external/campaign.dart';
@@ -8,7 +9,9 @@ import '../../../utils/on_click_handler.dart';
 import 'snack_bar_content.dart';
 
 class SnackBarContent1 extends SnackBarContent {
+  @override
   final CampaignContent content;
+  @override
   final Campaign campaign;
 
   late final OnClickHandler onClickHandler;
@@ -34,7 +37,13 @@ class SnackBarContent1 extends SnackBarContent {
       behavior: HitTestBehavior.opaque,
       onTap: container.onClick != null
           ? () {
-              onClickHandler.handeOnClick(container.onClick!, context);
+              final action = container.onClick!;
+              final closes = action.action == Action.close && shouldAutoCloseOnClick(action);
+              // A closing container uses the same tracking owner as a close control.
+              if (!closes || onDismiss == null) {
+                onClickHandler.handeOnClick(action, context);
+              }
+              if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: true);
             }
           : null,
       child: Container(
@@ -64,10 +73,12 @@ class SnackBarContent1 extends SnackBarContent {
                 elements: [images.first],
                 formsEnabled: false,
                 onClickCallback: (element, action) {
-                  onClickHandler.handeOnClick(action, context);
-                  if (shouldAutoCloseOnClick(action)) {
-                    onDismiss?.call();
+                  final closes = shouldAutoCloseOnClick(action);
+                  // The overlay owns close tracking for a dismissed snackbar.
+                  if (action.action != Action.close || !closes || onDismiss == null) {
+                    onClickHandler.handeOnClick(action, context);
                   }
+                  if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: action.action == Action.close);
                 },
               ),
               SizedBox(width: 12),
@@ -83,8 +94,13 @@ class SnackBarContent1 extends SnackBarContent {
                       elements: [texts.elementAt(0)],
                       formsEnabled: false,
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      onClickCallback: (element, action) =>
-                          onClickHandler.handeOnClick(action, context),
+                      onClickCallback: (element, action) {
+                        final closes = action.action == Action.close && shouldAutoCloseOnClick(action);
+                        if (!closes || onDismiss == null) {
+                          onClickHandler.handeOnClick(action, context);
+                        }
+                        if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: true);
+                      },
                     ),
                   if (texts.elementAtOrNull(1) != null) ...[
                     SizedBox(height: 4),
@@ -94,8 +110,13 @@ class SnackBarContent1 extends SnackBarContent {
                       elements: [texts.elementAt(1)],
                       formsEnabled: false,
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      onClickCallback: (element, action) =>
-                          onClickHandler.handeOnClick(action, context),
+                      onClickCallback: (element, action) {
+                        final closes = action.action == Action.close && shouldAutoCloseOnClick(action);
+                        if (!closes || onDismiss == null) {
+                          onClickHandler.handeOnClick(action, context);
+                        }
+                        if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: true);
+                      },
                     ),
                   ],
                 ],
@@ -109,10 +130,12 @@ class SnackBarContent1 extends SnackBarContent {
                 elements: [images.elementAt(1)],
                 formsEnabled: false,
                 onClickCallback: (element, action) {
-                  onClickHandler.handeOnClick(action, context);
-                  if (shouldAutoCloseOnClick(action)) {
-                    onDismiss?.call();
+                  final closes = shouldAutoCloseOnClick(action);
+                  // The overlay owns close tracking for a dismissed snackbar.
+                  if (action.action != Action.close || !closes || onDismiss == null) {
+                    onClickHandler.handeOnClick(action, context);
                   }
+                  if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: action.action == Action.close);
                 },
               ),
             ],
