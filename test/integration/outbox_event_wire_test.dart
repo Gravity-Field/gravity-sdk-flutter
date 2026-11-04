@@ -92,6 +92,7 @@ void main() {
   });
 
   setUp(() async {
+    SessionManager.instance.resetIdentityQueueForTests();
     recorded.clear();
     GravitySDK.instance.setOptions(proxyUrl: live(), offlineQueue: const OfflineQueueSettings());
     await SessionManager.instance.resetSession();

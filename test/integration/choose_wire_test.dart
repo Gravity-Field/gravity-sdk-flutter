@@ -132,6 +132,7 @@ void main() {
   });
 
   setUp(() {
+    SessionManager.instance.resetIdentityQueueForTests();
     recordedBodies.clear();
     recordedRequests.clear();
     respondWithStatus = 200;

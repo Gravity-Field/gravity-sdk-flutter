@@ -87,6 +87,7 @@ void main() {
   });
 
   setUp(() async {
+    SessionManager.instance.resetIdentityQueueForTests();
     recorded.clear();
     visitDelay = Duration.zero;
     GravitySDK.instance.setOptions(staleContentTimeout: const Duration(seconds: 10));

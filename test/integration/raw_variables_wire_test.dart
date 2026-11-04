@@ -106,6 +106,7 @@ void main() {
   });
 
   setUp(() {
+    SessionManager.instance.resetIdentityQueueForTests();
     recordedBodies.clear();
     recordedRequests.clear();
   });

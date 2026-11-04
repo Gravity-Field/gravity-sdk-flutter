@@ -12,7 +12,6 @@ import 'package:gravity_sdk/src/data/outbox/outbox_dispatcher.dart';
 import 'package:gravity_sdk/src/data/outbox/outbox_entry.dart';
 import 'package:gravity_sdk/src/data/outbox/outbox_store.dart';
 import 'package:gravity_sdk/src/repos/choose_batch_keys.dart';
-import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/data/session/session_manager.dart';
 import 'package:gravity_sdk/src/models/external/gravity_data_response.dart';
 import 'package:gravity_sdk/src/models/external/page_context.dart';
@@ -263,10 +262,10 @@ class GravityRepo {
       // disk first: a process killed while this call waits for a session
       // another request is creating, or while its own request hangs, must
       // not lose the event. The drain steps over the entry until we let go.
-      // Taken without an await on purpose: a reset landing inside the
-      // snapshot would leave the event with nobody to name. getCachedUser is
-      // a confirmed session; the observed uid is what a cold start has.
-      final known = customUser ?? _sessionManager.getCachedUser() ?? _sessionManager.observedUser;
+      // Reserve the cold-start read before yielding: even if a reset follows
+      // while storage is loading, the event keeps the uid from before it.
+      // Do not reserve an anonymous body before this snapshot has resolved.
+      final known = await _sessionManager.snapshotEventUser(customUser);
       final context = await _mixPageContextAttributes(pageContext);
       frozen = await _api.buildEventBody(events, known, context, options, now: raisedAt);
       final entry = _eventEntry(frozen, raisedAt);
@@ -676,7 +675,7 @@ class GravityRepo {
     _SessionOwnership ownership, {
     bool keepsItsIdentity = false,
   }) async {
-    var user = await _getUserForRequest(customUser, ownership.completer, ownership.generation);
+    var user = await _getUserForRequest(customUser, ownership.completer);
     if (customUser != null) return user;
 
     while (true) {
@@ -727,7 +726,7 @@ class GravityRepo {
         final completer = _sessionManager.beginSessionInitialization();
         final generation = _sessionManager.generation;
         try {
-          final user = await _getUserForRequest(null, completer, generation);
+          final user = await _getUserForRequest(null, completer);
           return (completer: completer, generation: generation, user: user);
         } catch (error, stackTrace) {
           // The gate is ours from beginSessionInitialization on: a failed
@@ -752,31 +751,16 @@ class GravityRepo {
     );
   }
 
-  /// [generation] is the one the caller's gate belongs to: what the owner
-  /// reads from storage speaks for that generation and no later one.
   Future<User?> _getUserForRequest(
     User? customUser,
     Completer<void>? sessionCompleter,
-    int generation,
   ) async {
     if (sessionCompleter != null) {
       if (customUser != null) {
         return customUser;
       }
 
-      final cachedUid = _sessionManager.userId;
-      final cachedSes = _sessionManager.sessionId;
-      if (cachedUid != null && cachedSes != null) {
-        return User(uid: cachedUid, ses: cachedSes);
-      }
-
-      final readStored = storedUserIdReadOverride ?? Prefs.instance.getUserId;
-      final userIdFromPrefs = await readStored();
-      // The gate owner is the one place that reads storage without going
-      // through getUser, so it hands what it learned back — for the
-      // generation its gate belongs to, which a reset may already have left.
-      _sessionManager.noteObservedUserId(userIdFromPrefs, generation);
-      return User(uid: userIdFromPrefs, ses: cachedSes);
+      return await _sessionManager.getUserAfterIdentityUpdates(readStoredUserId: storedUserIdReadOverride);
     } else {
       // Not the owner: a failure of the initialization we park behind belongs
       // to its own call. Surviving it is what lets us elect a new owner and

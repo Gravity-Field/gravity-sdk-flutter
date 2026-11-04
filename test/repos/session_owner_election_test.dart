@@ -102,6 +102,7 @@ void main() {
   });
 
   setUp(() async {
+    SessionManager.instance.resetIdentityQueueForTests();
     recorded.clear();
     held.clear();
     holdResponses = false;
@@ -117,6 +118,38 @@ void main() {
     }
     GravitySDK.instance.setOptions(proxyUrl: 'http://127.0.0.1:${server.port}');
     await GravitySDK.instance.clearQueue();
+  });
+
+  test('a session owner waits for identity publication before sending its user', () async {
+    await GravitySDK.instance.restoreUserId('stored-uid');
+    final reachedWrite = Completer<void>();
+    final releaseWrite = Completer<void>();
+    SessionManager.beforeUserIdWrite = (_) {
+      reachedWrite.complete();
+      return releaseWrite.future;
+    };
+    final session = SessionManager.instance;
+    final save = session.saveUser(null, const User(uid: 'new-uid', ses: 'new-ses'), session.generation);
+    await reachedWrite.future;
+    // Model shared_preferences exposing its provisional uid during a write.
+    GravityRepo.storedUserIdReadOverride = () async => 'new-uid';
+    final visit = GravityRepo.instance.visit(pageContext: ctx(), options: Options());
+    late List<({String path, Map<String, dynamic> body})> sentWhileHeld;
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      sentWhileHeld = List.of(recorded);
+    } finally {
+      SessionManager.beforeUserIdWrite = null;
+      releaseWrite.complete();
+      await save;
+      await visit.timeout(const Duration(seconds: 5));
+    }
+
+    expect(sentWhileHeld, isEmpty, reason: 'the owner must not send a provisional uid without its session');
+    expect(recorded, hasLength(1));
+    final user = recorded.single.body['user'] as Map;
+    expect((user['uid'], user['ses']), ('new-uid', 'new-ses'));
+    expect(session.isInitializing, isFalse);
   });
 
   test('an event cleared while restore holds the gate must release adopted ownership', () async {

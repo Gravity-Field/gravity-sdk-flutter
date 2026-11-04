@@ -53,6 +53,10 @@ void main() {
     ErrorReporter.disableNetworkForTests = true;
   });
 
+  setUp(() {
+    SessionManager.instance.resetIdentityQueueForTests();
+  });
+
   tearDownAll(() async {
     GravityRepo.triggerEventUrlsObserver = null;
     await SessionManager.instance.resetSession();

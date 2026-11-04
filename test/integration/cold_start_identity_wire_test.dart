@@ -137,6 +137,7 @@ void main() {
   });
 
   setUp(() async {
+    SessionManager.instance.resetIdentityQueueForTests();
     recorded.clear();
     holdVisit = null;
     holdEvent = null;
@@ -207,6 +208,42 @@ void main() {
     expect(SessionManager.instance.userId, 'uid-visit');
   });
 
+  test('an event raised before the cold-start uid read finishes keeps its uid across reset', () async {
+    final reached = Completer<void>();
+    final release = Completer<void>();
+    GravityRepo.storedUserIdReadOverride = () async {
+      GravityRepo.storedUserIdReadOverride = null;
+      final uid = await Prefs.instance.getUserId();
+      reached.complete();
+      await release.future;
+      return uid;
+    };
+    final visit = GravitySDK.instance.trackViewNoShow(pageContext: ctx());
+    await reached.future;
+    expect(SessionManager.instance.observedUser, isNull);
+
+    holdEvent = Completer<void>();
+    final event = GravitySDK.instance.triggerEventNoShow(
+      events: [CustomEvent(type: 'cold-read-v1', name: 'cold-read')],
+      pageContext: ctx(),
+    );
+    await settle();
+    final reset = GravitySDK.instance.resetUser();
+    release.complete();
+    await reset;
+
+    try {
+      await waitFor(() => events().isNotEmpty, 'the old event must reach transport');
+      expect(userOf(events().single)['uid'], 'uid-a');
+      final pending = await disk.outbox();
+      expect(((pending.single['body'] as Map)['user'] as Map)['uid'], 'uid-a');
+    } finally {
+      holdEvent!.complete();
+      holdEvent = null;
+      await Future.wait([visit, event]);
+    }
+  });
+
   test('an event raised after a logout began does not belong to the user being dropped', () async {
     expect(await GravitySDK.instance.getUserId(), 'uid-a');
 
@@ -247,6 +284,17 @@ void main() {
 
     expect(userOf(events().single)['uid'], isNull);
     expect(SessionManager.instance.userId, 'uid-event', reason: 'the event opened the session that follows it');
+  });
+
+  test('a padded restored uid is stored and sent without surrounding whitespace', () async {
+    await GravitySDK.instance.restoreUserId(' uid-b ');
+    expect(await Prefs.instance.getUserId(), 'uid-b');
+
+    await GravitySDK.instance.trackViewNoShow(pageContext: ctx());
+
+    final visit = recorded.singleWhere((r) => r.path == '/visit');
+    expect(userOf(visit.body)['uid'], 'uid-b');
+    expect(userOf(visit.body)['ses'], isNull);
   });
 
   test('an event raised with the uid from the device is not handed to a restored user', () async {

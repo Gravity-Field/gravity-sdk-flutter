@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/data/session/session_manager.dart';
+import 'package:gravity_sdk/src/utils/identity_version.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Lets the awaited chain of microtasks settle without touching timers.
@@ -19,6 +20,7 @@ void main() {
   });
 
   setUp(() async {
+    SessionManager.instance.resetIdentityQueueForTests();
     sessionManager.onUserIdChanged = null;
     SessionManager.beforeUserIdWrite = null;
     await sessionManager.resetSession();
@@ -213,6 +215,36 @@ void main() {
   });
 
   group('restoreUserId', () {
+    test('trims surrounding whitespace before storing and notifying', () async {
+      await sdk.restoreUserId(' \t restored-uid \n ');
+      await _settle();
+
+      expect(await Prefs.instance.getUserId(), 'restored-uid');
+      expect(await sdk.getUserId(), 'restored-uid');
+      expect(notified, ['restored-uid']);
+    });
+
+    test('rejects whitespace-only uid without changing identity', () async {
+      await sessionManager.saveUser(null, const User(uid: 'u1', ses: 's1'), sessionManager.generation);
+      sdk.setUser('custom-id', 'custom-ses');
+      await _settle();
+      notified.clear();
+      final customUser = sdk.user;
+      final generation = sessionManager.generation;
+      final identityVersion = IdentityVersion.current;
+
+      await expectLater(sdk.restoreUserId('   '), throwsArgumentError);
+      await _settle();
+
+      expect(sdk.user, same(customUser));
+      expect(sessionManager.generation, generation);
+      expect(IdentityVersion.current, identityVersion);
+      expect(sessionManager.userId, 'u1');
+      expect(sessionManager.sessionId, 's1');
+      expect(await Prefs.instance.getUserId(), 'u1');
+      expect(notified, isEmpty);
+    });
+
     test('a stale saveUser held inside the write cannot overwrite the restored uid', () async {
       final staleGen = sessionManager.generation;
       final hold = Completer<void>();

@@ -227,19 +227,21 @@ class GravitySDK {
   /// session and any custom user set via [setUser]; the next request carries
   /// [uid] and the server recognises that user again, with their history and
   /// segments (an unknown uid is ignored by the server, which then assigns a
-  /// new one). Throws [ArgumentError] for an empty [uid], and a [StateError]
-  /// (or the platform's own error, when the write threw) when the device
-  /// refused to store [uid]: the session and the custom user
-  /// are dropped by then, while the stored uid is left as it was, so the next
-  /// request goes on with whatever uid the device already had — the previous
-  /// one, or none at all. Available before [initialize].
+  /// new one). Surrounding whitespace is trimmed before storing and sending.
+  /// Throws [ArgumentError] for an empty or whitespace-only [uid] without
+  /// changing identity, and a [StateError] (or the platform's own error, when
+  /// the write threw) when the device refused to store [uid]: the session and
+  /// the custom user are dropped by then, while the stored uid is left as it
+  /// was, so the next request goes on with whatever uid the device already
+  /// had — the previous one, or none at all. Available before [initialize].
   Future<void> restoreUserId(String uid) async {
-    if (uid.isEmpty) {
-      throw ArgumentError.value(uid, 'uid', 'must not be empty');
+    final restored = uid.trim();
+    if (restored.isEmpty) {
+      throw ArgumentError.value(uid, 'uid', 'must not be empty or whitespace-only');
     }
     user = null;
     IdentityVersion.bump();
-    await SessionManager.instance.restoreUserId(uid);
+    await SessionManager.instance.restoreUserId(restored);
   }
 
   void setNotificationPermissionStatus(NotificationPermissionStatus status) {
@@ -375,6 +377,7 @@ class GravitySDK {
         },
         extractCampaigns: (result) => result.data,
         section: 'GravitySDK.trackView',
+        isCurrent: () => ticket.isSameUser,
       );
       if (resolved == null) return;
 
@@ -592,6 +595,7 @@ class GravitySDK {
         },
         extractCampaigns: (result) => result.data,
         section: 'GravitySDK.triggerEvent',
+        isCurrent: () => ticket.isSameUser,
       );
       if (resolved == null) return;
 
@@ -703,12 +707,18 @@ class GravitySDK {
     }
   }
 
+  /// Fetches content by selector.
+  ///
+  /// If the user identity changes or [initialize] is called again while
+  /// loading, returns an empty response without sending content-loaded
+  /// notifications. Request errors still throw.
   Future<ContentResponse> getContentBySelector({
     required String selector,
     required PageContext pageContext,
     List<RtRule>? rules,
   }) async {
     _checkIsInitialized();
+    final identityVersion = IdentityVersion.current;
 
     final content = await GravityRepo.instance.getContentBySelector(
       selector: selector,
@@ -719,6 +729,10 @@ class GravitySDK {
       rules: rules,
     );
 
+    if (identityVersion != IdentityVersion.current) {
+      return ContentResponse(user: const User());
+    }
+
     for (final campaign in content.data) {
       for (final payload in campaign.payload) {
         for (final content in payload.contents) {
@@ -733,12 +747,18 @@ class GravitySDK {
     return content;
   }
 
+  /// Fetches content by campaign ID.
+  ///
+  /// If the user identity changes or [initialize] is called again while
+  /// loading, returns an empty response without sending content-loaded
+  /// notifications. Request errors still throw.
   Future<ContentResponse> getContentByCampaignId({
     required String campaignId,
     required PageContext pageContext,
     List<RtRule>? rules,
   }) async {
     _checkIsInitialized();
+    final identityVersion = IdentityVersion.current;
 
     final content = await GravityRepo.instance.getContentByCampaignId(
       campaignId: campaignId,
@@ -749,6 +769,10 @@ class GravitySDK {
       rules: rules,
     );
 
+    if (identityVersion != IdentityVersion.current) {
+      return ContentResponse(user: const User());
+    }
+
     for (final campaign in content.data) {
       for (final payload in campaign.payload) {
         for (final content in payload.contents) {
@@ -763,12 +787,18 @@ class GravitySDK {
     return content;
   }
 
+  /// Fetches content by group.
+  ///
+  /// If the user identity changes or [initialize] is called again while
+  /// loading, returns an empty response without sending content-loaded
+  /// notifications. Request errors still throw.
   Future<ContentResponse> getContentByGroup({
     required String group,
     required PageContext pageContext,
     List<RtRule>? rules,
   }) async {
     _checkIsInitialized();
+    final identityVersion = IdentityVersion.current;
 
     final content = await GravityRepo.instance.getContentByGroup(
       group: group,
@@ -779,6 +809,10 @@ class GravitySDK {
       rules: rules,
     );
 
+    if (identityVersion != IdentityVersion.current) {
+      return ContentResponse(user: const User());
+    }
+
     for (final campaign in content.data) {
       for (final payload in campaign.payload) {
         for (final content in payload.contents) {
@@ -793,13 +827,19 @@ class GravitySDK {
     return content;
   }
 
-  /// Fetches content by selector and returns an object with the model and raw JSON.
+  /// Fetches content by selector and returns the model and raw JSON.
+  ///
+  /// If the user identity changes or [initialize] is called again while
+  /// loading, returns an empty model and JSON without content-loaded
+  /// notifications or [gravityContentCallback].
+  /// Request errors still throw.
   Future<GravityDataResponse<ContentResponse>> getContentBySelectorWithDetails({
     required String selector,
     required PageContext pageContext,
     List<RtRule>? rules,
   }) async {
     _checkIsInitialized();
+    final identityVersion = IdentityVersion.current;
 
     final response = await GravityRepo.instance.getContentBySelectorWithDetails(
       selector: selector,
@@ -809,6 +849,13 @@ class GravitySDK {
       contentSetting: contentSettings,
       rules: rules,
     );
+
+    if (identityVersion != IdentityVersion.current) {
+      return GravityDataResponse(
+        data: ContentResponse(user: const User()),
+        json: <String, dynamic>{'user': <String, dynamic>{}, 'data': <dynamic>[]},
+      );
+    }
 
     for (final campaign in response.data.data) {
       for (final payload in campaign.payload) {
@@ -826,13 +873,32 @@ class GravitySDK {
     return response;
   }
 
+  /// Fetches content by campaign ID and returns the model and raw JSON.
+  ///
+  /// If the user identity changes or [initialize] is called again while
+  /// loading, returns an empty model and JSON without content-loaded
+  /// notifications or [gravityContentCallback].
+  /// Request errors still throw.
   Future<GravityDataResponse<ContentResponse>>
   getContentByCampaignIdWithDetails({
     required String campaignId,
     required PageContext pageContext,
     List<RtRule>? rules,
+  }) => _getContentByCampaignIdWithDetails(
+    campaignId: campaignId,
+    pageContext: pageContext,
+    rules: rules,
+  );
+
+  Future<GravityDataResponse<ContentResponse>>
+  _getContentByCampaignIdWithDetails({
+    required String campaignId,
+    required PageContext pageContext,
+    List<RtRule>? rules,
+    bool notifyContentLoaded = true,
   }) async {
     _checkIsInitialized();
+    final identityVersion = IdentityVersion.current;
 
     final response = await GravityRepo.instance
         .getContentByCampaignIdWithDetails(
@@ -844,6 +910,20 @@ class GravitySDK {
           rules: rules,
         );
 
+    if (identityVersion != IdentityVersion.current) {
+      return GravityDataResponse(
+        data: ContentResponse(user: const User()),
+        json: <String, dynamic>{'user': <String, dynamic>{}, 'data': <dynamic>[]},
+      );
+    }
+
+    if (notifyContentLoaded) _notifyContentLoadedWithDetails(response);
+    return response;
+  }
+
+  void _notifyContentLoadedWithDetails(
+    GravityDataResponse<ContentResponse> response,
+  ) {
     for (final campaign in response.data.data) {
       for (final payload in campaign.payload) {
         for (final content in payload.contents) {
@@ -856,19 +936,21 @@ class GravitySDK {
     }
 
     gravityContentCallback?.call(response);
-
-    return response;
   }
 
   /// Tracks a screen view and, if a campaign is triggered,
   /// fetches and returns its content as raw JSON.
   ///
-  /// Returns GravityDataResponse or `null` if no campaign was triggered.
+  /// Returns GravityDataResponse or `null` if no campaign was triggered or
+  /// the user identity changed or [initialize] was called again while
+  /// tracking or loading content. Obsolete results do not send content-loaded
+  /// notifications or invoke the callback.
   /// Also invokes [gravityContentCallback] on success.
   Future<GravityDataResponse<ContentResponse>?> trackViewNoShow({
     required PageContext pageContext,
   }) async {
     _checkIsInitialized();
+    final identityVersion = IdentityVersion.current;
     try {
       final startedAt = Clock.now();
       final response = await GravityRepo.instance.visit(
@@ -877,11 +959,18 @@ class GravitySDK {
         options: options,
       );
 
-      if (response.campaigns.isEmpty || !isFetchContentOnTrack || _isStale(startedAt)) return null;
+      if (identityVersion != IdentityVersion.current ||
+          response.campaigns.isEmpty ||
+          !isFetchContentOnTrack ||
+          _isStale(startedAt)) {
+        return null;
+      }
 
       return await _resolveHighestPriorityNoShow(
         campaigns: response.campaigns,
         pageContext: pageContext,
+        identityVersion: identityVersion,
+        startedAt: startedAt,
       );
     } catch (e, stackTrace) {
       _reportError(e, stackTrace, section: 'GravitySDK.trackViewNoShow');
@@ -892,13 +981,17 @@ class GravitySDK {
   /// Sends an event and, if a campaign is triggered,
   /// fetches and returns its content as raw JSON.
   ///
-  /// Returns GravityDataResponse or `null` if no campaign was triggered.
+  /// Returns GravityDataResponse or `null` if no campaign was triggered or
+  /// the user identity changed or [initialize] was called again while
+  /// tracking or loading content. Obsolete results do not send content-loaded
+  /// notifications or invoke the callback.
   /// Also invokes [gravityContentCallback] on success.
   Future<GravityDataResponse<ContentResponse>?> triggerEventNoShow({
     required List<TriggerEvent> events,
     required PageContext pageContext,
   }) async {
     _checkIsInitialized();
+    final identityVersion = IdentityVersion.current;
     try {
       final startedAt = Clock.now();
       final response = await GravityRepo.instance.event(
@@ -908,11 +1001,18 @@ class GravitySDK {
         options: options,
       );
 
-      if (response.campaigns.isEmpty || !isFetchContentOnTrack || _isStale(startedAt)) return null;
+      if (identityVersion != IdentityVersion.current ||
+          response.campaigns.isEmpty ||
+          !isFetchContentOnTrack ||
+          _isStale(startedAt)) {
+        return null;
+      }
 
       return await _resolveHighestPriorityNoShow(
         campaigns: response.campaigns,
         pageContext: pageContext,
+        identityVersion: identityVersion,
+        startedAt: startedAt,
       );
     } catch (e, stackTrace) {
       _reportError(e, stackTrace, section: 'GravitySDK.triggerEventNoShow');
@@ -931,13 +1031,16 @@ class GravitySDK {
     fetchContent,
     required List<Campaign> Function(T result) extractCampaigns,
     required String section,
+    bool Function()? isCurrent,
   }) async {
     final sorted = List.of(campaigns)
       ..sort((a, b) => b.priority.compareTo(a.priority));
 
     for (final campaignId in sorted) {
+      if (isCurrent != null && !isCurrent()) return null;
       try {
         final result = await fetchContent(campaignId.campaignId, pageContext);
+        if (isCurrent != null && !isCurrent()) return null;
         final campaign = extractCampaigns(result).firstOrNull;
         if (campaign == null) continue;
 
@@ -948,6 +1051,7 @@ class GravitySDK {
 
         return (result, campaignId);
       } catch (e, stackTrace) {
+        if (isCurrent != null && !isCurrent()) return null;
         _reportError(
           e,
           stackTrace,
@@ -967,20 +1071,30 @@ class GravitySDK {
   Future<GravityDataResponse<ContentResponse>?> _resolveHighestPriorityNoShow({
     required List<CampaignId> campaigns,
     required PageContext pageContext,
+    required int identityVersion,
+    required DateTime startedAt,
   }) async {
+    bool isCurrent() =>
+        identityVersion == IdentityVersion.current && !_isStale(startedAt);
+
     final resolved =
         await _resolveHighestPriority<GravityDataResponse<ContentResponse>>(
           campaigns: campaigns,
           pageContext: pageContext,
-          fetchContent: (campaignId, ctx) => getContentByCampaignIdWithDetails(
+          fetchContent: (campaignId, ctx) => _getContentByCampaignIdWithDetails(
             campaignId: campaignId,
             pageContext: ctx,
+            notifyContentLoaded: false,
           ),
           extractCampaigns: (result) => result.data.data,
           section: 'GravitySDK._resolveHighestPriorityNoShow',
+          isCurrent: isCurrent,
         );
 
-    return resolved?.$1;
+    if (resolved == null || !isCurrent()) return null;
+    final response = resolved.$1;
+    _notifyContentLoadedWithDetails(response);
+    return response;
   }
 
   void _reportError(

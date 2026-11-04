@@ -214,6 +214,7 @@ void main() {
     );
   });
   setUp(() async {
+    SessionManager.instance.resetIdentityQueueForTests();
     disk.rejectOutboxWrites = 0;
     holdEvent = null;
     holdVisit = null;

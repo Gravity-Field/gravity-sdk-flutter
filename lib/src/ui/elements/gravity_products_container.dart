@@ -89,9 +89,7 @@ class _GravityProductsContainerState extends State<GravityProductsContainer> {
           crossAxisCount: columns,
           crossAxisSpacing: horizontalSpacing,
           mainAxisSpacing: verticalSpacing,
-          childAspectRatio: widget.element.style?.size?.width != null && widget.element.style?.size?.height != null
-              ? widget.element.style!.size!.width! / widget.element.style!.size!.height!
-              : 1.0,
+          childAspectRatio: 1.0,
         ),
         itemCount: slots.length,
         itemBuilder: (context, index) {

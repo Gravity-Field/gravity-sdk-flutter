@@ -112,6 +112,7 @@ void main() {
   });
 
   setUp(() async {
+    SessionManager.instance.resetIdentityQueueForTests();
     recorded.clear();
     held.clear();
     holdResponses = false;

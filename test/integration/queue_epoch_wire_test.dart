@@ -190,6 +190,7 @@ void main() {
   });
 
   setUp(() async {
+    SessionManager.instance.resetIdentityQueueForTests();
     recorded.clear();
     holdVisit = null;
     holdEvent = null;

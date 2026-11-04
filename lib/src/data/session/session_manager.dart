@@ -11,7 +11,7 @@ class SessionManager {
 
   static final SessionManager instance = SessionManager._();
 
-  /// Runs inside the serialized uid write queue right before the uid reaches
+  /// Runs inside the serialized response/write queue right before the uid reaches
   /// Prefs; tests use it to hold a write in flight.
   @visibleForTesting
   static Future<void> Function(String uid)? beforeUserIdWrite;
@@ -20,6 +20,7 @@ class SessionManager {
   String? _sessionIdCache;
 
   Future<void>? _sessionInitializationFuture;
+  Future<void>? _identityReplacementFuture;
 
   int _generation = 0;
   int get generation => _generation;
@@ -56,6 +57,22 @@ class SessionManager {
   /// some read has answered in this process, and again from the moment a reset
   /// or restore says the user is changing.
   User? get observedUser => _observedUserId == null ? null : User(uid: _observedUserId);
+
+  /// Freezes the identity of a newly raised event without waiting for the
+  /// session response. On cold start, reserve a storage read now, before a
+  /// later reset can remove the uid. An event raised after a replacement
+  /// began must not pick up the uid that replacement is dropping.
+  Future<User?> snapshotEventUser(User? customUser) {
+    if (customUser != null) return Future.value(customUser);
+    final uid = _userIdCache ?? _observedUserId;
+    final ses = _sessionIdCache;
+    if (uid != null || _identityReplacementFuture != null) {
+      return Future.value(uid == null ? null : User(uid: uid, ses: ses));
+    }
+    return _readUserInIdentityQueue().then(
+      (user) => User(uid: user.uid, ses: user.ses ?? ses),
+    );
+  }
 
   /// Records a uid a read of storage returned. [capturedGeneration] is the
   /// generation taken before that read: a reset or restore since then has
@@ -97,15 +114,44 @@ class SessionManager {
         await _awaitSessionGate();
       }
 
+      if (capturedGeneration != _generation) continue;
+      final user = await getUserAfterIdentityUpdates();
+      if (capturedGeneration != _generation) continue;
+      return user;
+    }
+  }
+
+  /// Reads a complete cached pair, or storage after pending identity writes.
+  /// Does not wait for the session gate: its owner must also use this path.
+  Future<User> getUserAfterIdentityUpdates({Future<String?> Function()? readStoredUserId}) async {
+    while (true) {
+      final capturedGeneration = _generation;
       if (_userIdCache != null && _sessionIdCache != null) {
         return User(uid: _userIdCache, ses: _sessionIdCache);
       }
-
-      final userIdFromPrefs = await Prefs.instance.getUserId();
+      final user = await _readUserInIdentityQueue(readStoredUserId: readStoredUserId);
       if (capturedGeneration != _generation) continue;
-      noteObservedUserId(userIdFromPrefs, capturedGeneration);
-      return User(uid: userIdFromPrefs, ses: _sessionIdCache);
+      return user;
     }
+  }
+
+  Future<User> _readUserInIdentityQueue({Future<String?> Function()? readStoredUserId}) async {
+    final capturedGeneration = _generation;
+    late User user;
+    // Reserve a FIFO position instead of chasing a changing queue tail.
+    // Prefs exposes provisional uid writes, so the read must also finish
+    // before later writes can start and change the pair underneath it.
+    await _enqueueIdentityUpdate(() async {
+      if (_userIdCache != null && _sessionIdCache != null) {
+        user = User(uid: _userIdCache, ses: _sessionIdCache);
+        return;
+      }
+      final ses = _sessionIdCache;
+      final uid = await (readStoredUserId ?? Prefs.instance.getUserId)();
+      noteObservedUserId(uid, capturedGeneration);
+      user = User(uid: uid, ses: ses);
+    });
+    return user;
   }
 
   /// The server-assigned uid of the anonymous session, waiting for an
@@ -145,14 +191,23 @@ class SessionManager {
     return null;
   }
 
-  // Serializes uid writes: the awaits inside Prefs are suspension points
-  // where a stale cleanup could otherwise erase a newer generation's uid.
-  Future<void> _userIdWrites = Future<void>.value();
+  // Serializes whole accepted responses, including ses-only answers, with
+  // identity writes. The awaits inside Prefs must neither reorder responses
+  // nor let stale cleanup erase a newer generation's uid.
+  Future<void> _identityUpdates = Future<void>.value();
 
-  Future<void> _enqueueUserIdWrite(Future<void> Function() op) {
-    final run = _userIdWrites.then((_) => op());
+  /// Detaches work left in a disposed test zone before the next test resets
+  /// the session. Only call between tests, when old work will not be resumed.
+  @visibleForTesting
+  void resetIdentityQueueForTests() {
+    _identityUpdates = Future<void>.value();
+    beforeUserIdWrite = null;
+  }
+
+  Future<void> _enqueueIdentityUpdate(Future<void> Function() op) {
+    final run = _identityUpdates.then((_) => op());
     // Callers observe errors through `run`; the chain itself must survive.
-    _userIdWrites = run.then((_) {}, onError: (_) {});
+    _identityUpdates = run.then((_) {}, onError: (_) {});
     return run;
   }
 
@@ -202,14 +257,20 @@ class SessionManager {
       return;
     }
 
-    final uid = serverUser?.uid;
+    final receivedUid = serverUser?.uid;
+    final uid = receivedUid != null && receivedUid.isNotEmpty ? receivedUid : null;
     final ses = serverUser?.ses;
+    if (uid == null && ses == null) {
+      return;
+    }
 
-    if (uid != null && (uid != _userIdCache || !_userIdOnDisk)) {
-      await _enqueueUserIdWrite(() async {
-        if (capturedGeneration != _generation) {
-          return;
-        }
+    await _enqueueIdentityUpdate(() async {
+      if (capturedGeneration != _generation) {
+        return;
+      }
+      // Decide against the pair left by the preceding response, which may
+      // still have been waiting for storage when this response arrived.
+      if (uid != null && (uid != _userIdCache || !_userIdOnDisk)) {
         // The request this answers is already delivered: storage refusing the
         // uid must not turn it into a failed call, so the failure is reported
         // and the uid is marked as not confirmed on disk.
@@ -233,19 +294,20 @@ class SessionManager {
           }
           return;
         }
+        // Publish the accepted pair without an await between its fields,
+        // before scheduling the uid notification or releasing the write queue.
         _userIdCache = uid;
+        _sessionIdCache = ses ?? _sessionIdCache;
         _userIdOnDisk = written;
         // The listener and getUserId answer for the same thing — the uid this
         // process is using — so a uid taken into the cache is announced even
         // when the device refused to keep it. A repeated write of the same
         // uid is not a second change: _noteUserId sees to that.
         _noteUserId(uid);
-      });
-    }
-
-    if (ses != null && capturedGeneration == _generation) {
-      _sessionIdCache = ses;
-    }
+      } else if (ses != null) {
+        _sessionIdCache = ses;
+      }
+    });
   }
 
   Future<void> resetSession() async {
@@ -256,8 +318,9 @@ class SessionManager {
     _sessionIdCache = null;
     final resetCompleter = Completer<void>();
     _sessionInitializationFuture = resetCompleter.future;
+    _identityReplacementFuture = resetCompleter.future;
     try {
-      await _enqueueUserIdWrite(() async {
+      await _enqueueIdentityUpdate(() async {
         // A uid left by a previous launch that nobody reported yet is still
         // a uid the app may hold a copy of: removing it is a change to tell.
         final stored = await Prefs.instance.getUserId();
@@ -274,6 +337,9 @@ class SessionManager {
         }
       });
     } finally {
+      if (identical(_identityReplacementFuture, resetCompleter.future)) {
+        _identityReplacementFuture = null;
+      }
       if (identical(_sessionInitializationFuture, resetCompleter.future)) {
         _sessionInitializationFuture = null;
       }
@@ -297,8 +363,9 @@ class SessionManager {
     _sessionIdCache = null;
     final restoreCompleter = Completer<void>();
     _sessionInitializationFuture = restoreCompleter.future;
+    _identityReplacementFuture = restoreCompleter.future;
     try {
-      await _enqueueUserIdWrite(() async {
+      await _enqueueIdentityUpdate(() async {
         await _writeUserId(uid);
         if (capturedGeneration != _generation) {
           // A newer reset or restore is queued behind us and will overwrite
@@ -310,6 +377,9 @@ class SessionManager {
         _noteUserId(uid);
       });
     } finally {
+      if (identical(_identityReplacementFuture, restoreCompleter.future)) {
+        _identityReplacementFuture = null;
+      }
       if (identical(_sessionInitializationFuture, restoreCompleter.future)) {
         _sessionInitializationFuture = null;
       }

@@ -8,6 +8,7 @@ import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/api/api.dart';
 import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/data/outbox/outbox_dispatcher.dart';
+import 'package:gravity_sdk/src/data/session/session_manager.dart';
 import 'package:gravity_sdk/src/models/internal/device.dart';
 import 'package:gravity_sdk/src/ui/delivery_methods/inline/inline_content.dart';
 import 'package:gravity_sdk/src/utils/device_utils.dart';
@@ -164,6 +165,7 @@ void main() {
   });
 
   setUp(() async {
+    SessionManager.instance.resetIdentityQueueForTests();
     await GravitySDK.instance.resetUser();
     recorded.clear();
     held.clear();
@@ -310,6 +312,15 @@ void main() {
             expect(done, isTrue);
             expect(shownBySdk(), isTrue);
             await tester.pumpWidget(const SizedBox());
+            // The anchor can leave a ses-only save in this fake-async zone.
+            // Drain it before the zone goes away, and leave the queue's tail
+            // in the real zone for the next test's reset (as for inline below).
+            late Future<void> reset;
+            await tester.runAsync(() async {
+              reset = GravitySDK.instance.resetUser();
+            });
+            await tester.pump();
+            await tester.runAsync(() => reset);
             await tester.pump(const Duration(seconds: 30));
           },
         );

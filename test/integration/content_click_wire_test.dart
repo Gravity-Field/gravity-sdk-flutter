@@ -84,7 +84,10 @@ void main() {
     await server.close(force: true);
   });
 
-  setUp(recorded.clear);
+  setUp(() {
+    SessionManager.instance.resetIdentityQueueForTests();
+    recorded.clear();
+  });
 
   tearDown(() async {
     await SessionManager.instance.resetSession();

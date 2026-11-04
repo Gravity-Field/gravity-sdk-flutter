@@ -234,7 +234,16 @@ class GridSettings {
 
   factory GridSettings.fromJson(Map<String, dynamic> json) => _$GridSettingsFromJson(json);
 
-  int get columnsCount => columns?.toInt() ?? 2;
-  double get horizontalSpacingValue => horizontalSpacing ?? 8.0;
-  double get verticalSpacingValue => verticalSpacing ?? 8.0;
+  int get columnsCount {
+    final value = columns;
+    if (value == null || !value.isFinite || value < 1 || value > 12) {
+      return 2;
+    }
+    return value.toInt();
+  }
+  double get horizontalSpacingValue => _spacingOrDefault(horizontalSpacing);
+  double get verticalSpacingValue => _spacingOrDefault(verticalSpacing);
+
+  static double _spacingOrDefault(double? value) =>
+      value != null && value.isFinite && value >= 0 ? value : 8.0;
 }

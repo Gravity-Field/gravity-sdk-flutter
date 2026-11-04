@@ -27,6 +27,7 @@ void main() {
   });
 
   setUp(() {
+    SessionManager.instance.resetIdentityQueueForTests();
     // Every test starts past the one-minute windows of the previous one.
     now = now.add(const Duration(minutes: 5));
     sent.clear();

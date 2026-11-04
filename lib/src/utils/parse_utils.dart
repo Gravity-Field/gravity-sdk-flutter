@@ -47,9 +47,7 @@ class ParseUtils {
     }
 
     if (dimension is String) {
-      if (dimension.contains('px')) {
-        return double.tryParse(dimension.replaceAll('px', ''));
-      }
+      return double.tryParse(dimension.replaceAll('px', ''));
     }
 
     return null;

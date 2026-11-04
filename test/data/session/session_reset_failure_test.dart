@@ -24,6 +24,7 @@ class _PlatformDisk extends InMemorySharedPreferencesStore {
 
   int rejectUserIdWrites = 0;
   int rejectUserIdRemovals = 0;
+  int throwUserIdRemovals = 0;
 
   /// Writes of the uid key that throw before the platform changes anything,
   /// like the Android plugin refusing a value with a reserved prefix.
@@ -50,6 +51,10 @@ class _PlatformDisk extends InMemorySharedPreferencesStore {
 
   @override
   Future<bool> remove(String key) async {
+    if (key.endsWith('gravity_user_id') && throwUserIdRemovals > 0) {
+      throwUserIdRemovals--;
+      throw const _PlatformRefusal();
+    }
     if (key.endsWith('gravity_user_id') && rejectUserIdRemovals > 0) {
       rejectUserIdRemovals--;
       return false;
@@ -137,9 +142,11 @@ void main() {
   });
 
   setUp(() async {
+    SessionManager.instance.resetIdentityQueueForTests();
     SessionManager.instance.onUserIdChanged = null;
     disk.rejectUserIdWrites = 0;
     disk.rejectUserIdRemovals = 0;
+    disk.throwUserIdRemovals = 0;
     uidForVisit = 'server-uid';
     await SessionManager.instance.resetSession();
     SessionManager.instance.onUserIdChanged = notified.add;
@@ -169,6 +176,34 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(notified, <String?>[null], reason: 'the session is gone from memory whatever the disk did');
   });
+
+  for (final throws in [false, true]) {
+    test('failed reset keeps getter and listener empty when removal ${throws ? 'throws' : 'is refused'}', () async {
+      final sdk = GravitySDK.instance;
+      await sdk.restoreUserId('previous-uid');
+      await SessionManager.instance.saveUser(
+        null, const User(uid: 'previous-uid', ses: 'previous-session'),
+        SessionManager.instance.generation,
+      );
+      sdk.setUser('custom-user', 'custom-session');
+      await Future<void>.delayed(Duration.zero);
+      notified.clear();
+      disk.rejectUserIdRemovals = throws ? 0 : 2;
+      disk.throwUserIdRemovals = throws ? 1 : 0;
+
+      await expectLater(sdk.resetUser(), throwsA(throws ? isA<_PlatformRefusal>() : isA<StateError>()));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(await disk.storedUserId(), 'previous-uid');
+      expect(await sdk.getUserId(), isNull);
+      expect(notified, <String?>[null]);
+      expect(sdk.user, isNull);
+      expect(SessionManager.instance.sessionId, isNull);
+      expect(SessionManager.instance.isInitializing, isFalse);
+      await sdk.trackViewNoShow(pageContext: ctx());
+      expect(recorded.single.body['user'], isEmpty);
+    });
+  }
 
   test('restoreUserId whose write the platform refuses throws and frees the gate', () async {
     disk.rejectUserIdWrites = 2;

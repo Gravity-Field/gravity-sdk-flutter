@@ -55,6 +55,10 @@ void main() {
     ErrorReporter.disableNetworkForTests = true;
   });
 
+  setUp(() {
+    SessionManager.instance.resetIdentityQueueForTests();
+  });
+
   tearDownAll(() async {
     await SessionManager.instance.resetSession();
   });
