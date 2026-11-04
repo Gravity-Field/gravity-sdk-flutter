@@ -13,8 +13,8 @@ Map<String, dynamic> _$AddToCartEventToJson(AddToCartEvent instance) =>
       'value': instance.value,
       'productId': instance.productId,
       'quantity': instance.quantity,
-      'currency': instance.currency,
-      'cart': instance.cart,
+      'currency': ?instance.currency,
+      'cart': ?instance.cart,
       'type': instance.type,
       'name': instance.name,
     };
@@ -25,7 +25,7 @@ Map<String, dynamic> _$PurchaseEventToJson(PurchaseEvent instance) =>
       'eventTime': ?_eventTimeToJson(instance.eventTime),
       'uniqueTransactionId': instance.uniqueTransactionId,
       'value': instance.value,
-      'currency': instance.currency,
+      'currency': ?instance.currency,
       'cart': instance.cart,
       'type': instance.type,
       'name': instance.name,
@@ -39,8 +39,8 @@ Map<String, dynamic> _$RemoveFromCartEventToJson(
   'value': instance.value,
   'productId': instance.productId,
   'quantity': instance.quantity,
-  'currency': instance.currency,
-  'cart': instance.cart,
+  'currency': ?instance.currency,
+  'cart': ?instance.cart,
   'type': instance.type,
   'name': instance.name,
 };
@@ -50,8 +50,8 @@ Map<String, dynamic> _$SyncCartEventToJson(SyncCartEvent instance) =>
       'customProps': ?instance.customProps,
       'eventTime': ?_eventTimeToJson(instance.eventTime),
       'value': instance.value,
-      'currency': instance.currency,
-      'cart': instance.cart,
+      'currency': ?instance.currency,
+      'cart': ?instance.cart,
       'type': instance.type,
       'name': instance.name,
     };
@@ -70,9 +70,9 @@ Map<String, dynamic> _$SignUpEventToJson(SignUpEvent instance) =>
     <String, dynamic>{
       'customProps': ?instance.customProps,
       'eventTime': ?_eventTimeToJson(instance.eventTime),
-      'hashedEmail': instance.hashedEmail,
-      'cuid': instance.cuid,
-      'cuidType': instance.cuidType,
+      'hashedEmail': ?instance.hashedEmail,
+      'cuid': ?instance.cuid,
+      'cuidType': ?instance.cuidType,
       'type': instance.type,
       'name': instance.name,
     };
@@ -81,9 +81,9 @@ Map<String, dynamic> _$LoginEventToJson(LoginEvent instance) =>
     <String, dynamic>{
       'customProps': ?instance.customProps,
       'eventTime': ?_eventTimeToJson(instance.eventTime),
-      'hashedEmail': instance.hashedEmail,
-      'cuid': instance.cuid,
-      'cuidType': instance.cuidType,
+      'hashedEmail': ?instance.hashedEmail,
+      'cuid': ?instance.cuid,
+      'cuidType': ?instance.cuidType,
       'type': instance.type,
       'name': instance.name,
     };

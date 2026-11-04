@@ -38,6 +38,38 @@ void main() {
     }
   });
 
+  test('standard events omit absent optional typed fields', () {
+    final events = [
+      ...typedEvents(),
+      SignUpEvent(),
+      LoginEvent(),
+    ];
+    for (final event in events) {
+      expect(wire(event).values, isNot(contains(null)), reason: event.type);
+    }
+  });
+
+  test('standard events retain populated optional typed fields', () {
+    const cart = [CartItem(productId: 'sku', quantity: 2, itemPrice: 3)];
+    for (final event in [
+      AddToCartEvent(value: 6, productId: 'sku', quantity: 2, currency: 'USD', cart: cart),
+      RemoveFromCartEvent(value: 6, productId: 'sku', quantity: 2, currency: 'USD', cart: cart),
+      SyncCartEvent(value: 6, currency: 'USD', cart: cart),
+      PurchaseEvent(uniqueTransactionId: 't', value: 6, currency: 'USD', cart: cart),
+    ]) {
+      expect(wire(event)['currency'], 'USD');
+      expect(wire(event)['cart'], [{'productId': 'sku', 'quantity': 2, 'itemPrice': 3.0}]);
+    }
+    for (final event in [
+      SignUpEvent(hashedEmail: 'hash', cuid: 'c', cuidType: 'email'),
+      LoginEvent(hashedEmail: 'hash', cuid: 'c', cuidType: 'email'),
+    ]) {
+      expect(wire(event), containsPair('hashedEmail', 'hash'));
+      expect(wire(event), containsPair('cuid', 'c'));
+      expect(wire(event), containsPair('cuidType', 'email'));
+    }
+  });
+
   test('typed fields still serialize next to customProps', () {
     final json = wire(AddToCartEvent(value: 99.5, productId: 'sku-1', quantity: 2, currency: 'RUB', customProps: props));
     expect(json, {
@@ -45,7 +77,6 @@ void main() {
       'productId': 'sku-1',
       'quantity': 2,
       'currency': 'RUB',
-      'cart': null,
       'type': 'add-to-cart-v1',
       'name': 'Add to Cart',
       'customProps': props,

@@ -27,7 +27,9 @@ class AddToCartEvent extends TriggerEvent {
   final double value;
   final String productId;
   final int quantity;
+  @JsonKey(includeIfNull: false)
   final String? currency;
+  @JsonKey(includeIfNull: false)
   final List<CartItem>? cart;
 
   @override
@@ -53,6 +55,7 @@ class AddToCartEvent extends TriggerEvent {
 class PurchaseEvent extends TriggerEvent {
   final String uniqueTransactionId;
   final double value;
+  @JsonKey(includeIfNull: false)
   final String? currency;
   final List<CartItem> cart;
 
@@ -79,7 +82,9 @@ class RemoveFromCartEvent extends TriggerEvent {
   final double value;
   final String productId;
   final int quantity;
+  @JsonKey(includeIfNull: false)
   final String? currency;
+  @JsonKey(includeIfNull: false)
   final List<CartItem>? cart;
 
   @override
@@ -104,7 +109,9 @@ class RemoveFromCartEvent extends TriggerEvent {
 @JsonSerializable(createFactory: false, createToJson: true)
 class SyncCartEvent extends TriggerEvent {
   final double value;
+  @JsonKey(includeIfNull: false)
   final String? currency;
+  @JsonKey(includeIfNull: false)
   final List<CartItem>? cart;
 
   @override
@@ -147,8 +154,11 @@ class AddToWishlistEvent extends TriggerEvent {
 
 @JsonSerializable(createFactory: false, createToJson: true)
 class SignUpEvent extends TriggerEvent {
+  @JsonKey(includeIfNull: false)
   final String? hashedEmail;
+  @JsonKey(includeIfNull: false)
   final String? cuid;
+  @JsonKey(includeIfNull: false)
   final String? cuidType;
 
   @override
@@ -170,8 +180,11 @@ class SignUpEvent extends TriggerEvent {
 
 @JsonSerializable(createFactory: false, createToJson: true)
 class LoginEvent extends TriggerEvent {
+  @JsonKey(includeIfNull: false)
   final String? hashedEmail;
+  @JsonKey(includeIfNull: false)
   final String? cuid;
+  @JsonKey(includeIfNull: false)
   final String? cuidType;
 
   @override
