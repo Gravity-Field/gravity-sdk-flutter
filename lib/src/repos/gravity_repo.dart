@@ -366,7 +366,7 @@ class GravityRepo {
       // 'queued' is reported only once the entry is actually on disk, so it
       // never claims a delivery that was never scheduled.
       ErrorReporter.instance.report(
-        message: error.toString(),
+        message: ErrorReporter.messageForError(error),
         level: queued ? 'warning' : errorLevel(error),
         section: 'GravityRepo.event',
         stacktrace: stackTrace.toString(),
@@ -435,7 +435,7 @@ class GravityRepo {
     } catch (error, stackTrace) {
       _handleSessionFailure(ownership.completer, error, stackTrace);
       ErrorReporter.instance.report(
-        message: error.toString(),
+        message: ErrorReporter.messageForError(error),
         level: errorLevel(error),
         section: 'GravityRepo.visit',
         stacktrace: stackTrace.toString(),
@@ -551,7 +551,7 @@ class GravityRepo {
     } catch (error, stackTrace) {
       _handleSessionFailure(ownership.completer, error, stackTrace);
       ErrorReporter.instance.report(
-        message: error.toString(),
+        message: ErrorReporter.messageForError(error),
         level: errorLevel(error),
         section: 'GravityRepo.getContentByGroup',
         stacktrace: stackTrace.toString(),
@@ -625,7 +625,7 @@ class GravityRepo {
         await _api.triggerEventUrl(url);
       } catch (e, stackTrace) {
         ErrorReporter.instance.report(
-          message: e.toString(),
+          message: ErrorReporter.messageForError(e),
           level: 'warning',
           section: 'GravityRepo.triggerEventUrls',
           stacktrace: stackTrace.toString(),
@@ -909,7 +909,7 @@ class GravityRepo {
         _sessionManager.failSessionInitialization(completer, error, stackTrace);
       }
       ErrorReporter.instance.report(
-        message: error.toString(),
+        message: ErrorReporter.messageForError(error),
         level: errorLevel(error),
         section: 'GravityRepo._executeChooseBatch',
         stacktrace: stackTrace.toString(),
@@ -1070,7 +1070,7 @@ class GravityRepo {
     } catch (error, stackTrace) {
       _handleSessionFailure(ownership.completer, error, stackTrace);
       ErrorReporter.instance.report(
-        message: error.toString(),
+        message: ErrorReporter.messageForError(error),
         level: errorLevel(error),
         section: 'GravityRepo.getContentBySelectorWithDetails',
         stacktrace: stackTrace.toString(),
@@ -1116,7 +1116,7 @@ class GravityRepo {
     } catch (error, stackTrace) {
       _handleSessionFailure(ownership.completer, error, stackTrace);
       ErrorReporter.instance.report(
-        message: error.toString(),
+        message: ErrorReporter.messageForError(error),
         level: errorLevel(error),
         section: 'GravityRepo.getContentByCampaignIdWithDetails',
         stacktrace: stackTrace.toString(),

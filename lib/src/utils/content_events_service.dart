@@ -70,7 +70,7 @@ class ContentEventsService {
           );
         } catch (error, stackTrace) {
           ErrorReporter.instance.report(
-            message: error.toString(),
+            message: ErrorReporter.messageForError(error),
             level: 'warning',
             section: 'ContentEventsService.modalVisibleImpression',
             stacktrace: stackTrace.toString(),
@@ -153,7 +153,7 @@ class ContentEventsService {
       GravityRepo.instance.triggerEventUrls(event.urls);
     } catch (e, stackTrace) {
       ErrorReporter.instance.report(
-        message: e.toString(),
+        message: ErrorReporter.messageForError(e),
         level: 'warning',
         section: 'ContentEventsService.sendContentClick',
         stacktrace: stackTrace.toString(),
@@ -196,7 +196,7 @@ class ContentEventsService {
       }
     } catch (e, stackTrace) {
       ErrorReporter.instance.report(
-        message: e.toString(),
+        message: ErrorReporter.messageForError(e),
         level: 'warning',
         section: 'ContentEventsService._trackEvent',
         stacktrace: stackTrace.toString(),

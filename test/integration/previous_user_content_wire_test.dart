@@ -380,6 +380,8 @@ void main() {
         sdk.setUser('user-b', 'session-b');
         release.complete();
         final result = await pending;
+        // Cold-start reports resolve identity before notifying the observer.
+        await Future<void>.delayed(Duration.zero);
         expect(result, isNull);
         expect(paths.where((path) => path == '/choose'), hasLength(1));
         expect(loads, isEmpty);

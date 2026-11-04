@@ -259,6 +259,7 @@ void main() {
     await prefs.setOutbox('invalid-json PRIVATE-CONTEXT');
     final corrupt = OutboxStore(prefs: prefs);
     await corrupt.load();
+    await Future<void>.delayed(Duration.zero);
     expect(corrupt.isEmpty, isTrue);
     expect(reports, hasLength(1));
     expect(reports.single['message'], isNot(contains('PRIVATE-CONTEXT')));

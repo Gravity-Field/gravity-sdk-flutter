@@ -4,12 +4,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/data/session/session_manager.dart';
+import 'package:gravity_sdk/src/gravity_sdk.dart';
 import 'package:gravity_sdk/src/utils/clock.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// What an error report carries: nothing that identifies the user or leaks
-/// what the server answered, and a budget of ten reports a minute that only
-/// distinct reports spend.
+/// What an error report carries: the device uid the endpoint requires but no
+/// id the app chose, nothing that leaks what the server answered, and a budget
+/// of ten reports a minute that only distinct reports spend.
 void main() {
   final sent = <Map<String, dynamic>>[];
   var now = DateTime(2026, 1, 1);
@@ -50,13 +51,15 @@ void main() {
   }
 
   group('payload', () {
-    test('carries no uid', () {
+    test('carries the device uid, not the id passed to setUser', () {
       expect(SessionManager.instance.userId, 'device-uid-1234', reason: 'the uid is known to the SDK');
+      GravitySDK.instance.setUser('private-customer-id', 'customer-session');
+      addTearDown(() => GravitySDK.instance.user = null);
 
-      report('no-uid-probe');
+      report('uid-probe');
 
-      expect(sent.single.containsKey('uid'), isFalse);
-      expect(jsonEncode(sent.single), isNot(contains('device-uid-1234')));
+      expect(sent.single['uid'], 'device-uid-1234');
+      expect(jsonEncode(sent.single), isNot(contains('private-customer-id')));
     });
 
     test('puts the section into tags without touching the caller tags', () {
@@ -175,6 +178,170 @@ void main() {
 
     final message = sent.single['message'] as String;
     expect(message, 'GET http://[::1]:8080/pixel failed; see https://ev.example.com/p');
+  });
+
+  for (final url in [
+    'https://host/p(1)?uid=SECRET',
+    'https://host/a,b?uid=SECRET',
+    'https://host/{id}?token=SECRET',
+    'https://host/a[b?uid=SECRET',
+    'https://u:p@[::1/p?uid=1',
+    'https://user:p@ss@host.com/p?uid=SECRET',
+  ]) {
+    test('sanitizes every report text field: $url', () {
+      ErrorReporter.instance.report(
+        message: url,
+        stacktrace: url,
+        level: 'error',
+        section: url,
+        tags: {'url': url},
+        extra: {
+          'nested': [url],
+        },
+      );
+      final body = jsonEncode(sent.single);
+      for (final secret in [
+        'SECRET',
+        '?uid',
+        '?token',
+        'u:p',
+        'user:p',
+        r'$1',
+      ]) {
+        expect(body, isNot(contains(secret)));
+      }
+      expect(sent.single['message'], startsWith('https://'));
+    });
+  }
+
+  for (final (input, expected) in [
+    ('https://public.test/,https://user:SECRET@private.test/path?token=x',
+     'https://public.test/,https://private.test/path'),
+    ('https://public.test,https://user:SECRET@private.test/path',
+     'https://public.test,https://private.test/path'),
+    ('https://public.test/redirect/HTTPS://user:SECRET@private.test/path#fragment',
+     'https://public.test/redirect/HTTPS://private.test/path'),
+    ('https://public.test/?token=SECRET,https://user:OTHER@private.test/path',
+     'https://public.test/'),
+    ('https://public.test/#fragment=SECRET,https://user:OTHER@private.test/path',
+     'https://public.test/'),
+  ]) {
+    test('sanitizes every embedded authority without retaining query tails: $input', () {
+      ErrorReporter.instance.report(
+        message: input,
+        stacktrace: input,
+        level: 'error',
+        section: input,
+        tags: {'url': input},
+        extra: {'nested': [input]},
+      );
+      final body = sent.single;
+      expect(body['message'], expected);
+      expect(body['stacktrace'], expected);
+      expect(body['tags'], {'url': expected, 'section': expected});
+      expect(body['extra'], {'nested': [expected]});
+      expect(jsonEncode(body), isNot(contains('SECRET')));
+      expect(jsonEncode(body), isNot(contains('OTHER')));
+    });
+  }
+
+  for (final (url, clean) in [
+    ('https://user:SE/CRET@host/p', 'https://[redacted]'),
+    ('https://user:SE?CRET@host/p', 'https://[redacted]'),
+    ('https://user:SE#CRET@host/p', 'https://[redacted]'),
+    ('wss://user:SECRET@host/p?token=PRIVATE', 'wss://host/p'),
+    ('ftp://user:SECRET@host/p?token=PRIVATE', 'ftp://host/p'),
+    ('//user:SECRET@host/p?token=PRIVATE', '//host/p'),
+    ('https://u:pa ss@h', 'https://[redacted]h'),
+  ]) {
+    test('removes malformed and non-http userinfo: $url', () {
+      report(url, stacktrace: url, extra: {'url': url}, tags: {'url': url});
+      expect(sent.single['message'], clean);
+      expect(sent.single['stacktrace'], clean);
+      expect(sent.single['extra'], {'url': clean});
+      expect((sent.single['tags'] as Map)['url'], clean);
+    });
+  }
+
+  for (final (url, endpoint) in [
+    ('https://api.example.test/choose?email=person@example.test', 'https://api.example.test/choose'),
+    ('https://api.example.test:443/choose?email=person@example.test', 'https://[redacted]'),
+    ('https://api.example.test/choose#person@example.test', 'https://api.example.test/choose'),
+  ]) {
+    test('sanitizes at-sign query data under the authority ambiguity rule: $url', () {
+      report(url, stacktrace: url, extra: {'url': url}, tags: {'url': url});
+      expect(sent.single['message'], endpoint);
+      expect(sent.single['stacktrace'], endpoint);
+      expect(sent.single['extra'], {'url': endpoint});
+      expect((sent.single['tags'] as Map)['url'], endpoint);
+      expect(jsonEncode(sent.single), isNot(contains('person@')));
+    });
+  }
+
+  test('bounded long diagnostics preserve a complete legitimate endpoint', () {
+    report('GET https://api.example.test/choose finished ${'x' * 20000}');
+    expect(sent.single['message'], startsWith('GET https://api.example.test/choose finished '));
+    expect((sent.single['message'] as String).length, 1000);
+  });
+
+  test('query text containing at-sign cannot become a reported host', () {
+    report('https://public.test:443/p?email=user@QUERY_SECRET');
+    expect(jsonEncode(sent.single), isNot(contains('QUERY_SECRET')));
+  });
+
+  test('bounded input never retains a raw-space credential prefix', () {
+    const paddingUrl = 'https://padding.test/?';
+    const credential = 'https://u:pa ssSECRET';
+    final prefix = '$paddingUrl${'x' * (10000 - paddingUrl.length - credential.length - 1)} ';
+    report('$prefix$credential${'x' * 100}@host/path');
+    expect(sent.single['message'], 'https://padding.test/ ');
+  });
+
+  test(
+    'bounds million-character URL processing without dropping the report',
+    () {
+      final url = 'https://host/${'a(' * 500000}?uid=SECRET';
+      report(url, stacktrace: url, extra: {'url': url}, tags: {'url': url});
+      expect(sent, hasLength(1));
+      expect(jsonEncode(sent.single), isNot(contains('SECRET')));
+      expect(sent.single['message'], isEmpty);
+      expect(sent.single['stacktrace'], isEmpty);
+    },
+  );
+
+  test('long plain text still uses the final message and stacktrace limits', () {
+    report('x' * 100000, stacktrace: 'y' * 100000);
+    expect((sent.single['message'] as String).length, 1000);
+    expect((sent.single['stacktrace'] as String).length, 5000);
+    expect(sent.single['message'], endsWith('...'));
+    expect(sent.single['stacktrace'], endsWith('...'));
+  });
+
+  for (final field in ['message', 'stacktrace']) {
+    for (final part in ['SECRETPASS', 'uid=SECRET']) {
+      test('drops a $field URL cut inside $part by the input bound', () {
+        const url = 'https://user:SECRETPASS@host/p?uid=SECRET';
+        final bound = field == 'message' ? 10000 : 50000;
+        final cut = url.indexOf(part) + (part == 'SECRETPASS' ? 6 : 7);
+        // Sanitizing the first URL removes this padding, exposing the partial
+        // credentials at the end of the bounded input in the final payload.
+        const paddingUrl = 'https://padding.test/?';
+        final prefix = '$paddingUrl${'x' * (bound - cut - paddingUrl.length - 1)} ';
+        final text = '$prefix$url';
+        report(field == 'message' ? text : 'stack-bound', stacktrace: field == 'stacktrace' ? text : null);
+        expect(sent.single[field], 'https://padding.test/ ');
+        expect(sent.single[field], isNot(contains('SEC')));
+        expect(sent.single[field], isNot(contains('user:')));
+      });
+    }
+  }
+
+  test('a synchronous send failure does not suppress a retry as a duplicate', () {
+    ErrorReporter.sendOverride = (_) => throw StateError('transport unavailable');
+    report('retry-after-send-failure');
+    ErrorReporter.sendOverride = sent.add;
+    report('retry-after-send-failure');
+    expect(sent, hasLength(1));
   });
 
   group('limits', () {

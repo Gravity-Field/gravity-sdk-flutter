@@ -1,13 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/api/api.dart';
 import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/data/outbox/outbox_dispatcher.dart';
+import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/models/internal/device.dart';
 import 'package:gravity_sdk/src/utils/device_utils.dart';
+import 'package:gravity_sdk/src/utils/clock.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,6 +22,7 @@ void main() {
   final reports = <Map<String, dynamic>>[];
   // Content requests answer 200 with a body that is not valid JSON.
   var malformedAnswer = false;
+  var now = DateTime(2030);
 
   PageContext ctx() => const PageContext(type: ContextType.other, data: [], location: '/errors');
 
@@ -38,7 +43,7 @@ void main() {
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
       await request.drain<void>();
-      if (request.uri.path == '/pixel') {
+      if (request.uri.path.startsWith('/pixel')) {
         request.response.statusCode = 500;
         request.response.write('{"uid":"pixel-body-uid"}');
       } else if (malformedAnswer) {
@@ -63,25 +68,46 @@ void main() {
     await server.close(force: true);
     OutboxDispatcher.lifecycleObserverEnabled = true;
     ErrorReporter.sendOverride = null;
+    Clock.now = DateTime.now;
   });
 
   setUp(() {
+    now = now.add(const Duration(minutes: 2));
+    Clock.now = () => now;
     malformedAnswer = false;
     reports.clear();
     ErrorReporter.sendOverride = reports.add;
   });
 
-  test('the body of a refused content request reaches no report', () async {
+  test('refused content requests report the device identity without a server uid', () async {
     await expectLater(
       GravitySDK.instance.getContentBySelector(selector: 'broken', pageContext: ctx()),
       throwsA(anything),
     );
     await GravitySDK.instance.trackViewNoShow(pageContext: ctx());
 
+    await Future<void>.delayed(Duration.zero);
     expect(reports, isNotEmpty);
     for (final report in reports) {
+      expect(report['uid'], await Prefs.instance.getDeviceId());
+      expect(report['uid'], isNotEmpty);
+      expect(report['ses'], 'no-session');
       expect(jsonEncode(report), isNot(contains('leaked-body-uid')), reason: '${report['tags']}');
     }
+  });
+
+  test('content reports ignore response bodies from a custom Dio formatter', () async {
+    final original = DioException.readableStringBuilder;
+    DioException.readableStringBuilder = (e) => 'CUSTOM_BODY ${e.response?.data}';
+    addTearDown(() => DioException.readableStringBuilder = original);
+    await expectLater(
+      GravitySDK.instance.getContentBySelector(selector: 'custom-formatter', pageContext: ctx()),
+      throwsA(anything),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(reports, isNotEmpty);
+    expect(jsonEncode(reports), isNot(contains('leaked-body-uid')));
+    expect(jsonEncode(reports), isNot(contains('CUSTOM_BODY')));
   });
 
   test('a content answer that is not valid JSON reaches no report', () async {
@@ -91,6 +117,7 @@ void main() {
       throwsA(anything),
     );
 
+    await Future<void>.delayed(Duration.zero);
     expect(reports, isNotEmpty);
     for (final report in reports) {
       expect(jsonEncode(report), isNot(contains('malformed-body-uid')), reason: '${report['tags']}');
@@ -98,12 +125,21 @@ void main() {
   });
 
   test('a failed tracking pixel is reported without its query or body', () async {
-    final pixel = 'http://127.0.0.1:${server.port}/pixel';
+    GravitySDK.instance.setUser('private-custom-wire', 'custom-wire-session');
+    addTearDown(() => GravitySDK.instance.user = null);
+    final pixel = 'http://127.0.0.1:${server.port}/pixel/p(1),a';
     await GravitySDK.instance.triggerTrackingUrl('$pixel?type=WCLICK&uid=pixel-query-uid');
 
+    await Future<void>.delayed(Duration.zero);
     expect(reports, isNotEmpty);
     for (final report in reports) {
       final encoded = jsonEncode(report);
+      expect(report['uid'], await Prefs.instance.getDeviceId());
+      expect(report['ses'], 'custom-wire-session');
+      expect(report['message'], contains('GET'));
+      expect(report['message'], contains('500'));
+      expect(encoded, isNot(contains('private-custom-wire')));
+      expect(encoded, isNot(contains('error-key')));
       expect(encoded, isNot(contains('pixel-query-uid')), reason: '${report['tags']}');
       expect(encoded, isNot(contains('pixel-body-uid')), reason: '${report['tags']}');
     }

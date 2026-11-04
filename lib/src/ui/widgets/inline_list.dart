@@ -103,7 +103,7 @@ class _GravityInlineListWidgetState extends State<GravityInlineListWidget> {
         return;
       }
       ErrorReporter.instance.report(
-        message: e.toString(),
+        message: ErrorReporter.messageForError(e),
         level: 'error',
         section: 'GravityInlineListWidget._loadContent',
         stacktrace: stackTrace.toString(),

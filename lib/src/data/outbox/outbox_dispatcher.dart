@@ -576,7 +576,7 @@ class OutboxDispatcher with WidgetsBindingObserver {
     _modalRetryOverrides.remove(entry.id);
     _log('dropped ${entry.kind.name} ${entry.id}: $reason');
     ErrorReporter.instance.report(
-      message: 'Outbox entry dropped: $reason${error == null ? '' : ' ($error)'}',
+      message: 'Outbox entry dropped: $reason${error == null ? '' : ' (${ErrorReporter.messageForError(error)})'}',
       level: 'warning',
       section: 'OutboxDispatcher',
       stacktrace: stackTrace?.toString(),
@@ -590,9 +590,9 @@ class OutboxDispatcher with WidgetsBindingObserver {
   }
 
   void _reportStoreError(String section, Object error, StackTrace stackTrace, {Map<String, dynamic>? extra}) {
-    _log('store unavailable in $section${extra == null ? '' : ' $extra'}: $error');
+    _log('store unavailable in $section${extra == null ? '' : ' $extra'}: ${ErrorReporter.messageForError(error)}');
     ErrorReporter.instance.report(
-      message: 'Outbox store unavailable: $error',
+      message: 'Outbox store unavailable: ${ErrorReporter.messageForError(error)}',
       level: 'warning',
       section: 'OutboxDispatcher.$section',
       stacktrace: stackTrace.toString(),

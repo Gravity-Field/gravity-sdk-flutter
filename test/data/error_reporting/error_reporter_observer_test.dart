@@ -1,10 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
+import 'package:gravity_sdk/src/data/session/session_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// The observer is a test seam that sits on the path of every report. It may
 /// neither see a payload it could rewrite on its way out nor, by throwing,
 /// decide that the report is not worth sending.
 void main() {
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    await SessionManager.instance.restoreUserId('observer-device');
+  });
   tearDown(() {
     ErrorReporter.observer = null;
     ErrorReporter.sendOverride = null;

@@ -1104,7 +1104,7 @@ class GravitySDK {
     Map<String, Object>? extra,
   }) {
     ErrorReporter.instance.report(
-      message: error.toString(),
+      message: ErrorReporter.messageForError(error),
       level: errorLevel(error),
       section: section,
       stacktrace: stackTrace.toString(),
@@ -1250,7 +1250,7 @@ class GravitySDK {
     } catch (e, stackTrace) {
       impression?.closed();
       ErrorReporter.instance.report(
-        message: e.toString(),
+        message: ErrorReporter.messageForError(e),
         level: 'error',
         section: 'GravitySDK._showBackendContent',
         stacktrace: stackTrace.toString(),

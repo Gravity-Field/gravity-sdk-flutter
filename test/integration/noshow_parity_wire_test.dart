@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/api/api.dart';
+import 'package:gravity_sdk/src/data/session/session_manager.dart';
 import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 import 'package:gravity_sdk/src/data/outbox/outbox_dispatcher.dart';
 import 'package:gravity_sdk/src/models/internal/device.dart';
@@ -278,6 +279,9 @@ void main() {
       test(
         'checks timeout again before the next choose after error reporting',
         () async {
+          // Keep this observer-driven timing probe synchronous. Cold-start
+          // reports now resolve identity asynchronously before notifying it.
+          await SessionManager.instance.restoreUserId('report-device');
           firstContent = 'error';
           sdk.setOptions(staleContentTimeout: const Duration(minutes: 5));
           var resolverReported = false;

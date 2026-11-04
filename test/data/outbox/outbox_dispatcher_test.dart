@@ -13,6 +13,7 @@ import 'package:gravity_sdk/src/data/outbox/outbox_entry.dart';
 import 'package:gravity_sdk/src/data/outbox/outbox_store.dart';
 import 'package:gravity_sdk/src/data/prefs/prefs.dart';
 import 'package:gravity_sdk/src/utils/clock.dart';
+import 'package:gravity_sdk/src/data/session/session_manager.dart';
 import 'package:gravity_sdk/src/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -147,6 +148,31 @@ void main() {
     OutboxDispatcher.jitter = originalJitter;
     OutboxDispatcher.lifecycleObserverEnabled = originalLifecycleObserverEnabled;
     ErrorReporter.disableNetworkForTests = originalDisableNetwork;
+  });
+
+  test('outbox drop excludes bodies exposed by a custom Dio string builder', () async {
+    await SessionManager.instance.restoreUserId('outbox-report-user');
+    final originalBuilder = DioException.readableStringBuilder;
+    final reports = <Map<String, dynamic>>[];
+    ErrorReporter.sendOverride = reports.add;
+    DioException.readableStringBuilder = (e) => 'BODY_SECRET ${e.response?.data}';
+    addTearDown(() {
+      DioException.readableStringBuilder = originalBuilder;
+      ErrorReporter.sendOverride = null;
+    });
+    final options = RequestOptions(path: 'http://127.0.0.1/pixel');
+    failures.add(DioException(
+      requestOptions: options,
+      type: DioExceptionType.badResponse,
+      response: Response(requestOptions: options, statusCode: 400, data: 'BODY_SECRET'),
+    ));
+    final d = dispatcher();
+    await d.start();
+    await d.enqueue(entry('body-leak'));
+    await d.flush();
+    expect(reports, isNotEmpty);
+    expect(jsonEncode(reports), isNot(contains('BODY_SECRET')));
+    expect(reports.any((r) => r['message'].toString().contains('400')), isTrue);
   });
 
   test('start drains persisted entries in FIFO order', () async {

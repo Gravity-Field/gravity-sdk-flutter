@@ -98,7 +98,7 @@ class _GravityInlineWidgetState extends State<GravityInlineWidget> {
         return;
       }
       ErrorReporter.instance.report(
-        message: e.toString(),
+        message: ErrorReporter.messageForError(e),
         level: 'error',
         section: 'GravityInlineWidget._loadContent',
         stacktrace: stackTrace.toString(),

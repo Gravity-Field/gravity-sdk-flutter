@@ -27,7 +27,7 @@ class DeviceUtils {
     }
     try {
       final userAgent = await _getUserAgent();
-      final deviceId = await _getDeviceId();
+      final deviceId = await getDeviceId();
       final status = await AppTrackingTransparency.trackingAuthorizationStatus;
       final permission = GravitySDK.instance.notificationPermissionStatus;
 
@@ -39,7 +39,7 @@ class DeviceUtils {
       );
     } catch (e, stackTrace) {
       ErrorReporter.instance.report(
-        message: e.toString(),
+        message: ErrorReporter.messageForError(e),
         level: 'error',
         section: 'DeviceUtils.getDevice',
         stacktrace: stackTrace.toString(),
@@ -60,8 +60,9 @@ class DeviceUtils {
 
   Future<String>? _deviceIdInFlight;
 
-  Future<String> _getDeviceId() {
-    if (deviceIdCache != null) {
+  /// The same persistent identity used by requests and cold-start error reports.
+  Future<String> getDeviceId() {
+    if (deviceIdCache != null && deviceIdCache!.isNotEmpty) {
       return Future.value(deviceIdCache);
     }
     // Single-flight: concurrent first calls must not mint two ids.
@@ -71,7 +72,7 @@ class DeviceUtils {
   Future<String> _loadDeviceId() async {
     try {
       String? deviceId = await Prefs.instance.getDeviceId();
-      if (deviceId == null) {
+      if (deviceId == null || deviceId.isEmpty) {
         deviceId = UuidV4().generate();
         await Prefs.instance.setDeviceId(deviceId);
       }

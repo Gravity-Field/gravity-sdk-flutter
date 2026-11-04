@@ -1,3 +1,4 @@
+import 'package:talker/talker.dart' as talker_lib;
 import 'dart:convert';
 
 import 'package:dio/dio.dart' hide Options;
@@ -10,7 +11,7 @@ import 'package:gravity_sdk/src/utils/clock.dart';
 import 'package:gravity_sdk/src/utils/device_utils.dart';
 import 'package:gravity_sdk/src/utils/logger.dart';
 import 'package:gravity_sdk/src/utils/time_format.dart';
-import 'package:talker_dio_logger/talker_dio_logger.dart';
+import 'package:gravity_sdk/src/data/error_reporting/diagnostic_url_sanitizer.dart';
 
 import 'content_ids_response.dart';
 
@@ -93,21 +94,7 @@ class Api {
     _dio.interceptors.add(GravityInterceptor());
 
     if (kDebugMode) {
-      _dio.interceptors.add(
-        TalkerDioLogger(
-          talker: talker,
-          settings: const TalkerDioLoggerSettings(
-            printRequestHeaders: true,
-            printRequestData: true,
-            printResponseHeaders: true,
-            printResponseMessage: true,
-            printResponseData: true,
-            // The API key travels in this header; debug logs end up in bug
-            // reports and screen recordings, so it is never printed.
-            hiddenHeaders: {'authorization'},
-          ),
-        ),
-      );
+      _dio.interceptors.add(_SafeHttpLogger());
     }
   }
 
@@ -377,5 +364,53 @@ class Api {
     );
     final json = response.data as Map<String, dynamic>;
     return (ContentResponse.fromJson(json), json);
+  }
+}
+
+
+// Store only safe strings in Talker history. Logging copies of Dio objects
+// would still retain raw URLs, headers and response bodies in diagnostics.
+class _SafeHttpLogger extends Interceptor {
+  _SafeHttpLogger() {
+    talker.settings.registerKeys([
+      talker_lib.TalkerKey.httpRequest,
+      talker_lib.TalkerKey.httpResponse,
+      talker_lib.TalkerKey.httpError,
+    ]);
+  }
+
+  void _write(RequestOptions request, {int? status, DioExceptionType? failure}) {
+    try {
+      final endpoint = DiagnosticUrlSanitizer.sanitize(request.uri.toString());
+      final result = status != null ? ' -> $status' : failure != null ? ' -> no response' : '';
+      final isRequest = status == null && failure == null;
+      final auth = isRequest && request.headers.keys.any((key) => key.toLowerCase() == 'authorization')
+          ? '\nHeaders: {Authorization: *****}' : '';
+      final message = 'HTTP ${request.method} $endpoint$result$auth';
+      final key = failure != null ? talker_lib.TalkerKey.httpError
+          : isRequest ? talker_lib.TalkerKey.httpRequest : talker_lib.TalkerKey.httpResponse;
+      talker.logCustom(talker_lib.TalkerLog(message, key: key,
+          logLevel: failure == null ? talker_lib.LogLevel.debug : talker_lib.LogLevel.error));
+    } catch (_) {
+      // Diagnostics must not affect the request or recursively report errors.
+    }
+  }
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    _write(options);
+    super.onRequest(options, handler);
+  }
+
+  @override
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    _write(response.requestOptions, status: response.statusCode);
+    super.onResponse(response, handler);
+  }
+
+  @override
+  void onError(DioException error, ErrorInterceptorHandler handler) {
+    _write(error.requestOptions, status: error.response?.statusCode, failure: error.type);
+    super.onError(error, handler);
   }
 }

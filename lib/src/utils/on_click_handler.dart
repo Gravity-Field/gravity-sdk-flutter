@@ -106,7 +106,7 @@ class OnClickHandler {
       if (explicitClose) finishExplicitClose();
     } catch (e, stackTrace) {
       ErrorReporter.instance.report(
-        message: e.toString(),
+        message: ErrorReporter.messageForError(e),
         level: 'warning',
         section: 'OnClickHandler.handeOnClick',
         stacktrace: stackTrace.toString(),

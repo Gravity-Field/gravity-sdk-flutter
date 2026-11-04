@@ -232,6 +232,7 @@ void main() {
 
     expect(response.user.uid, 'server-uid', reason: 'the response was delivered; storage is not its problem');
     expect(await disk.storedUserId(), isNull);
+    await Future<void>.delayed(Duration.zero);
     expect(
       reports.where((r) => r.section == 'SessionManager.saveUser'),
       isNotEmpty,

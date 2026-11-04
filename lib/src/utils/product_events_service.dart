@@ -67,7 +67,7 @@ class ProductEventsService {
       }
     } catch (e, stackTrace) {
       ErrorReporter.instance.report(
-        message: e.toString(),
+        message: ErrorReporter.messageForError(e),
         level: 'warning',
         section: 'ProductEventsService._trackEvent',
         stacktrace: stackTrace.toString(),

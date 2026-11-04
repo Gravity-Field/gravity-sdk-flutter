@@ -241,7 +241,7 @@ class SessionManager {
 
   void _reportStorageFailure(Object error, StackTrace stackTrace) {
     ErrorReporter.instance.report(
-      message: error.toString(),
+      message: ErrorReporter.messageForError(error),
       level: 'warning',
       section: 'SessionManager.saveUser',
       stacktrace: stackTrace.toString(),
