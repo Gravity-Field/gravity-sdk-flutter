@@ -211,6 +211,56 @@ void main() {
     expect(recordedBodies.every((b) => (b['data'] as List).length == 1), isTrue);
   });
 
+  for (final value in [
+    '101', '1e3', '-0', 'true', 'false', 'null', '', '007',
+    '18446744073709551616', 'a"b', '{"x":1}', '[1]',
+  ]) {
+    for (final field in ['selector', 'group', 'campaignId']) {
+      test('string identifiers preserve $field=${jsonEncode(value)} on the wire', () async {
+        nextResponseCampaigns = [];
+        switch (field) {
+          case 'selector':
+            await choose(value);
+          case 'group':
+            await GravityRepo.instance.getContentByGroup(
+              group: value, pageContext: ctx(), options: const Options(),
+              contentSetting: const ContentSettings(),
+            );
+          case 'campaignId':
+            await GravityRepo.instance.getContentByCampaignId(
+              campaignId: value, pageContext: ctx(), options: const Options(),
+              contentSetting: const ContentSettings(),
+            );
+        }
+        expect(recordedBodies, hasLength(1));
+        final items = recordedBodies.single['data'] as List;
+        expect(items, hasLength(1));
+        expect((items.single as Map)[field], isA<String>());
+        expect((items.single as Map)[field], value);
+      });
+    }
+    // Groups intentionally use their independent endpoint path; the batcher
+    // merges selectors and campaign IDs under one envelope.
+    test('string identifiers retain exact values in a merged batch: ${jsonEncode(value)}', () async {
+      nextResponseCampaigns = [];
+      await Future.wait([
+        choose(value),
+        GravityRepo.instance.getContentByCampaignId(
+          campaignId: value, pageContext: ctx(), options: const Options(),
+          contentSetting: const ContentSettings(),
+        ),
+      ]);
+      expect(recordedBodies, hasLength(1));
+      final items = (recordedBodies.single['data'] as List).cast<Map>();
+      expect(items, hasLength(2));
+      for (final field in ['selector', 'campaignId']) {
+        final item = items.singleWhere((item) => item.containsKey(field));
+        expect(item[field], isA<String>());
+        expect(item[field], value);
+      }
+    });
+  }
+
   test('a mixed selector+campaignId merge demuxes each caller to its own campaign', () async {
     // The selector campaign resolves to the directly-requested campaignId
     // and arrives later — it must not shadow the direct answer.
