@@ -38,9 +38,19 @@ class _GravityProductsContainerState extends State<GravityProductsContainer> {
 
     if (productContainerType == ProductContainerType.grid) {
       return _buildGridLayout(slots);
-    } else {
-      return _buildRowLayout(slots);
     }
+
+    final margin = widget.element.style?.margin;
+    return Container(
+      margin: EdgeInsets.only(
+        left: margin?.left ?? 0,
+        right: margin?.right ?? 0,
+        top: margin?.top ?? 0,
+        bottom: margin?.bottom ?? 0,
+      ),
+      color: widget.element.style?.backgroundColor,
+      child: _buildRowLayout(slots),
+    );
   }
 
   Widget _buildRowLayout(List<Slot> slots) {
