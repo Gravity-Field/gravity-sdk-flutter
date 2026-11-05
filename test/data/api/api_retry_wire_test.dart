@@ -144,6 +144,16 @@ void main() {
     expect(sleeps, [const Duration(seconds: 1)]);
   });
 
+  test('negative timeout uses a zero retry deadline at the clock boundary', () async {
+    Clock.now = () => DateTime.utc(2026, 11, 5);
+    GravitySDK.instance.setOptions(staleContentTimeout: const Duration(seconds: -5));
+    Api.retryDelays = const [Duration.zero, Duration(microseconds: 1)];
+    statusQueue.addAll([503, 503, 200]);
+    await expectLater(api.visit(null, ctx(), const Options()), throwsA(isA<DioException>()));
+    expect(recorded, hasLength(2));
+    expect(sleeps, [Duration.zero]);
+  });
+
   test('empty retryDelays disables retries', () async {
     statusQueue.add(503);
     Api.retryDelays = const [];

@@ -70,7 +70,12 @@ class GravitySDK {
   /// from responses that took longer are not resolved (the screen has most
   /// likely changed). Also bounds the transient retry of `/visit`, `/event`
   /// and `/choose`.
-  Duration staleContentTimeout = const Duration(seconds: 10);
+  Duration get staleContentTimeout => _staleContentTimeout;
+  set staleContentTimeout(Duration value) {
+    _staleContentTimeout = value.isNegative ? Duration.zero : value;
+  }
+
+  Duration _staleContentTimeout = const Duration(seconds: 10);
 
   NotificationPermissionStatus notificationPermissionStatus =
       NotificationPermissionStatus.unknown;

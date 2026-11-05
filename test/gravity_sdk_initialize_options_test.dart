@@ -4,6 +4,19 @@ import 'package:gravity_sdk/src/data/outbox/outbox_dispatcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  test('negative stale timeout clamps to zero through both public setters', () {
+    final sdk = GravitySDK.instance;
+    addTearDown(() => sdk.staleContentTimeout = const Duration(seconds: 10));
+    sdk.setOptions(staleContentTimeout: const Duration(seconds: -5));
+    expect(sdk.staleContentTimeout, Duration.zero);
+    sdk.staleContentTimeout = const Duration(microseconds: -1);
+    expect(sdk.staleContentTimeout, Duration.zero);
+    sdk.setOptions(staleContentTimeout: const Duration(microseconds: 1));
+    expect(sdk.staleContentTimeout, const Duration(microseconds: 1));
+    sdk.setOptions(staleContentTimeout: Duration.zero);
+    expect(sdk.staleContentTimeout, Duration.zero);
+  });
+
   test(
     'initialize preserves preconfigured options and the uid listener across repeated calls',
     () async {
@@ -29,6 +42,9 @@ void main() {
         await sdk.restoreUserId('second-uid');
         await Future<void>.delayed(Duration.zero);
         expect(notified, ['first-uid', 'second-uid']);
+        sdk.setOptions(staleContentTimeout: const Duration(seconds: -5));
+        await sdk.initialize(apiKey: 'third-key', section: 'third-section');
+        expect(sdk.staleContentTimeout, Duration.zero);
       } finally {
         sdk.setUserIdListener(null);
         sdk.setOptions(

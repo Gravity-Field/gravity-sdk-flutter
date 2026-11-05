@@ -210,6 +210,15 @@ void main() {
 
   for (final call in calls.entries) {
     group(call.key, () {
+      for (final elapsed in [Duration.zero, const Duration(microseconds: 1)]) {
+        test('negative timeout permits only instantaneous content ($elapsed)', () async {
+          sdk.setOptions(staleContentTimeout: const Duration(seconds: -5));
+          trackingAge = elapsed;
+          expect(await call.value(), elapsed == Duration.zero ? isNotNull : isNull);
+          expect(chosen, elapsed == Duration.zero ? ['high'] : isEmpty);
+        });
+      }
+
       for (final implicit in [false, true]) {
         test(
           'passes host implicit-impression option $implicit through tracking and choose',
