@@ -3,6 +3,8 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 
 import '../models/actions/action.dart';
+import '../gravity_sdk.dart' show GravitySDK;
+import '../models/external/tracking_event.dart' show ContentCloseEvent;
 import '../models/external/campaign.dart';
 import '../models/external/page_context.dart';
 import '../models/internal/campaign_content.dart';
@@ -71,12 +73,17 @@ class FormSession extends ChangeNotifier {
     if (_isFinished) return false;
     _isFinished = true;
 
-    if (hasFormElements) {
-      ContentEventsService.instance.sendContentClosed(
-        content: content,
-        campaign: campaign,
+    ContentEventsService.instance.sendContentClosed(
+      content: content,
+      campaign: campaign,
+      callbackTrackingEvent: false,
+    );
+    // Dismissal itself is observable even when no onClose URL is configured.
+    try {
+      GravitySDK.instance.gravityEventCallback?.call(
+        ContentCloseEvent(content, campaign),
       );
-    }
+    } catch (_) {}
     return true;
   }
 

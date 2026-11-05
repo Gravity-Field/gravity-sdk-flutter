@@ -395,14 +395,15 @@ void main() {
         'campaignId': '6a5f4b7b73a8b1a026084fe2',
         'experienceId': '6a5f4b7b73a8b1a026084fe7',
       });
-      expect(callbacks, hasLength(1));
-      expect(callbacks.single, isA<FollowUrlEvent>());
+      expect(callbacks, hasLength(2));
+      expect(callbacks.first, isA<ContentCloseEvent>());
+      expect(callbacks.last, isA<FollowUrlEvent>());
       expect(
-        (callbacks.single as FollowUrlEvent).type,
+        callbacks.whereType<FollowUrlEvent>().single.type,
         FollowUrlType.browser,
       );
       expect(
-        (callbacks.single as FollowUrlEvent).url,
+        callbacks.whereType<FollowUrlEvent>().single.url,
         startsWith('https://play.google.com/store/apps/details'),
       );
       expect(session.successfulReasons, [FormCloseReason.submitted]);
@@ -480,7 +481,8 @@ void main() {
         'campaignId': '6a5f4b7b73a8b1a026084fe2',
         'experienceId': '6a5f4b7b73a8b1a026084fe7',
       });
-      expect(callbacks.single, isA<FollowUrlEvent>());
+      expect(callbacks.whereType<ContentCloseEvent>(), hasLength(1));
+      expect(callbacks.whereType<FollowUrlEvent>(), hasLength(1));
       expect(session.successfulReasons, [FormCloseReason.submitted]);
     },
   );
@@ -551,7 +553,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(callbacks, isEmpty);
+      expect(callbacks, hasLength(1));
+      expect(callbacks.single, isA<ContentCloseEvent>());
       expect(session.successfulReasons, [FormCloseReason.submitted]);
       expect(
         talker.history.where(

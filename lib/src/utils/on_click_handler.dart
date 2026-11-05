@@ -52,8 +52,9 @@ class OnClickHandler {
             );
       final closeTrackingOwnedBySession =
           explicitClose &&
-          session?.hasFormElements == true &&
-          onClick.action == Action.close;
+          session != null &&
+          onClick.action == Action.close &&
+          content.variables.onClose?.action == Action.close;
       // SubmitExecutor owns submit_form tracking: firing it here would report
       // a "submit" for clicks its validation rejects (option taps reach this
       // handler even when the form is invalid — a disabled button does not).
