@@ -19,6 +19,10 @@ CampaignIdsResponse _$CampaignIdsResponseFromJson(Map<String, dynamic> json) =>
 CampaignId _$CampaignIdFromJson(Map<String, dynamic> json) => CampaignId(
   campaignId: json['campaignId'] as String,
   trigger: json['trigger'] as String? ?? '',
-  priority: (json['priority'] as num?)?.toInt() ?? 0,
-  delayTime: (json['delayTime'] as num?)?.toInt() ?? 0,
+  priority: json['priority'] == null
+      ? 0
+      : ParseUtils.parseNonNullableInt(json['priority']),
+  delayTime: json['delayTime'] == null
+      ? 0
+      : ParseUtils.parseNonNullableInt(json['delayTime']),
 );

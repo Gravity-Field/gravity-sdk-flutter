@@ -945,7 +945,14 @@ class GravitySDK {
   /// the user identity changed or [initialize] was called again while
   /// tracking or loading content. Obsolete results do not send content-loaded
   /// notifications or invoke the callback.
-  /// Also invokes [gravityContentCallback] on success.
+  /// Turning [isFetchContentOnTrack] off before or during loading also returns
+  /// `null` without content-loaded notifications or invoking the callback.
+  /// Also invokes [gravityContentCallback] on success with the same response.
+  ///
+  /// Returns as soon as the content is loaded and does not wait for the
+  /// campaign delay. [GravityDataResponse.delayTime] carries the chosen
+  /// campaign's delay in milliseconds (`0` if none); the app is responsible
+  /// for waiting it before showing the content.
   Future<GravityDataResponse<ContentResponse>?> trackViewNoShow({
     required PageContext pageContext,
   }) async {
@@ -985,7 +992,14 @@ class GravitySDK {
   /// the user identity changed or [initialize] was called again while
   /// tracking or loading content. Obsolete results do not send content-loaded
   /// notifications or invoke the callback.
-  /// Also invokes [gravityContentCallback] on success.
+  /// Turning [isFetchContentOnTrack] off before or during loading also returns
+  /// `null` without content-loaded notifications or invoking the callback.
+  /// Also invokes [gravityContentCallback] on success with the same response.
+  ///
+  /// Returns as soon as the content is loaded and does not wait for the
+  /// campaign delay. [GravityDataResponse.delayTime] carries the chosen
+  /// campaign's delay in milliseconds (`0` if none); the app is responsible
+  /// for waiting it before showing the content.
   Future<GravityDataResponse<ContentResponse>?> triggerEventNoShow({
     required List<TriggerEvent> events,
     required PageContext pageContext,
@@ -1075,7 +1089,9 @@ class GravitySDK {
     required DateTime startedAt,
   }) async {
     bool isCurrent() =>
-        identityVersion == IdentityVersion.current && !_isStale(startedAt);
+        isFetchContentOnTrack &&
+        identityVersion == IdentityVersion.current &&
+        !_isStale(startedAt);
 
     final resolved =
         await _resolveHighestPriority<GravityDataResponse<ContentResponse>>(
@@ -1092,7 +1108,13 @@ class GravitySDK {
         );
 
     if (resolved == null || !isCurrent()) return null;
-    final response = resolved.$1;
+    final (detailed, campaign) = resolved;
+    final delayTime = campaign.delayTime < 0 ? 0 : campaign.delayTime;
+    final response = GravityDataResponse<ContentResponse>(
+      data: detailed.data,
+      json: detailed.json,
+      delayTime: delayTime,
+    );
     _notifyContentLoadedWithDetails(response);
     return response;
   }
