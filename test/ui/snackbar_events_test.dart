@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Action;
+import 'package:gravity_sdk/src/ui/widgets/gravity_elements_column.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
@@ -19,6 +20,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 const _closeImageUrl = 'https://images.example.test/close.png';
 
 Campaign campaign({
+  Map<String, dynamic>? containerClick,
   bool closeButton = false,
   bool containerClose = false,
   bool impressionHook = true,
@@ -42,7 +44,7 @@ Campaign campaign({
                   'variables': {
                     'frameUI': {
                       'container': {
-                        if (containerClose) 'onClick': {'action': 'close'},
+                        if (containerClose) 'onClick': containerClick ?? {'action': 'close'},
                         'style': {
                           'padding': {'top': 16, 'bottom': 16},
                         },
@@ -115,6 +117,158 @@ void main() {
     GravitySDK.instance.gravityEventCallback = null;
     VisibilityDetectorController.instance.updateInterval = originalInterval;
   });
+
+  for (final template in [TemplateSystemName.snackbar1, TemplateSystemName.snackbar2]) {
+    for (final action in ['cancel', 'follow_url']) {
+      testWidgets('non-close container action never sends fallback close ($template, $action)', (tester) async {
+        final sent = <List<String>>[];
+        GravityRepo.triggerEventUrlsObserver = sent.add;
+        addTearDown(() => GravityRepo.triggerEventUrlsObserver = null);
+        final data = campaign(
+          containerClose: true,
+          onClose: false,
+          containerClick: {
+            'action': action,
+            'closeOnClick': true,
+            'url': 'https://example.test/action',
+          },
+        );
+        late BuildContext host;
+        await tester.pumpWidget(MaterialApp(home: Builder(builder: (context) {
+          host = context;
+          return const Scaffold();
+        })));
+        SnackBarContent.show(
+          context: host,
+          snackBarContent: SnackBarContent.getSnackBar(
+            template: template, content: data.payload.first.contents.first, campaign: data,
+          ),
+          durationSeconds: 4,
+        );
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        sent.clear();
+        await tester.tap(find.text('Notification'));
+        await tester.pumpAndSettle();
+        expect(find.text('Notification'), findsNothing);
+        expect(events.whereType<ContentCloseEvent>(), hasLength(1));
+        if (action == 'cancel') {
+          expect(events.whereType<CancelEvent>(), hasLength(1));
+        } else {
+          expect(events.whereType<FollowUrlEvent>(), hasLength(1));
+        }
+        expect(sent, isEmpty, reason: 'no onClose is configured and this is not a close action');
+        await tester.pump(const Duration(seconds: 5));
+        expect(events.whereType<ContentCloseEvent>(), hasLength(1));
+        expect(sent, isEmpty);
+      });
+    }
+
+    for (final onClose in [false, true]) {
+      testWidgets('repeated tap during snackbar fade-out closes once ($template, onClose=$onClose)', (tester) async {
+        final sent = <List<String>>[];
+        GravityRepo.triggerEventUrlsObserver = sent.add;
+        addTearDown(() => GravityRepo.triggerEventUrlsObserver = null);
+        final data = campaign(containerClose: true, onClose: onClose);
+        late BuildContext host;
+        await tester.pumpWidget(MaterialApp(home: Builder(builder: (context) {
+          host = context;
+          return const Scaffold();
+        })));
+        SnackBarContent.show(
+          context: host,
+          snackBarContent: SnackBarContent.getSnackBar(
+            template: template, content: data.payload.first.contents.first, campaign: data,
+          ),
+          durationSeconds: 4,
+        );
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        sent.clear();
+        await tester.tap(find.text('Notification'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        final fade = tester.widget<FadeTransition>(find.ancestor(
+          of: find.text('Notification'), matching: find.byType(FadeTransition),
+        ).first);
+        expect(fade.opacity.value, greaterThan(0));
+        expect(fade.opacity.value, lessThan(1));
+        // A second real tap reaches the still-mounted control mid-animation.
+        await tester.tap(find.text('Notification'));
+        await tester.pumpAndSettle();
+        expect(find.text('Notification'), findsNothing);
+        expect(events.whereType<ContentCloseEvent>(), hasLength(1));
+        expect(sent, [['https://tracking.example.test/close']]);
+        await tester.pump(const Duration(seconds: 5));
+        expect(events.whereType<ContentCloseEvent>(), hasLength(1));
+        expect(sent, [['https://tracking.example.test/close']]);
+      });
+    }
+  }
+
+  for (final template in [TemplateSystemName.snackbar1, TemplateSystemName.snackbar2]) {
+    for (final target in ['container', 'text0', 'text1', 'image0', if (template == TemplateSystemName.snackbar1) 'image1', if (template == TemplateSystemName.snackbar2) 'button']) {
+      for (final action in Action.values) {
+        for (final closeOnClick in [false, true]) {
+          testWidgets('click matrix $template $target ${action.name} closeOnClick=$closeOnClick', (tester) async {
+            final recorder = ui.PictureRecorder();
+            ui.Canvas(recorder).drawColor(Colors.white, ui.BlendMode.src);
+            final picture = recorder.endRecording();
+            final image = await tester.runAsync(() => picture.toImage(1, 1));
+            picture.dispose();
+            PaintingBinding.instance.imageCache.putIfAbsent(
+              const NetworkImage(_closeImageUrl),
+              () => OneFrameImageStreamCompleter(Future.value(ImageInfo(image: image!))),
+            );
+            addTearDown(() => PaintingBinding.instance.imageCache.clear());
+            final sent = <List<String>>[];
+            GravityRepo.triggerEventUrlsObserver = sent.add;
+            addTearDown(() => GravityRepo.triggerEventUrlsObserver = null);
+            final click = OnClick(action: action, closeOnClick: closeOnClick, url: 'https://example.test/action');
+            final data = campaign(closeButton: true, closeTextIndex: 1, closeImageIndex: 1, containerClose: true, containerClick: {'action': action.name.replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}'), 'closeOnClick': closeOnClick, 'url': 'https://example.test/action'});
+            final content = data.payload.first.contents.first;
+            // Use the actual rendered callbacks, avoiding image transport and
+            // form-input filtering, which are covered by separate widget tests.
+            late BuildContext host;
+            await tester.pumpWidget(MaterialApp(home: Builder(builder: (context) {
+              host = context;
+              return const Scaffold();
+            })));
+            SnackBarContent.show(context: host, snackBarContent: SnackBarContent.getSnackBar(
+              template: template, content: content, campaign: data,
+            ), durationSeconds: 4);
+            await tester.pump();
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 300));
+            sent.clear();
+            if (target == 'container') {
+              // The container closure reads its model at invocation time.
+              final gesture = tester.widgetList<GestureDetector>(find.ancestor(of: find.text('Notification'), matching: find.byType(GestureDetector))).where((widget) => widget.onTap != null).last;
+              gesture.onTap!();
+            } else {
+              final kind = target.startsWith('text') ? ElementType.text : target.startsWith('image') ? ElementType.image : ElementType.button;
+              final index = target.endsWith('1') ? 1 : 0;
+              final column = tester.widgetList<GravityElementsColumn>(find.byType(GravityElementsColumn)).where((column) => column.elements!.first.type == kind).elementAt(index);
+              column.onClickCallback(column.elements!.first, click);
+            }
+            await tester.pumpAndSettle();
+            final closes = action == Action.close || action == Action.cancel || (closeOnClick && ![Action.openStep, Action.submitForm, Action.unknown].contains(action));
+            final remains = find.text('Notification').evaluate().isNotEmpty;
+            final immediateCloses = events.whereType<ContentCloseEvent>().length;
+            await tester.pump(const Duration(seconds: 5));
+            await tester.pumpAndSettle();
+            expect(remains, !closes);
+            expect(immediateCloses, closes ? 1 : 0);
+            expect(events.whereType<ContentCloseEvent>(), hasLength(1));
+            expect(sent.where((urls) => urls.isNotEmpty), [['https://tracking.example.test/close']], reason: 'click and timer share exactly one close tracking owner');
+            if (action == Action.followUrl) expect(events.whereType<FollowUrlEvent>(), hasLength(1));
+          });
+        }
+      }
+    }
+  }
 
   for (final template in [TemplateSystemName.snackbar1, TemplateSystemName.snackbar2]) {
     for (final earlyClose in [false, true]) {
