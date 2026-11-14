@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart' show mergeSort;
 import 'utils/in_app_presentation_gate.dart';
 import 'utils/modal_impression.dart';
 import 'package:flutter/material.dart' hide Action;
@@ -1055,8 +1056,8 @@ class GravitySDK {
     required String section,
     bool Function()? isCurrent,
   }) async {
-    final sorted = List.of(campaigns)
-      ..sort((a, b) => b.priority.compareTo(a.priority));
+    final sorted = List.of(campaigns);
+    mergeSort(sorted, compare: (a, b) => b.priority.compareTo(a.priority));
 
     for (final campaignId in sorted) {
       if (isCurrent != null && !isCurrent()) return null;

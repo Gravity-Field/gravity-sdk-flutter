@@ -24,6 +24,8 @@ void main() {
   late DateTime now;
   var testDay = 0;
   var firstContent = 'root';
+  List<Map<String, dynamic>>? trackingCampaigns;
+  final emptyCampaigns = <String>{};
   var trackingAge = Duration.zero;
   var chooseAge = Duration.zero;
   Duration? timeoutOnChoose;
@@ -85,20 +87,22 @@ void main() {
         request.response.write(
           jsonEncode({
             'user': {'uid': 'uid', 'ses': 'ses'},
-            'campaigns': [
-              {
-                'campaignId': 'low',
-                'priority': 1,
-                'trigger': 'view',
-                'delayTime': 0,
-              },
-              {
-                'campaignId': 'high',
-                'priority': 2,
-                'trigger': 'view',
-                'delayTime': 0,
-              },
-            ],
+            'campaigns':
+                trackingCampaigns ??
+                [
+                  {
+                    'campaignId': 'low',
+                    'priority': 1,
+                    'trigger': 'view',
+                    'delayTime': 0,
+                  },
+                  {
+                    'campaignId': 'high',
+                    'priority': 2,
+                    'trigger': 'view',
+                    'delayTime': 0,
+                  },
+                ],
           }),
         );
       } else {
@@ -125,7 +129,8 @@ void main() {
                       'variationId': 'var',
                       'decisionId': 'dec',
                       'contents': [
-                        if (id != 'high' || firstContent != 'empty')
+                        if (!emptyCampaigns.contains(id) &&
+                            (id != 'high' || firstContent != 'empty'))
                           {
                             'contentId': id,
                             'contentType': 'native',
@@ -168,6 +173,8 @@ void main() {
     Clock.now = () => now;
     sdk.setOptions(staleContentTimeout: const Duration(seconds: 10));
     firstContent = 'root';
+    trackingCampaigns = null;
+    emptyCampaigns.clear();
     trackingAge = Duration.zero;
     chooseAge = Duration.zero;
     timeoutOnChoose = null;
@@ -210,13 +217,60 @@ void main() {
 
   for (final call in calls.entries) {
     group(call.key, () {
-      for (final elapsed in [Duration.zero, const Duration(microseconds: 1)]) {
-        test('negative timeout permits only instantaneous content ($elapsed)', () async {
-          sdk.setOptions(staleContentTimeout: const Duration(seconds: -5));
-          trackingAge = elapsed;
-          expect(await call.value(), elapsed == Duration.zero ? isNotNull : isNull);
-          expect(chosen, elapsed == Duration.zero ? ['high'] : isEmpty);
+      for (final scenario in [
+        (name: '40 equal priorities', high: 0, empty: <String>[], tried: ['0']),
+        (
+          name: '40 equal priorities with fallback',
+          high: 0,
+          empty: ['0'],
+          tried: ['0', '1'],
+        ),
+        (
+          name: '40 campaigns with a lower-priority tie',
+          high: 3,
+          empty: ['0', '1', '2'],
+          tried: ['0', '1', '2', '3'],
+        ),
+      ]) {
+        test('keeps server order for ${scenario.name}', () async {
+          trackingCampaigns = [
+            for (var i = 0; i < 40; i++)
+              {
+                'campaignId': '$i',
+                'priority': i < scenario.high ? 5 : 1,
+                'trigger': 'view',
+                'delayTime': 0,
+              },
+          ];
+          emptyCampaigns.addAll(scenario.empty);
+          final result = await call.value();
+          await waitForLoadUrls();
+          expect(chosen, scenario.tried);
+          expect(
+            result?.data.data.single.payload.single.campaignId,
+            scenario.tried.last,
+          );
+          expect(loads.map((event) => event.content.contentId), [
+            scenario.tried.last,
+          ]);
+          expect(loadedUrls, [scenario.tried.last]);
+          expect(callbacks, [same(result)]);
         });
+      }
+
+      for (final elapsed in [Duration.zero, const Duration(microseconds: 1)]) {
+        test(
+          'negative timeout permits only instantaneous content ($elapsed)',
+          () async {
+            sdk.setOptions(staleContentTimeout: const Duration(seconds: -5));
+            trackingAge = elapsed;
+            expect(
+              await call.value(),
+              elapsed == Duration.zero ? isNotNull : isNull,
+            );
+            expect(chosen, elapsed == Duration.zero ? ['high'] : isEmpty);
+          },
+        );
       }
 
       for (final implicit in [false, true]) {
