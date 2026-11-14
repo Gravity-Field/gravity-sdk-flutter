@@ -40,12 +40,12 @@ class SnackBarContent2 extends SnackBarContent {
       onTap: container.onClick != null
           ? () {
               final action = container.onClick!;
-              final closes = action.action == Action.close && shouldAutoCloseOnClick(action);
+              final closes = action.action == Action.close || action.action == Action.cancel || shouldAutoCloseOnClick(action);
               // A closing container uses the same tracking owner as a close control.
-              if (!closes || onDismiss == null) {
+              if (action.action != Action.close || !closes || onDismiss == null) {
                 onClickHandler.handeOnClick(action, context);
               }
-              if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: true);
+              if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: action.action == Action.close);
             }
           : null,
       child: Container(
@@ -74,8 +74,13 @@ class SnackBarContent2 extends SnackBarContent {
                 campaign: campaign,
                 elements: [image],
                 formsEnabled: false,
-                onClickCallback: (element, action) =>
-                    onClickHandler.handeOnClick(action, context),
+                onClickCallback: (element, action) {
+                  final closes = action.action == Action.close || action.action == Action.cancel || shouldAutoCloseOnClick(action);
+                  if (action.action != Action.close || !closes || onDismiss == null) {
+                    onClickHandler.handeOnClick(action, context);
+                  }
+                  if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: action.action == Action.close);
+                },
               ),
               SizedBox(width: 12),
             ],
@@ -91,11 +96,11 @@ class SnackBarContent2 extends SnackBarContent {
                       formsEnabled: false,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       onClickCallback: (element, action) {
-                        final closes = action.action == Action.close && shouldAutoCloseOnClick(action);
-                        if (!closes || onDismiss == null) {
+                        final closes = action.action == Action.close || action.action == Action.cancel || shouldAutoCloseOnClick(action);
+                        if (action.action != Action.close || !closes || onDismiss == null) {
                           onClickHandler.handeOnClick(action, context);
                         }
-                        if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: true);
+                        if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: action.action == Action.close);
                       },
                     ),
                   if (texts.elementAtOrNull(1) != null) ...[
@@ -107,11 +112,11 @@ class SnackBarContent2 extends SnackBarContent {
                       formsEnabled: false,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       onClickCallback: (element, action) {
-                        final closes = action.action == Action.close && shouldAutoCloseOnClick(action);
-                        if (!closes || onDismiss == null) {
+                        final closes = action.action == Action.close || action.action == Action.cancel || shouldAutoCloseOnClick(action);
+                        if (action.action != Action.close || !closes || onDismiss == null) {
                           onClickHandler.handeOnClick(action, context);
                         }
-                        if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: true);
+                        if (closes) SnackBarContent.dismiss(context, onDismiss, closeAction: action.action == Action.close);
                       },
                     ),
                   ],
@@ -124,7 +129,7 @@ class SnackBarContent2 extends SnackBarContent {
                       formsEnabled: false,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       onClickCallback: (element, action) {
-                        final closes = shouldAutoPopOnClick(element, action);
+                        final closes = action.action == Action.close || action.action == Action.cancel || shouldAutoCloseOnClick(action);
                         // The overlay owns close tracking for a dismissed snackbar.
                         if (action.action != Action.close || !closes || onDismiss == null) {
                           onClickHandler.handeOnClick(action, context);
