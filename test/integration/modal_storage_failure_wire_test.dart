@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -14,14 +15,18 @@ import 'package:gravity_sdk/src/utils/device_utils.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../support/draining_http_overrides.dart';
+
 void main() {
+  final transport = DrainingHttpOverrides();
+  Completer<void>? releaseWrimp;
   late HttpServer server;
   var chooses = 0;
   var wrimps = 0;
   var format = 'modal';
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
-    HttpOverrides.global = null;
+    HttpOverrides.global = transport;
     // SharedPreferences.getString throws for this key only. Identity reads
     // remain available, reproducing an outbox failure rather than all prefs.
     SharedPreferences.setMockInitialValues({'gravity_outbox': 42});
@@ -43,6 +48,7 @@ void main() {
     server.listen((request) async {
       if (request.uri.path == '/engagement') {
         wrimps++;
+        await releaseWrimp?.future;
         request.response.statusCode = 204;
         await request.response.close();
         return;
@@ -133,6 +139,8 @@ void main() {
       testWidgets(
         '${trigger ? 'triggerEvent' : 'trackView'} still chooses ${modal ? 'modal and sends WRIMP best effort' : 'non-modal'} despite outbox read failure',
         (tester) async {
+          releaseWrimp = modal ? Completer<void>() : null;
+          final completedBefore = transport.completed.length;
           format = modal ? 'modal' : 'inline';
           final before = chooses;
           final beforeWrimps = wrimps;
@@ -182,9 +190,45 @@ void main() {
               );
             }
             expect(wrimps, beforeWrimps + 1);
+            expect(
+              transport.completed
+                  .skip(completedBefore)
+                  .where((uri) => uri.path == '/engagement'),
+              isEmpty,
+              reason:
+                  'server receipt must not be mistaken for client completion',
+            );
           }
           await tester.pumpWidget(const SizedBox());
-          await tester.pump(const Duration(seconds: 30));
+          // The UI owns no awaitable handle to best-effort WRIMP. Release the
+          // server response and wait for the real client stream to finish,
+          // rather than advancing fake time while socket IO is outstanding.
+          releaseWrimp?.complete();
+          final deadline = Stopwatch()..start();
+          while (transport.pending.isNotEmpty &&
+              deadline.elapsed < const Duration(seconds: 5)) {
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 1)),
+            );
+            await tester.pump(Duration.zero);
+          }
+          expect(
+            transport.pending,
+            isEmpty,
+            reason:
+                'all client response streams must finish before test teardown',
+          );
+          // Dio schedules zero-duration response-interceptor timers after the
+          // stream closes; pump() alone flushes microtasks, not these timers.
+          await tester.pump(Duration.zero);
+          if (modal) {
+            expect(
+              transport.completed
+                  .skip(completedBefore)
+                  .where((uri) => uri.path == '/engagement'),
+              hasLength(1),
+            );
+          }
         },
       );
     }

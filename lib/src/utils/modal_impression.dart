@@ -17,6 +17,31 @@ class ModalImpression {
   bool _stepTransition = false;
   int _attachment = 0;
   VoidCallback? _confirmExplicitClose;
+  VoidCallback? _onUnattachedStepClose;
+
+  // Live route protection is independent of WRIMP persistence and its timeout.
+  // A step reuses this opening; an unrelated attempt cannot claim the same key.
+  static final _presentations = <String, ModalImpression>{};
+  String? _presentationKey;
+  WeakReference<NavigatorState>? _presentationNavigator;
+
+  bool claimPresentation(String campaignId, NavigatorState navigator) {
+    if (_closed) return false;
+    // A Navigator can be disposed before the route builder ever mounts, so
+    // neither ModalAppearance.dispose nor the route's popped future may run.
+    _presentations.removeWhere((_, opening) => opening._presentationNavigator?.target?.mounted != true);
+    final key = campaignId;
+    final owner = _presentations[key];
+    if (owner != null && !identical(owner, this)) return false;
+    final previous = _presentationKey;
+    if (previous != null && previous != key && identical(_presentations[previous], this)) {
+      _presentations.remove(previous);
+    }
+    _presentationKey = key;
+    _presentationNavigator = WeakReference(navigator);
+    _presentations[key] = this;
+    return true;
+  }
 
   bool get fired => _fired;
   bool get valid => (_attachment > 0 ? isValidWhileAttached ?? isValid : isValid)?.call() != false;
@@ -40,10 +65,23 @@ class ModalImpression {
     unawaited(onVisible());
   }
 
-  void beginStep() => _stepTransition = true;
+  void beginStep({VoidCallback? onUnattachedClose}) {
+    _stepTransition = true;
+    _onUnattachedStepClose = onUnattachedClose;
+  }
+
+  // The old route has been dismissed. Its disposal must not close the new
+  // attempt, even if that attempt fails or closes before its first build.
+  void endStepTransition() {
+    if (!_stepTransition) return;
+    _stepTransition = false;
+    _confirmExplicitClose = null;
+    _attachment++;
+  }
   int attach({VoidCallback? confirmClose}) {
     _confirmExplicitClose = confirmClose;
     _stepTransition = false;
+    _onUnattachedStepClose = null;
     onAttached?.call();
     return ++_attachment;
   }
@@ -52,9 +90,16 @@ class ModalImpression {
     if (attachment != null && attachment != _attachment) return;
     if (_stepTransition || _closed) return;
     _closed = true;
+    final key = _presentationKey;
+    if (key != null && identical(_presentations[key], this)) {
+      _presentations.remove(key);
+    }
     _confirmExplicitClose = null;
     onDetached?.call();
     if (!_fired) onUnshownClose?.call();
+    final onUnattachedClose = _onUnattachedStepClose;
+    _onUnattachedStepClose = null;
+    onUnattachedClose?.call();
   }
 }
 

@@ -1154,7 +1154,7 @@ class GravitySDK {
     FormSession? session,
     ModalImpression? impression,
   }) {
-    session?.beginStepTransition();
+    if (!context.mounted) return;
 
     final matches = <CampaignContent>[];
     if (onClick.step != null) {
@@ -1166,7 +1166,6 @@ class GravitySDK {
     }
 
     if (matches.isEmpty) {
-      session?.consumeStepTransition();
       talker.warning(
         'open_step: step ${onClick.step} not found in campaign contents',
       );
@@ -1182,24 +1181,39 @@ class GravitySDK {
     final stepContent = matches.first;
 
     if (stepContent.deliveryMethod == DeliveryMethod.tooltip) {
-      session?.consumeStepTransition();
       talker.warning(
         'open_step: tooltip step ${onClick.step} is not supported (no anchor selector)',
       );
       return;
     }
 
-    impression ??= ModalImpressionScope.maybeOf(context);
-    impression?.beginStep();
     final presentationContext = Navigator.of(context).context;
-    _dismissCurrentInApp(context, currentContent);
-    _showBackendContent(
-      presentationContext,
-      stepContent,
-      campaign,
-      session: session,
-      impression: impression,
+    impression ??= ModalImpressionScope.maybeOf(context);
+    session?.beginStepTransition();
+    impression?.beginStep(
+      onUnattachedClose: () {
+        if (impression?.closedBeforeAppearance == true) return;
+        session?.finish(
+          FormCloseReason.dismiss,
+          content: currentContent,
+          campaign: campaign,
+        );
+      },
     );
+    try {
+      _dismissCurrentInApp(context, currentContent);
+      _showBackendContent(
+        presentationContext,
+        stepContent,
+        campaign,
+        session: session,
+        impression: impression,
+      );
+    } catch (_) {
+      impression?.endStepTransition();
+      impression?.closed();
+      rethrow;
+    }
   }
 
   void _dismissCurrentInApp(
@@ -1232,6 +1246,11 @@ class GravitySDK {
     ModalImpression? impression,
   }) {
     try {
+      impression?.endStepTransition();
+      if (!context.mounted) {
+        impression?.closed();
+        return;
+      }
       final tracksAppearance =
           content.deliveryMethod == DeliveryMethod.modal ||
           content.deliveryMethod == DeliveryMethod.bottomSheet ||
@@ -1242,6 +1261,16 @@ class GravitySDK {
           content: content,
           campaign: campaign,
         );
+      }
+      if (tracksAppearance && content.deliveryMethod != DeliveryMethod.snackBar) {
+        if (!context.mounted ||
+            !impression!.claimPresentation(
+              campaign.payload.first.campaignId,
+              Navigator.of(context, rootNavigator: content.deliveryMethod == DeliveryMethod.modal),
+            )) {
+          impression?.closed();
+          return;
+        }
       }
       switch (content.deliveryMethod) {
         case DeliveryMethod.modal:
@@ -1275,8 +1304,9 @@ class GravitySDK {
             _showTooltipContent(context, content, campaign, selector);
           }
         case DeliveryMethod.json:
-          break;
-        default:
+        case DeliveryMethod.inline:
+        case DeliveryMethod.unknown:
+          impression?.closed();
       }
     } catch (e, stackTrace) {
       impression?.closed();

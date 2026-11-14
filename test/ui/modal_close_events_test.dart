@@ -152,7 +152,13 @@ void main() {
           expect(find.text('target'), findsNothing);
           await tester.pumpWidget(const SizedBox());
           if (config == 'configured') {
-            await tester.runAsync(() => received.future);
+            await tester.runAsync(
+              () => received.future.timeout(
+                const Duration(seconds: 2),
+                onTimeout: () =>
+                    fail('Expected close tracking request within 2 seconds'),
+              ),
+            );
           }
           expect(requests, config == 'configured' ? ['/close'] : isEmpty);
         });
@@ -178,7 +184,13 @@ void main() {
           expect(events.whereType<ContentCloseEvent>(), hasLength(1));
           await tester.pumpWidget(const SizedBox());
           if (config == 'configured' || action) {
-            await tester.runAsync(() => received.future);
+            await tester.runAsync(
+              () => received.future.timeout(
+                const Duration(seconds: 2),
+                onTimeout: () =>
+                    fail('Expected close tracking request within 2 seconds'),
+              ),
+            );
           }
           expect(
             requests,
@@ -219,7 +231,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(events.whereType<ContentCloseEvent>(), hasLength(1));
     await tester.pumpWidget(const SizedBox());
-    await tester.runAsync(() => received.future);
+    await tester.runAsync(
+      () => received.future.timeout(
+        const Duration(seconds: 2),
+        onTimeout: () =>
+            fail('Expected close tracking request within 2 seconds'),
+      ),
+    );
     expect(requests, ['/close']);
   });
 }

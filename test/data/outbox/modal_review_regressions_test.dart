@@ -9,6 +9,7 @@ import 'package:gravity_sdk/src/data/outbox/outbox_dispatcher.dart';
 import 'package:gravity_sdk/src/data/outbox/outbox_entry.dart';
 import 'package:gravity_sdk/src/data/outbox/outbox_store.dart';
 import 'package:gravity_sdk/src/data/prefs/prefs.dart';
+import 'package:gravity_sdk/src/repos/gravity_repo.dart';
 import 'package:gravity_sdk/src/utils/clock.dart';
 import 'package:gravity_sdk/src/utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,6 +29,40 @@ class _BrokenPrefs extends Prefs {
 }
 
 void main() {
+  test(
+    'anonymous impression scopes share protection across session changes',
+    () {
+      final anonymous = GravityRepo.impressionScope('section', null);
+      expect(
+        GravityRepo.impressionScope('section', const User(ses: 'first')),
+        anonymous,
+      );
+      expect(
+        GravityRepo.impressionScope('section', const User(ses: 'second')),
+        anonymous,
+      );
+      expect(
+        GravityRepo.impressionScope('section', const User(uid: '')),
+        anonymous,
+      );
+      expect(
+        GravityRepo.impressionScope('other-section', null),
+        isNot(anonymous),
+      );
+      expect(
+        GravityRepo.impressionScope('section', const User(uid: 'server-user')),
+        isNot(anonymous),
+      );
+      expect(
+        GravityRepo.impressionScope(
+          'section',
+          const User(custom: 'custom-user'),
+        ),
+        isNot(anonymous),
+      );
+    },
+  );
+
   TestWidgetsFlutterBinding.ensureInitialized();
   late OutboxStore store;
   late DateTime now;
