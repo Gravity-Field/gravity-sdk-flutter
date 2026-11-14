@@ -111,7 +111,7 @@ GravityTextStyle _$GravityTextStyleFromJson(Map<String, dynamic> json) =>
     GravityTextStyle(
       fontSize: ParseUtils.parseNonNullableFontSize(json['fontSize']),
       fontWeight: ParseUtils.parseNonNullableFontWeight(json['fontWeight']),
-      color: ParseUtils.parseNonNullableColorBlack(json['color']),
+      color: ParseUtils.parseColor(json['color']),
     );
 
 GridSettings _$GridSettingsFromJson(Map<String, dynamic> json) => GridSettings(

@@ -22,6 +22,10 @@ class GravityButton extends StatelessWidget {
     final textStyle = style.textStyle;
     final layoutWidth = style.layoutWidth;
     final onClick = element.onClick;
+    // Mirrors iOS GravityButton: only style.textStyle.color colours the label;
+    // without it the label uses the platform text colour (iOS `.primary`,
+    // here the theme's onSurface), never the filled button's onPrimary.
+    final textColor = textStyle?.color ?? Theme.of(context).colorScheme.onSurface;
 
     final buttonWidget = FilledButton(
       clipBehavior: Clip.antiAlias,
@@ -47,7 +51,7 @@ class GravityButton extends StatelessWidget {
           if (states.contains(WidgetState.disabled)) {
             return null;
           }
-          return textStyle?.color;
+          return textColor;
         }),
         overlayColor: WidgetStateProperty.all(style.pressColor),
         minimumSize: style.size?.height != null ? WidgetStateProperty.all(Size(0, style.size!.height!)) : null,

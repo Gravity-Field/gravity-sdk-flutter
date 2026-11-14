@@ -149,6 +149,34 @@ void main() {
     });
   });
 
+  for (final (name, textStyle, expected)
+      in <(String, Map<String, dynamic>?, Color?)>[
+        (
+          'textStyle without color',
+          {'fontSize': 14, 'fontWeight': 400},
+          Colors.black,
+        ),
+        (
+          'invalid textStyle color',
+          {'fontSize': 14, 'fontWeight': 400, 'color': 'red'},
+          Colors.black,
+        ),
+        ('no textStyle', null, null),
+      ]) {
+    testWidgets('$name keeps the existing text input colour', (tester) async {
+      final element = Element.fromJson({
+        'type': 'text-input',
+        'attributeName': 'feedback',
+        'style': {'textStyle': ?textStyle},
+      });
+      await tester.pumpWidget(_textInputSubject(element, _session()));
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).style?.color,
+        expected,
+      );
+    });
+  }
+
   testWidgets('uses the configured multiline field style', (tester) async {
     final session = _session();
 
