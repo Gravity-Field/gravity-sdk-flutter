@@ -88,7 +88,7 @@ abstract class SnackBarContent {
       } catch (error, stackTrace) {
         impression?.closed();
         ErrorReporter.instance.report(
-          message: error.toString(),
+          message: ErrorReporter.messageForError(error),
           level: 'error',
           section: 'SnackBarContent.show',
           stacktrace: stackTrace.toString(),
