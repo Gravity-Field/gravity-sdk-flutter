@@ -90,4 +90,110 @@ void main() {
       const Color(0xFFD9D9D9).withValues(alpha: 0.4),
     );
   });
+
+  group('text colour follows style.textStyle.color like iOS', () {
+    const ambient = Color(0xFF203040);
+    final theme = ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.teal,
+      ).copyWith(onSurface: ambient, onPrimary: const Color(0xFFFFFFFF)),
+    );
+
+    Element parse(Map<String, dynamic> style) => Element.fromJson({
+      'type': 'button',
+      'text': 'Go',
+      'style': style,
+      'onClick': {'action': 'close'},
+    });
+
+    Future<Color?> renderedColor(
+      WidgetTester tester,
+      Element element, {
+      bool enabled = true,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Scaffold(
+            body: Center(
+              child: GravityButton(
+                element: element,
+                enabled: enabled,
+                onClickCallback: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      final text = tester.widget<RichText>(
+        find.descendant(
+          of: find.byType(FilledButton),
+          matching: find.byType(RichText),
+        ),
+      );
+      return text.text.style?.color;
+    }
+
+    testWidgets('textStyle.color is applied', (tester) async {
+      final color = await renderedColor(
+        tester,
+        parse({
+          'backgroundColor': '#FFFFFF',
+          'textStyle': {'fontSize': 14, 'fontWeight': 500, 'color': '#E53935'},
+        }),
+      );
+      expect(color, const Color(0xFFE53935));
+    });
+
+    for (final (name, style) in <(String, Map<String, dynamic>)>[
+      ('no textStyle', {'backgroundColor': '#FFFFFF'}),
+      (
+        'textStyle without color',
+        {
+          'backgroundColor': '#FFFFFF',
+          'textStyle': {'fontSize': 14, 'fontWeight': 500},
+        },
+      ),
+      (
+        'invalid textStyle.color',
+        {
+          'backgroundColor': '#FFFFFF',
+          'textStyle': {'fontSize': 14, 'fontWeight': 500, 'color': 'red'},
+        },
+      ),
+      (
+        'malformed hex textStyle.color',
+        {
+          'backgroundColor': '#FFFFFF',
+          'textStyle': {'fontSize': 14, 'fontWeight': 500, 'color': '#12'},
+        },
+      ),
+      (
+        'only style-level textColor',
+        {'backgroundColor': '#FFFFFF', 'textColor': '#E53935'},
+      ),
+    ]) {
+      testWidgets('$name falls back to the theme onSurface colour', (
+        tester,
+      ) async {
+        final color = await renderedColor(tester, parse(style));
+        expect(color, ambient);
+      });
+    }
+
+    testWidgets('disabled button keeps the Material disabled colour', (
+      tester,
+    ) async {
+      final color = await renderedColor(
+        tester,
+        parse({
+          'textStyle': {'fontSize': 14, 'fontWeight': 500, 'color': '#E53935'},
+        }),
+        enabled: false,
+      );
+      expect(color!.withValues(alpha: 1), ambient);
+      expect(color.a, closeTo(0.38, 0.01));
+    });
+  });
 }

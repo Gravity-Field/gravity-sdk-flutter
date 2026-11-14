@@ -176,8 +176,10 @@ class GravityTextStyle {
   final double fontSize;
   @JsonKey(fromJson: ParseUtils.parseNonNullableFontWeight)
   final FontWeight fontWeight;
-  @JsonKey(fromJson: ParseUtils.parseNonNullableColorBlack)
-  final Color color;
+  /// Absent or unparsable colours stay null so each element picks its own
+  /// default (buttons follow iOS and use the theme's onSurface colour).
+  @JsonKey(fromJson: ParseUtils.parseColor)
+  final Color? color;
 
   GravityTextStyle({required this.fontSize, required this.fontWeight, required this.color});
 

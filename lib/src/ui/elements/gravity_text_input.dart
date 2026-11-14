@@ -105,7 +105,7 @@ class _GravityTextInputState extends State<GravityTextInput> {
       expands: height != null,
       textAlignVertical: TextAlignVertical.top,
       style: TextStyle(
-        color: textStyle?.color,
+        color: textStyle == null ? null : textStyle.color ?? Colors.black,
         fontSize: textStyle?.fontSize,
         fontWeight: textStyle?.fontWeight,
       ),
