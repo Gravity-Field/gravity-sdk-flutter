@@ -469,7 +469,7 @@ class GravitySDK {
       // mounted: if only the user changed, ask again for the new one, or
       // their tooltip would never come.
       if (_shouldAskAgainForNewUser(ticket, context)) {
-        return fetchAnchorContent(
+        return await fetchAnchorContent(
           context: context,
           selector: selector,
           pageContext: pageContext,
