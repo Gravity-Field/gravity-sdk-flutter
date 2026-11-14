@@ -4,6 +4,10 @@ import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/models/internal/product_container_type.dart';
 import 'package:gravity_sdk/src/ui/elements/gravity_products_container.dart';
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:gravity_sdk/src/models/actions/product_event.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:gravity_sdk/src/data/error_reporting/error_reporter.dart';
 
 class _ProductBuilder extends ProductWidgetBuilder {
   const _ProductBuilder();
@@ -20,6 +24,9 @@ class _ProductBuilder extends ProductWidgetBuilder {
 
 Widget _subject({
   required GravitySize? size,
+  String contentId = 'grid-content',
+  String decisionId = 'decision',
+  bool tracking = false,
   double width = 320,
   GridSettings? settings,
   ProductContainerType type = ProductContainerType.grid,
@@ -34,11 +41,19 @@ Widget _subject({
         fallback: false,
         strId: index,
         slotId: '$index',
+        events: tracking
+            ? [
+                ProductEvent.fromJson({
+                  'type': 'visible_impression',
+                  'urls': <String>[],
+                }),
+              ]
+            : null,
       ),
     ),
   );
   final content = CampaignContent(
-    contentId: 'grid-content',
+    contentId: contentId,
     templateSystemName: null,
     deliveryMethod: DeliveryMethod.inline,
     contentType: 'native',
@@ -62,7 +77,17 @@ Widget _subject({
               ),
             ),
             products: products,
-            campaign: Campaign(selector: null, payload: []),
+            campaign: Campaign.fromJson({
+              'payload': [
+                {
+                  'campaignId': 'campaign',
+                  'experienceId': 'experience',
+                  'variationId': 'variation',
+                  'decisionId': decisionId,
+                  'contents': <Object>[],
+                },
+              ],
+            }),
             content: content,
           ),
         ),
@@ -72,6 +97,58 @@ Widget _subject({
 }
 
 void main() {
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    PackageInfo.setMockInitialValues(
+      appName: 'grid-test',
+      packageName: 'grid-test',
+      version: '1',
+      buildNumber: '1',
+      buildSignature: '',
+    );
+    ErrorReporter.disableNetworkForTests = true;
+    await GravitySDK.instance.initialize(apiKey: 'test', section: 'test');
+  });
+
+  testWidgets('a new content opening can count the same product slots again', (
+    tester,
+  ) async {
+    final impressions = <ProductImpressionEvent>[];
+    GravitySDK.instance.gravityEventCallback = (event) {
+      if (event is ProductImpressionEvent) impressions.add(event);
+    };
+    addTearDown(() => GravitySDK.instance.gravityEventCallback = null);
+    await tester.pumpWidget(_subject(size: null, tracking: true));
+    await tester.pump();
+    expect(impressions, hasLength(4));
+    await tester.pumpWidget(_subject(size: null, tracking: true));
+    await tester.pump();
+    expect(impressions, hasLength(4), reason: 'rebuild retains protection');
+    await tester.pumpWidget(
+      _subject(size: null, tracking: true, contentId: 'new-content'),
+    );
+    await tester.pump();
+    expect(
+      impressions,
+      hasLength(8),
+      reason: 'different content owns a new opening',
+    );
+    await tester.pumpWidget(
+      _subject(
+        size: null,
+        tracking: true,
+        contentId: 'new-content',
+        decisionId: 'new-decision',
+      ),
+    );
+    await tester.pump();
+    expect(
+      impressions,
+      hasLength(12),
+      reason: 'new campaign decision owns its impressions',
+    );
+  });
+
   ProductWidgetBuilder? originalBuilder;
   late Duration originalInterval;
 
@@ -86,6 +163,44 @@ void main() {
     GravitySDK.instance.productWidgetBuilder = originalBuilder;
     VisibilityDetectorController.instance.updateInterval = originalInterval;
   });
+
+  testWidgets(
+    'grid counts each slot once starting at exactly half visibility',
+    (tester) async {
+      final impressions = <ProductImpressionEvent>[];
+      GravitySDK.instance.gravityEventCallback = (event) {
+        if (event is ProductImpressionEvent) impressions.add(event);
+      };
+      addTearDown(() => GravitySDK.instance.gravityEventCallback = null);
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(320, 77);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(_subject(size: null, tracking: true));
+      await tester.pump();
+      expect(
+        impressions,
+        isEmpty,
+        reason: '77 of 156 pixels is less than half',
+      );
+      tester.view.physicalSize = const Size(320, 78);
+      await tester.pump();
+      await tester.pump();
+      expect(
+        impressions,
+        hasLength(2),
+        reason: '78 of 156 pixels is exactly half',
+      );
+      tester.view.physicalSize = const Size(320, 320);
+      await tester.pump();
+      await tester.pump();
+      expect(
+        impressions,
+        hasLength(4),
+        reason: 'already counted first row does not repeat',
+      );
+    },
+  );
 
   for (final (name, size) in <(String, GravitySize?)>[
     ('both width and height', GravitySize(width: 240, height: 80)),

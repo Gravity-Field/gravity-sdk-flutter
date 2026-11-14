@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/models/internal/product_container_type.dart';
 import 'package:gravity_sdk/src/ui/elements/gravity_products_container.dart';
+import 'package:gravity_sdk/src/ui/elements/gravity_element.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 class _ProductBuilder extends ProductWidgetBuilder {
@@ -84,6 +85,230 @@ void main() {
       ),
     ),
   );
+
+  for (final dimension in <Object>[
+    'Infinity',
+    '-Infinity',
+    'NaN',
+    '1e400',
+    'Infinitypx',
+    double.infinity,
+    double.negativeInfinity,
+    double.nan,
+    '84',
+    '84px',
+    84,
+    84.0,
+  ]) {
+    testWidgets(
+      'grid without products parses height $dimension (${dimension.runtimeType}) and takes no space',
+      (tester) async {
+        final style = Style.fromJson({
+          'productContainerType': 'grid',
+          'size': {'height': dimension},
+        });
+        final child = GravityElement(
+          content: campaign.payload.first.contents.first,
+          campaign: campaign,
+          element: Element(type: ElementType.productsContainer, style: style),
+          products: null,
+          onClickCallback: (_) {},
+        ).getWidget();
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  key: const ValueKey('dimension-probe'),
+                  width: 320,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [child],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(tester.takeException(), isNull);
+        final valid = dimension.toString().startsWith('84');
+        expect(style.size?.height, valid ? 84 : isNull);
+        expect(
+          tester.getSize(find.byKey(const ValueKey('dimension-probe'))).height,
+          0,
+        );
+      },
+    );
+  }
+
+  for (final (state, products, rowHeight, gridHeight)
+      in <(String, Products?, double, double)>[
+        ('products null', null, 0, 0),
+        (
+          'slots null',
+          Products(strategyId: 'strategy', fallback: false, slots: null),
+          0,
+          0,
+        ),
+        (
+          'slots empty',
+          Products(strategyId: 'strategy', fallback: false, slots: []),
+          0,
+          0,
+        ),
+      ]) {
+    for (final type in [ProductContainerType.row, ProductContainerType.grid]) {
+      testWidgets('$state $type reports its height including padding', (
+        tester,
+      ) async {
+        final child = GravityElement(
+          content: campaign.payload.first.contents.first,
+          campaign: campaign,
+          element: Element(
+            type: ElementType.productsContainer,
+            style: Style(
+              productContainerType: type,
+              size: GravitySize(width: null, height: 84),
+              padding: GravityPadding(left: 5, right: 9, top: 7, bottom: 11),
+            ),
+          ),
+          products: products,
+          onClickCallback: (_) {},
+        ).getWidget();
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  key: const ValueKey('height-probe'),
+                  width: 320,
+                  child: child,
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(tester.takeException(), isNull);
+        expect(
+          tester.getSize(find.byKey(const ValueKey('height-probe'))).height,
+          type == ProductContainerType.row ? rowHeight : gridHeight,
+        );
+      });
+    }
+  }
+
+  for (final (state, products) in <(String, Products?)>[
+    ('products null', null),
+    (
+      'slots null',
+      Products(strategyId: 'strategy', fallback: false, slots: null),
+    ),
+    (
+      'slots missing',
+      Products.fromJson({'strategyId': 'strategy', 'fallback': false}),
+    ),
+    (
+      'slots empty',
+      Products(strategyId: 'strategy', fallback: false, slots: []),
+    ),
+  ]) {
+    for (final type in <ProductContainerType?>[
+      ProductContainerType.row,
+      null,
+      ProductContainerType.grid,
+    ]) {
+      testWidgets(
+        'empty container ($state, type $type) collapses margin padding and background',
+        (tester) async {
+          final child = GravityElement(
+            content: campaign.payload.first.contents.first,
+            campaign: campaign,
+            element: Element(
+              type: ElementType.productsContainer,
+              style: Style(
+                productContainerType: type,
+                size: GravitySize(width: null, height: 84),
+                margin: GravityMargin(left: 16, right: 22, top: 12, bottom: 18),
+                padding: GravityPadding(left: 5, right: 9, top: 7, bottom: 11),
+                backgroundColor: const Color(0xFF123456),
+              ),
+            ),
+            products: products,
+            onClickCallback: (_) {},
+          ).getWidget();
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: Center(
+                  child: SizedBox(
+                    key: const ValueKey('empty-row-probe'),
+                    width: 320,
+                    child: child,
+                  ),
+                ),
+              ),
+            ),
+          );
+          expect(tester.takeException(), isNull);
+          expect(
+            tester
+                .getSize(find.byKey(const ValueKey('empty-row-probe')))
+                .height,
+            0,
+          );
+          expect(find.byType(ListView), findsNothing);
+          expect(find.byType(GridView), findsNothing);
+          expect(
+            find.byWidgetPredicate(
+              (w) =>
+                  (w is Container && w.color == const Color(0xFF123456)) ||
+                  (w is ColoredBox && w.color == const Color(0xFF123456)),
+            ),
+            findsNothing,
+          );
+        },
+      );
+    }
+  }
+
+  for (final absentProducts in [true, false]) {
+    testWidgets(
+      'grid takes no space with configured height and products absent=$absentProducts',
+      (tester) async {
+        final widget = GravityElement(
+          content: campaign.payload.first.contents.first,
+          campaign: campaign,
+          element: Element(
+            type: ElementType.productsContainer,
+            style: Style(
+              productContainerType: ProductContainerType.grid,
+              size: GravitySize(width: null, height: 84),
+            ),
+          ),
+          products: absentProducts
+              ? null
+              : Products(strategyId: 'strategy', fallback: false, slots: null),
+          onClickCallback: (_) {},
+        ).getWidget();
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  key: const ValueKey('placeholder'),
+                  child: widget,
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(
+          tester.getSize(find.byKey(const ValueKey('placeholder'))).height,
+          0,
+        );
+      },
+    );
+  }
 
   for (final layout in [ProductContainerType.row]) {
     testWidgets(

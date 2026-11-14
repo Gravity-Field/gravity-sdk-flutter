@@ -63,7 +63,22 @@ class Style {
     this.rating,
   });
 
-  factory Style.fromJson(Map<String, dynamic> json) => _$StyleFromJson(json);
+  factory Style.fromJson(Map<String, dynamic> json) {
+    final legacyColumns = ParseUtils.parseDimension(json['gridColumns']);
+    final settings = json['gridSettings'] as Map<String, dynamic>?;
+    final columns = ParseUtils.parseDimension(settings?['columns']);
+    if (legacyColumns != null &&
+        legacyColumns.isFinite &&
+        legacyColumns >= 1 &&
+        legacyColumns <= 12 &&
+        (columns == null || !columns.isFinite || columns < 1 || columns > 12)) {
+      return _$StyleFromJson({
+        ...json,
+        'gridSettings': {...?settings, 'columns': legacyColumns},
+      });
+    }
+    return _$StyleFromJson(json);
+  }
 }
 
 class RatingStyle {

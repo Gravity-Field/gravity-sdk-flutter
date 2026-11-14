@@ -164,7 +164,7 @@ class ParseUtils {
     }
 
     if (dimension is double) {
-      return dimension;
+      return dimension.isFinite ? dimension : null;
     }
 
     if (dimension is int) {
@@ -172,7 +172,8 @@ class ParseUtils {
     }
 
     if (dimension is String) {
-      return double.tryParse(dimension.replaceAll('px', ''));
+      final value = double.tryParse(dimension.replaceAll('px', ''));
+      return value != null && value.isFinite ? value : null;
     }
 
     return null;

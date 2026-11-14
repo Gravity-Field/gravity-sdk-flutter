@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart' hide Element;
 import 'package:gravity_sdk/gravity_sdk.dart';
 import 'package:gravity_sdk/src/utils/product_events_service.dart';
@@ -26,13 +28,28 @@ class GravityProductsContainer extends StatefulWidget {
 class _GravityProductsContainerState extends State<GravityProductsContainer> {
   final Set<String> _visibleProductIds = {};
 
+  static String _scopeOf(GravityProductsContainer container) => jsonEncode([
+    container.content.contentId,
+    container.campaign.selector,
+    for (final payload in container.campaign.payload)
+      [payload.campaignId, payload.experienceId, payload.variationId, payload.decisionId],
+  ]);
+
+  @override
+  void didUpdateWidget(covariant GravityProductsContainer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_scopeOf(oldWidget) != _scopeOf(widget)) {
+      _visibleProductIds.clear();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final slots = widget.products.slots;
 
-    if (slots == null) {
-      return SizedBox(height: widget.element.style?.size?.height);
-    }
+    // A container without products takes no space at all: no configured
+    // height, margin, padding or background.
+    if (slots == null || slots.isEmpty) return const SizedBox.shrink();
 
     final productContainerType = widget.element.style?.productContainerType ?? ProductContainerType.row;
 
@@ -124,7 +141,7 @@ class _GravityProductsContainerState extends State<GravityProductsContainer> {
     );
 
     return VisibilityDetector(
-      key: ValueKey(slot.slotId),
+      key: ValueKey((_scopeOf(widget), slot.slotId)),
       onVisibilityChanged: (info) {
         final slotId = slot.slotId;
         if (slotId == null || _visibleProductIds.contains(slotId)) return;

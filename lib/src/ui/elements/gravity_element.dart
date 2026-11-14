@@ -54,9 +54,7 @@ class GravityElement {
         return Spacer();
 
       case ElementType.productsContainer:
-        if (products == null) {
-          return SizedBox.shrink();
-        }
+        if (products == null) return SizedBox.shrink();
         return GravityProductsContainer(
           element: element,
           products: products!,

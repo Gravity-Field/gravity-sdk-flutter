@@ -3,6 +3,50 @@ import 'package:gravity_sdk/src/models/internal/style.dart';
 import 'package:gravity_sdk/src/utils/parse_utils.dart';
 
 void main() {
+  for (final modern in <Object?>[
+    null,
+    <String, dynamic>{},
+    {'columns': 0},
+    {'columns': 13},
+    {'columns': 'invalid'},
+  ]) {
+    test(
+      'legacy gridColumns supplies missing or invalid modern columns: $modern',
+      () {
+        final style = Style.fromJson({
+          'gridColumns': 3,
+          'gridSettings': ?modern,
+        });
+        expect(style.gridSettings?.columnsCount, 3);
+      },
+    );
+  }
+
+  test('modern columns override legacy while fallback preserves spacing', () {
+    expect(
+      Style.fromJson({
+        'gridColumns': 3,
+        'gridSettings': {'columns': 4},
+      }).gridSettings?.columnsCount,
+      4,
+    );
+    final settings = Style.fromJson({
+      'gridColumns': 3,
+      'gridSettings': {
+        'columns': 0,
+        'horizontalSpacing': '12px',
+        'verticalSpacing': 0,
+      },
+    }).gridSettings!;
+    expect(settings.columnsCount, 3);
+    expect(settings.horizontalSpacingValue, 12);
+    expect(settings.verticalSpacingValue, 0);
+    expect(
+      Style.fromJson({'gridColumns': 13}).gridSettings?.columnsCount ?? 2,
+      2,
+    );
+  });
+
   for (final raw in [12, 12.0, '12px', '12']) {
     test('dimension $raw (${raw.runtimeType}) parses as twelve', () {
       expect(ParseUtils.parseDimension(raw), 12);
