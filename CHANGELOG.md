@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show one in-app at a time: a modal, fullscreen or bottom sheet is skipped while another SDK modal, fullscreen or bottom sheet is open, and a snackbar is skipped while any SDK in-app is open; a visible snackbar does not block a modal, fullscreen or bottom sheet, and next steps of the open in-app are still shown.
+
 ## 0.26.0
 
 * Ошибки показа snackbar не включают текст HTTP-исключения в отчёт, сохраняя только endpoint и статус.

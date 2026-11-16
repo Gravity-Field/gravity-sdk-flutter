@@ -1257,11 +1257,20 @@ class GravitySDK {
           content.deliveryMethod == DeliveryMethod.bottomSheet ||
           content.deliveryMethod == DeliveryMethod.fullScreen ||
           content.deliveryMethod == DeliveryMethod.snackBar;
+      final isNewOpening = impression?.isNewOpening ?? true;
       if (tracksAppearance) {
         impression ??= ContentEventsService.instance.createModalImpression(
           content: content,
           campaign: campaign,
         );
+      }
+      // One in-app at a time: a new snackbar is skipped while any SDK in-app
+      // is open; modal, fullscreen and bottom sheet are guarded below.
+      if (isNewOpening &&
+          content.deliveryMethod == DeliveryMethod.snackBar &&
+          (ModalImpression.hasLivePresentation || SnackBarContent.isShowing)) {
+        impression?.closed();
+        return;
       }
       if (tracksAppearance && content.deliveryMethod != DeliveryMethod.snackBar) {
         if (!context.mounted ||

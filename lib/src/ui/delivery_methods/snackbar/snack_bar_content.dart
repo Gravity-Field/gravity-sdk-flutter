@@ -52,13 +52,22 @@ abstract class SnackBarContent {
     };
   }
 
+  // Snackbars scheduled for the next frame or inserted into an overlay.
+  static int _pending = 0;
+  static final _entries = <OverlayEntry>{};
+
+  /// An SDK snackbar is scheduled or still shown.
+  static bool get isShowing => _pending > 0 || _entries.any((entry) => entry.mounted);
+
   static void show({
     required BuildContext context,
     required SnackBarContent snackBarContent,
     required int durationSeconds,
     ModalImpression? impression,
   }) {
+    _pending++;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pending--;
       try {
         if (!context.mounted || impression?.valid == false) {
           impression?.closed();
@@ -77,6 +86,7 @@ abstract class SnackBarContent {
               topOffset: topOffset,
               durationSeconds: durationSeconds,
               onDismiss: () {
+                _entries.remove(entry);
                 if (entry.mounted) entry.remove();
               },
               snackBarContent: snackBarContent,
@@ -84,7 +94,10 @@ abstract class SnackBarContent {
           },
         );
 
+        // Entries removed outside onDismiss are unmounted and no longer count.
+        _entries.removeWhere((existing) => !existing.mounted);
         overlay.insert(entry);
+        _entries.add(entry);
       } catch (error, stackTrace) {
         impression?.closed();
         ErrorReporter.instance.report(

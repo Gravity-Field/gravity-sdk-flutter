@@ -40,6 +40,7 @@ void main() {
   var method = 'modal';
   Map<String, dynamic>? stepOverride;
   var caseId = 0;
+  var campaignSuffix = '';
   var now = DateTime(2026, 1, 1);
   const page = PageContext(
     type: ContextType.other,
@@ -51,10 +52,12 @@ void main() {
     'contentId': 'content-$step',
     if (step != 0) 'step': step,
     'deliveryMethod': method,
+    if (method == 'snackbar') 'templateSystemName': 'snackbar-1',
     'contentType': 'native',
     'variables': {
       'frameUI': {
         'container': {'style': <String, dynamic>{}},
+        if (method == 'snackbar') 'params': {'duration': 30},
         'close': {
           'onClick': {'action': 'close'},
         },
@@ -140,11 +143,11 @@ void main() {
           jsonEncode({
             'user': {'uid': 'server-user', 'ses': 's'},
             if (request.uri.path == '/choose')
-              'data': [campaignJson()]
+              'data': [campaignJson(campaignId: 'campaign-$caseId$campaignSuffix')]
             else
               'campaigns': [
                 {
-                  'campaignId': 'campaign-$caseId',
+                  'campaignId': 'campaign-$caseId$campaignSuffix',
                   'trigger': 'view',
                   'priority': 1,
                   'delayTime': 0,
@@ -166,6 +169,7 @@ void main() {
   });
   setUp(() {
     caseId++;
+    campaignSuffix = '';
     stepOverride = null;
     sdk.setUser('user-$caseId', 'session');
     requests.clear();
@@ -287,6 +291,68 @@ void main() {
         await settle(tester, closes: 2);
         expect(count('/close'), 2);
         expect(events.whereType<ContentCloseEvent>(), hasLength(2));
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        await settle(tester);
+      }
+    });
+  }
+
+  for (final delivery in ['modal', 'bottom_sheet', 'full_screen']) {
+    testWidgets('$delivery open skips a new snackbar', (tester) async {
+      method = delivery;
+      final routes = _Routes();
+      final host = await mount(tester, routes);
+      try {
+        await present(tester, host, 'openStep');
+        expect((routes.modalCount, count('/impression')), (1, 1));
+        method = 'snackbar';
+        campaignSuffix = '-snackbar';
+        await present(tester, host, 'visit');
+        expect(find.text('Window 0'), findsNothing);
+        expect(count('/impression'), 1);
+        Navigator.of(host).pop();
+        await settle(tester, closes: 1);
+        await present(tester, host, 'event');
+        expect(
+          find.text('Window 0'),
+          findsOneWidget,
+          reason: 'a snackbar shows once the in-app is closed',
+        );
+        await tester.pump(const Duration(seconds: 31));
+        await settle(tester);
+      } finally {
+        await tester.pumpWidget(const SizedBox());
+        await settle(tester);
+      }
+    });
+
+    testWidgets('visible snackbar skips another but not a $delivery', (
+      tester,
+    ) async {
+      method = 'snackbar';
+      campaignSuffix = '-first';
+      final routes = _Routes();
+      final host = await mount(tester, routes);
+      try {
+        await present(tester, host, 'visit');
+        expect(find.text('Window 0'), findsOneWidget);
+        expect(count('/impression'), 1);
+        campaignSuffix = '-second';
+        await present(tester, host, 'event');
+        expect(find.text('Window 0'), findsOneWidget);
+        expect(count('/impression'), 1);
+        method = delivery;
+        await present(tester, host, 'openStep');
+        expect(
+          routes.modalCount,
+          1,
+          reason: 'a snackbar does not block a modal, fullscreen or sheet',
+        );
+        Navigator.of(host).pop();
+        await settle(tester, closes: 1);
+        await tester.pump(const Duration(seconds: 31));
+        await settle(tester);
       } finally {
         await tester.pumpWidget(const SizedBox());
         await settle(tester);
@@ -705,7 +771,7 @@ void main() {
     }
 
     testWidgets(
-      '$delivery allows a different campaign while guarding each live campaign',
+      '$delivery skips a different campaign while an in-app is open',
       (tester) async {
         method = delivery;
         final routes = _Routes();
@@ -721,26 +787,24 @@ void main() {
           await present(tester, host, 'openStep', campaignId: secondCampaign);
           expect(
             (routes.modalCount, count('/impression')),
-            (2, 2),
-            reason:
-                'another campaign may open while the first is still attached',
+            (1, 1),
+            reason: 'one in-app at a time: another campaign is skipped',
           );
-          expect(routes.active, contains(firstRoute));
-          await present(tester, host, 'openStep', campaignId: secondCampaign);
-          await present(tester, host, 'openStep');
-          expect((routes.modalCount, count('/impression')), (2, 2));
+          expect(routes.active.last, same(firstRoute));
           expect(count('/close'), 0);
           expect(events.whereType<ContentCloseEvent>(), isEmpty);
 
           Navigator.of(host).pop();
           await settle(tester, closes: 1);
-          expect(routes.active.last, same(firstRoute));
-          await present(tester, host, 'openStep');
+          expect(routes.modalCount, 0);
+          await present(tester, host, 'openStep', campaignId: secondCampaign);
           expect(
             (routes.modalCount, count('/impression')),
             (1, 2),
-            reason: 'closing the second campaign keeps the first guarded',
+            reason: 'closing the open in-app lets the next campaign show',
           );
+          await present(tester, host, 'openStep');
+          expect((routes.modalCount, count('/impression')), (1, 2));
           Navigator.of(host).pop();
           await settle(tester, closes: 2);
           expect(routes.modalCount, 0);

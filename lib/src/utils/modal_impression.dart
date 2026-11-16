@@ -20,10 +20,17 @@ class ModalImpression {
   VoidCallback? _onUnattachedStepClose;
 
   // Live route protection is independent of WRIMP persistence and its timeout.
-  // A step reuses this opening; an unrelated attempt cannot claim the same key.
+  // One in-app at a time: a step reuses this opening, while any other opening
+  // of a modal, fullscreen or bottom sheet is skipped until it closes.
   static final _presentations = <String, ModalImpression>{};
   String? _presentationKey;
   WeakReference<NavigatorState>? _presentationNavigator;
+
+  /// A modal, fullscreen or bottom sheet opened by the SDK is still mounted.
+  static bool get hasLivePresentation {
+    _presentations.removeWhere((_, opening) => opening._presentationNavigator?.target?.mounted != true);
+    return _presentations.isNotEmpty;
+  }
 
   bool claimPresentation(String campaignId, NavigatorState navigator) {
     if (_closed) return false;
@@ -31,8 +38,7 @@ class ModalImpression {
     // neither ModalAppearance.dispose nor the route's popped future may run.
     _presentations.removeWhere((_, opening) => opening._presentationNavigator?.target?.mounted != true);
     final key = campaignId;
-    final owner = _presentations[key];
-    if (owner != null && !identical(owner, this)) return false;
+    if (_presentations.values.any((owner) => !identical(owner, this))) return false;
     final previous = _presentationKey;
     if (previous != null && previous != key && identical(_presentations[previous], this)) {
       _presentations.remove(previous);
@@ -42,6 +48,9 @@ class ModalImpression {
     _presentations[key] = this;
     return true;
   }
+
+  /// Not yet attached to any route or snackbar: a new opening, not a step.
+  bool get isNewOpening => _attachment == 0 && _presentationKey == null && !_fired;
 
   bool get fired => _fired;
   bool get valid => (_attachment > 0 ? isValidWhileAttached ?? isValid : isValid)?.call() != false;
