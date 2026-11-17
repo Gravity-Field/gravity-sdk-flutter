@@ -2,11 +2,13 @@
 
 ## Unreleased
 
-- Content without `variables` no longer fails the whole `/choose` response: it gets empty variables, as on Android and iOS. A snackbar without `frameUI` is skipped, and a modal, bottom sheet or fullscreen without `frameUI` is shown with default styling and no close button, as on Android and iOS.
+## 0.26.2
+
+* Исправлено падение, если в контенте нет `variables` или `frameUI`.
 
 ## 0.26.1
 
-- Show one in-app at a time: a modal, fullscreen or bottom sheet is skipped while another SDK modal, fullscreen or bottom sheet is open, and a snackbar is skipped while any SDK in-app is open; a visible snackbar does not block a modal, fullscreen or bottom sheet, and next steps of the open in-app are still shown.
+* Одновременно показывается только один in-app.
 
 ## 0.26.0
 

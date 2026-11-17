@@ -38,7 +38,7 @@
 
 ```yaml
 dependencies:
-  gravity_sdk: ^0.26.1
+  gravity_sdk: ^0.26.2
 ```
 
 Затем выполни команду:
