@@ -66,13 +66,13 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
   );
 
   Widget _buildContent(BuildContext context) {
-    final frameUi = widget.content.variables.frameUI!;
-    final container = frameUi.container;
-    final close = frameUi.close;
+    final frameUi = widget.content.variables.frameUI;
+    final container = frameUi?.container;
+    final close = frameUi?.close;
     final products = widget.content.products;
-    final backgroundImage = container.style?.backgroundImage;
-    final fit = container.style?.backgroundFit ?? BoxFit.cover;
-    final dragHandle = frameUi.dragHandle;
+    final backgroundImage = container?.style?.backgroundImage;
+    final fit = container?.style?.backgroundFit ?? BoxFit.cover;
+    final dragHandle = frameUi?.dragHandle;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -95,10 +95,10 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
                   ),
                 Padding(
                   padding: EdgeInsets.only(
-                    left: container.style?.padding?.left ?? 0,
-                    right: container.style?.padding?.right ?? 0,
-                    top: container.style?.padding?.top ?? 0,
-                    bottom: container.style?.padding?.bottom ?? 0,
+                    left: container?.style?.padding?.left ?? 0,
+                    right: container?.style?.padding?.right ?? 0,
+                    top: container?.style?.padding?.top ?? 0,
+                    bottom: container?.style?.padding?.bottom ?? 0,
                   ),
                   child: GravityElementsColumn(
                     content: widget.content,
@@ -107,7 +107,7 @@ class _BottomSheetContentState extends State<BottomSheetContent> {
                     session: widget.session,
                     formsEnabled: true,
                     crossAxisAlignment:
-                        container.style?.contentAlignment
+                        container?.style?.contentAlignment
                             ?.toCrossAxisAlignment() ??
                         CrossAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,

@@ -65,15 +65,15 @@ class _ModalContentState extends State<ModalContent> {
   );
 
   Widget _buildContent(BuildContext context) {
-    final frameUi = widget.content.variables.frameUI!;
-    final container = frameUi.container;
-    final close = frameUi.close;
+    final frameUi = widget.content.variables.frameUI;
+    final container = frameUi?.container;
+    final close = frameUi?.close;
     final products = widget.content.products;
 
-    final backgroundImage = container.style?.backgroundImage;
-    final backgroundColor = container.style?.backgroundColor ?? Colors.white;
-    final fit = container.style?.backgroundFit ?? BoxFit.cover;
-    final cornerRadius = container.style?.cornerRadius ?? 0;
+    final backgroundImage = container?.style?.backgroundImage;
+    final backgroundColor = container?.style?.backgroundColor ?? Colors.white;
+    final fit = container?.style?.backgroundFit ?? BoxFit.cover;
+    final cornerRadius = container?.style?.cornerRadius ?? 0;
 
     return Dialog(
       backgroundColor: backgroundColor,
@@ -95,10 +95,10 @@ class _ModalContentState extends State<ModalContent> {
               ),
             Padding(
               padding: EdgeInsets.only(
-                left: container.style?.padding?.left ?? 0,
-                top: container.style?.padding?.top ?? 0,
-                right: container.style?.padding?.right ?? 0,
-                bottom: container.style?.padding?.bottom ?? 0,
+                left: container?.style?.padding?.left ?? 0,
+                top: container?.style?.padding?.top ?? 0,
+                right: container?.style?.padding?.right ?? 0,
+                bottom: container?.style?.padding?.bottom ?? 0,
               ),
               child: SingleChildScrollView(
                 child: GravityElementsColumn(
@@ -109,7 +109,7 @@ class _ModalContentState extends State<ModalContent> {
                   formsEnabled: true,
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment:
-                      container.style?.contentAlignment
+                      container?.style?.contentAlignment
                           ?.toCrossAxisAlignment() ??
                       CrossAxisAlignment.center,
                   onClickCallback: (element, action) {

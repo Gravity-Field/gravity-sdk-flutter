@@ -21,7 +21,7 @@ CampaignContent _$CampaignContentFromJson(Map<String, dynamic> json) =>
         unknownValue: DeliveryMethod.unknown,
       ),
       contentType: json['contentType'] as String,
-      variables: Variables.fromJson(json['variables'] as Map<String, dynamic>),
+      variables: _variablesFromJson(json['variables'] as Map<String, dynamic>?),
       custom: json['custom'] == null
           ? null
           : ContentCustom.fromJson(json['custom'] as Map<String, dynamic>),

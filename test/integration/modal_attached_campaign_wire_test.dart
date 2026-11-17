@@ -256,7 +256,8 @@ void main() {
     'inline',
     'unknown-delivery',
     'snackbar',
-    'bottom_sheet',
+    // A bottom sheet without frameUI is presentable with defaults, like on
+    // Android and iOS (see test/ui/missing_frame_ui_test.dart).
   ]) {
     testWidgets('non-presentable step $target releases the campaign', (
       tester,

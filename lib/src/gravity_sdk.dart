@@ -1420,23 +1420,23 @@ class GravitySDK {
         impression: impression,
       );
 
-      final frameUi = content.variables.frameUI!;
-      final container = frameUi.container;
+      final frameUi = content.variables.frameUI;
+      final container = frameUi?.container;
 
       showModalBottomSheet<void>(
-        backgroundColor: container.style?.backgroundColor,
+        backgroundColor: container?.style?.backgroundColor,
         // When the backend configures a handle the SDK renders it itself
         // (see BottomSheetContent), so Material's own handle is switched off
         // even if the host theme enables it via bottomSheetTheme.showDragHandle.
         // With no backend config the host theme keeps deciding, as before.
-        showDragHandle: frameUi.dragHandle != null ? false : null,
+        showDragHandle: frameUi?.dragHandle != null ? false : null,
         isScrollControlled: true,
         useSafeArea: true,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(container.style?.cornerRadius ?? 0),
-            topRight: Radius.circular(container.style?.cornerRadius ?? 0),
+            topLeft: Radius.circular(container?.style?.cornerRadius ?? 0),
+            topRight: Radius.circular(container?.style?.cornerRadius ?? 0),
           ),
         ),
         context: context,
@@ -1501,7 +1501,10 @@ class GravitySDK {
   ) {
     final template = content.templateSystemName;
 
-    if (template == null || template == TemplateSystemName.unknown) {
+    // Like Android and iOS: a snackbar has no defaults without frameUI.
+    if (template == null ||
+        template == TemplateSystemName.unknown ||
+        content.variables.frameUI == null) {
       impression?.closed();
       return;
     }

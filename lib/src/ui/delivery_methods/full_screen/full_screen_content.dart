@@ -65,14 +65,14 @@ class _FullScreenContentState extends State<FullScreenContent> {
   );
 
   Widget _buildContent(BuildContext context) {
-    final frameUi = widget.content.variables.frameUI!;
-    final container = frameUi.container;
-    final close = frameUi.close;
+    final frameUi = widget.content.variables.frameUI;
+    final container = frameUi?.container;
+    final close = frameUi?.close;
     final products = widget.content.products;
 
-    final backgroundImage = container.style?.backgroundImage;
-    final backgroundColor = container.style?.backgroundColor;
-    final fit = container.style?.backgroundFit ?? BoxFit.cover;
+    final backgroundImage = container?.style?.backgroundImage;
+    final backgroundColor = container?.style?.backgroundColor;
+    final fit = container?.style?.backgroundFit ?? BoxFit.cover;
 
     return ModalAppearance(
       impression: impression,
@@ -88,10 +88,10 @@ class _FullScreenContentState extends State<FullScreenContent> {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      left: container.style?.padding?.left ?? 0,
-                      right: container.style?.padding?.right ?? 0,
-                      top: container.style?.padding?.top ?? 0,
-                      bottom: container.style?.padding?.bottom ?? 0,
+                      left: container?.style?.padding?.left ?? 0,
+                      right: container?.style?.padding?.right ?? 0,
+                      top: container?.style?.padding?.top ?? 0,
+                      bottom: container?.style?.padding?.bottom ?? 0,
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           return SingleChildScrollView(
@@ -106,11 +106,11 @@ class _FullScreenContentState extends State<FullScreenContent> {
                                 session: widget.session,
                                 formsEnabled: true,
                                 crossAxisAlignment:
-                                    container.style?.contentAlignment
+                                    container?.style?.contentAlignment
                                         ?.toCrossAxisAlignment() ??
                                     CrossAxisAlignment.center,
                                 mainAxisAlignment:
-                                    container.style?.verticalAlignment
+                                    container?.style?.verticalAlignment
                                         ?.toMainAxisAlignment() ??
                                     MainAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.min,

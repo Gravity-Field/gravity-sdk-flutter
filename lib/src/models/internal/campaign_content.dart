@@ -19,6 +19,10 @@ class CampaignContent {
   @JsonKey(unknownEnumValue: DeliveryMethod.unknown)
   final DeliveryMethod deliveryMethod;
   final String contentType;
+
+  /// Empty when the server omits `variables` (e.g. `json` delivery of
+  /// `native` content).
+  @JsonKey(fromJson: _variablesFromJson)
   final Variables variables;
   final ContentCustom? custom;
   final Products? products;
@@ -63,3 +67,6 @@ class CampaignContent {
     return result;
   }
 }
+
+Variables _variablesFromJson(Map<String, dynamic>? json) =>
+    json == null ? Variables() : Variables.fromJson(json);
